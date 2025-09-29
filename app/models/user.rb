@@ -7,11 +7,8 @@ class User < ApplicationRecord
     :recoverable, :rememberable, :validatable,
     :jwt_authenticatable, jwt_revocation_strategy: self
 
-  # Generate a unique JTI (JWT ID) for each user on creation
-  before_create :generate_jti
-
-  private
-  def generate_jti
+  before_create do
+    # Generate a unique JTI (JWT ID) for each user on creation
     self.jti = SecureRandom.uuid
   end
 end

@@ -29,7 +29,8 @@
       "Bash(EDITOR='vim' rails credentials:edit)",
       "Bash(rails generate:*)",
       "Bash(rails:*)",
-      "Bash(bin/rails:*)"
+      "Bash(bin/rails:*)",
+      "Bash(gh pr create:*)"
     ],
     "deny": [],
     "ask": []
