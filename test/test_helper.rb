@@ -14,7 +14,6 @@ WebMock.disable_net_connect!(
 Mocha.configure do |c|
   c.stubbing_method_unnecessarily = :prevent
   c.stubbing_non_existent_method = :prevent
-  c.stubbing_method_on_nil = :prevent
   c.stubbing_non_public_method = :prevent
 end
 
@@ -40,13 +39,20 @@ end
 module AuthenticationHelper
   def setup_user(user = nil)
     @current_user = user || create(:user)
-    @auth_token = create(:auth_token, user: @current_user)
-    @headers = { "Authorization" => "Bearer #{@auth_token.token}" }
+    @headers = auth_headers_for(@current_user)
   end
 
   def auth_headers_for(user)
-    token = create(:auth_token, user: user)
-    { "Authorization" => "Bearer #{token.token}" }
+    token, _payload = Warden::JWTAuth::UserEncoder.new.(user, :user, nil)
+    { "Authorization" => "Bearer #{token}" }
+  end
+
+  def sign_in_as(user)
+    post user_session_path, params: {
+      user: { email: user.email, password: user.password }
+    }, as: :json
+    token = response.headers["Authorization"]&.split(" ")&.last
+    { "Authorization" => "Bearer #{token}" }
   end
 end
 
@@ -87,7 +93,7 @@ class ApplicationControllerTest < ActionDispatch::IntegrationTest
       send(method, path, headers: { "Authorization" => "Bearer invalid" }, as: :json)
 
       assert_response :unauthorized
-      assert_equal "invalid_auth_token", response.parsed_body["error"]["type"]
+      assert_equal "unauthorized", response.parsed_body["error"]["type"]
     end
 
     test "#{method} #{path_helper} returns 401 without token" do
@@ -95,7 +101,7 @@ class ApplicationControllerTest < ActionDispatch::IntegrationTest
       send(method, path, as: :json)
 
       assert_response :unauthorized
-      assert_equal "invalid_auth_token", response.parsed_body["error"]["type"]
+      assert_equal "unauthorized", response.parsed_body["error"]["type"]
     end
   end
 end
