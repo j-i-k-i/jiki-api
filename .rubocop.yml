@@ -45,19 +45,9 @@ Lint/SuppressedException:
   Exclude:
     - "test/**/*"
 
-Metrics/BlockLength:
-  Exclude:
-    - "test/**/*"
-
-Metrics/MethodLength:
-  # We probably want to bring this down but let's start here for now
-  Max: 20
-  Exclude:
-    - "test/**/*"
-
-Metrics/ClassLength:
-  Exclude:
-    - "test/**/*"
+# Disable all Metrics cops - we don't use them
+Metrics:
+  Enabled: false
 
 Naming/PredicatePrefix:
   Enabled: false
@@ -107,7 +97,7 @@ Style/StringLiteralsInInterpolation:
   Enabled: false
 
 Naming/VariableNumber:
-  EnforcedStyle: snake_case
+  Enabled: false
 
 Style/LambdaCall:
   EnforcedStyle: braces

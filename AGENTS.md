@@ -14,6 +14,45 @@ Start by running:
 cat .context/README.md
 ```
 
+### How to complex a task
+
+#### 1. Determine a plan and get sign off.
+
+Work with the user to come up with a clear plan. Ask clarifying questions. Minimise assumptions. 
+
+Only continue to (2) once the user has given signoff on the plan.
+
+#### 2. Write a PLAN.md 
+
+Write a PLAN.md document that lists the plan with checkboxes to tick off. 
+
+#### 3. Work through the plan
+
+As you work through the plan, add new checkboxes if new tasks are added, and check off checkboxes as needed.
+
+## 4. Before Committing
+
+Always perform these checks before committing code:
+
+1. **Run Tests**: `bin/rails test`
+2. **Run Linting**: `bin/rubocop --except Metrics` (excludes metrics cops to focus on style/correctness)
+3. **Security Check**: `bin/brakeman`
+4. **Update Context Files**: Review if any `.context/` files need updating based on your changes
+5. **Commit Message**: Use clear, descriptive commit messages that explain the "why"
+
+## 5. Git Workflow for Agents (Committing)
+
+**REQUIRED**: When completing any task, agents MUST follow this workflow:
+
+1. **Create Feature Branch**: Always work on a descriptively named feature branch (e.g., `setup-factorybot`, `add-user-authentication`)
+2. **Implement Changes**: Make all necessary code and documentation changes
+3. **Quality Checks**: Run tests, linting, and security checks
+4. **Commit Changes**: Create a clear, descriptive commit message
+5. **Push Branch**: Push the feature branch to the remote repository
+6. **Create Pull Request**: Always create a PR with a comprehensive description of changes
+
+This ensures proper code review, maintains git history, and follows professional development practices.
+
 ### Related Repositories
 
 This repo is part of a set of repos:
@@ -36,29 +75,6 @@ Based on `/overview/tech/backend.md`:
 - **PPP Pricing**: Geographic-based pricing with Stripe integration
 - **Internationalization**: Database-stored translations generated to i18n files
 - **Integration with Exercism**: Shares infrastructure patterns but different user journey
-
-## Before Committing
-
-Always perform these checks before committing code:
-
-1. **Run Tests**: `bin/rails test`
-2. **Run Linting**: `bin/rubocop`
-3. **Security Check**: `bin/brakeman`
-4. **Update Context Files**: Review if any `.context/` files need updating based on your changes
-5. **Commit Message**: Use clear, descriptive commit messages that explain the "why"
-
-## Git Workflow for Agents
-
-**REQUIRED**: When completing any task, agents MUST follow this workflow:
-
-1. **Create Feature Branch**: Always work on a descriptively named feature branch (e.g., `setup-factorybot`, `add-user-authentication`)
-2. **Implement Changes**: Make all necessary code and documentation changes
-3. **Quality Checks**: Run tests, linting, and security checks
-4. **Commit Changes**: Create a clear, descriptive commit message
-5. **Push Branch**: Push the feature branch to the remote repository
-6. **Create Pull Request**: Always create a PR with a comprehensive description of changes
-
-This ensures proper code review, maintains git history, and follows professional development practices.
 
 ## Quick Reference
 
