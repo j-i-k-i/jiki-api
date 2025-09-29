@@ -30,7 +30,9 @@
       "Bash(rails generate:*)",
       "Bash(rails:*)",
       "Bash(bin/rails:*)",
-      "Bash(gh pr create:*)"
+      "Bash(gh pr create:*)",
+      "Bash(RAILS_ENV=test bin/rails console:*)",
+      "Bash(RAILS_ENV=test bin/rails runner:*)"
     ],
     "deny": [],
     "ask": []
