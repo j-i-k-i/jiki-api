@@ -318,19 +318,20 @@ Devise.setup do |config|
   # ==> JWT Configuration
   # Configure JWT tokens for API authentication
   config.jwt do |jwt|
-    # Use Rails credentials for the secret key
-    jwt.secret = Rails.application.credentials.devise_jwt_secret_key ||
-                 Rails.application.credentials.secret_key_base
+    # Use Rails credentials for the secret key, with fallback for CI/test
+    jwt.secret = Rails.application.credentials[:devise_jwt_secret_key] ||
+                 Rails.application.credentials[:secret_key_base] ||
+                 Rails.application.secret_key_base
 
     # Dispatch tokens in Authorization header
     jwt.dispatch_requests = [
-      ['POST', %r{^/api/v1/auth/login$}],
-      ['POST', %r{^/api/v1/auth/signup$}]
+      ['POST', %r{^/v1/auth/login$}],
+      ['POST', %r{^/v1/auth/signup$}]
     ]
 
     # Revoke tokens on logout
     jwt.revocation_requests = [
-      ['DELETE', %r{^/api/v1/auth/logout$}]
+      ['DELETE', %r{^/v1/auth/logout$}]
     ]
 
     # Token expiration time (30 days)
