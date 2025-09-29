@@ -27,6 +27,9 @@ gem "thruster", require: false
 # Use Rack CORS for handling Cross-Origin Resource Sharing (CORS), making cross-origin Ajax possible
 # gem "rack-cors"
 
+# Command pattern implementation for business logic
+gem "mandate", "~> 2.0"
+
 group :development, :test do
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem
   gem "debug", platforms: %i[mri windows], require: "debug/prelude"
@@ -34,13 +37,26 @@ group :development, :test do
   # Static analysis for security vulnerabilities [https://brakemanscanner.org/]
   gem "brakeman", require: false
 
-  factorybot
   # Test factories for creating test data
   gem "factory_bot_rails"
-  
+
   # Rubocop for code style enforcement
   gem "rubocop", require: false
   gem "rubocop-rails", require: false
   gem "rubocop-minitest", require: false
   gem "rubocop-performance", require: false
+end
+
+group :test do
+  # Mocking and stubbing framework
+  gem "mocha"
+
+  # HTTP request stubbing for external API testing
+  gem "webmock"
+
+  # Retry flaky tests in CI environments
+  gem "minitest-retry"
+
+  # Additional controller testing helpers
+  gem "rails-controller-testing"
 end

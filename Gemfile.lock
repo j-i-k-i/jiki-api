@@ -72,6 +72,8 @@ GEM
       securerandom (>= 0.3)
       tzinfo (~> 2.0, >= 2.0.5)
       uri (>= 0.13.1)
+    addressable (2.8.7)
+      public_suffix (>= 2.0.2, < 7.0)
     ast (2.4.3)
     base64 (0.3.0)
     benchmark (0.4.1)
@@ -83,6 +85,9 @@ GEM
     builder (3.3.0)
     concurrent-ruby (1.3.5)
     connection_pool (2.5.4)
+    crack (1.0.0)
+      bigdecimal
+      rexml
     crass (1.0.6)
     date (3.4.1)
     debug (1.11.0)
@@ -98,6 +103,7 @@ GEM
       railties (>= 6.1.0)
     globalid (1.3.0)
       activesupport (>= 6.1)
+    hashdiff (1.2.1)
     i18n (1.14.7)
       concurrent-ruby (~> 1.0)
     io-console (0.8.1)
@@ -117,9 +123,14 @@ GEM
       net-imap
       net-pop
       net-smtp
+    mandate (2.2.0)
     marcel (1.1.0)
     mini_mime (1.1.5)
     minitest (5.25.5)
+    minitest-retry (0.2.5)
+      minitest (>= 5.0)
+    mocha (2.7.1)
+      ruby2_keywords (>= 0.0.5)
     msgpack (1.8.0)
     net-imap (0.5.10)
       date
@@ -165,6 +176,7 @@ GEM
     psych (5.2.6)
       date
       stringio
+    public_suffix (6.0.2)
     puma (7.0.4)
       nio4r (~> 2.0)
     racc (1.8.1)
@@ -190,6 +202,10 @@ GEM
       activesupport (= 8.0.3)
       bundler (>= 1.15.0)
       railties (= 8.0.3)
+    rails-controller-testing (1.0.5)
+      actionpack (>= 5.0.1.rc1)
+      actionview (>= 5.0.1.rc1)
+      activesupport (>= 5.0.1.rc1)
     rails-dom-testing (2.3.0)
       activesupport (>= 5.0.0)
       minitest
@@ -214,6 +230,7 @@ GEM
     regexp_parser (2.11.3)
     reline (0.6.2)
       io-console (~> 0.5)
+    rexml (3.4.4)
     rubocop (1.81.1)
       json (~> 2.3)
       language_server-protocol (~> 3.17.0.2)
@@ -243,6 +260,7 @@ GEM
       rubocop (>= 1.75.0, < 2.0)
       rubocop-ast (>= 1.44.0, < 2.0)
     ruby-progressbar (1.13.0)
+    ruby2_keywords (0.0.5)
     securerandom (0.4.1)
     stringio (3.1.7)
     thor (1.4.0)
@@ -260,6 +278,10 @@ GEM
     unicode-emoji (4.1.0)
     uri (1.0.3)
     useragent (0.16.11)
+    webmock (3.25.1)
+      addressable (>= 2.8.0)
+      crack (>= 0.3.2)
+      hashdiff (>= 0.4.0, < 2.0.0)
     websocket-driver (0.8.0)
       base64
       websocket-extensions (>= 0.1.0)
@@ -283,15 +305,20 @@ DEPENDENCIES
   brakeman
   debug
   factory_bot_rails
+  mandate (~> 2.0)
+  minitest-retry
+  mocha
   pg (~> 1.1)
   puma (>= 5.0)
   rails (~> 8.0.3)
+  rails-controller-testing
   rubocop
   rubocop-minitest
   rubocop-performance
   rubocop-rails
   thruster
   tzinfo-data
+  webmock
 
 BUNDLED WITH
    2.6.9

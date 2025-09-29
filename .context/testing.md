@@ -18,6 +18,18 @@ This document describes the testing approach, framework configuration, and patte
 - **Syntax**: Full FactoryBot syntax methods available via `include FactoryBot::Syntax::Methods`
 - **No Fixtures**: Project uses FactoryBot instead of Rails fixtures for better maintainability
 
+### Mocking and Stubbing
+
+#### Mocha
+- **Gem**: `mocha` - Powerful mocking and stubbing framework
+- **Usage**: Mock external dependencies and command objects
+- **Syntax**: `expects`, `returns`, `raises` for behavior specification
+
+#### WebMock
+- **Gem**: `webmock` - HTTP request stubbing library
+- **Purpose**: Mock external API calls (Stripe, email services, etc.)
+- **Configuration**: Disable network connections except to allowed hosts
+
 #### Factory Organization
 ```
 test/factories/
@@ -139,17 +151,111 @@ bin/rails test test/integration/
 - **Create minimal data** - only what's needed for the specific test
 
 ### API Testing Patterns
-```ruby
-class Api::V1::UsersControllerTest < ActionDispatch::IntegrationTest
-  test "should get user profile" do
-    user = create(:user)
 
-    get api_v1_user_path(user),
-        headers: { 'Authorization' => "Bearer #{user.auth_token}" }
+#### Basic Controller Test
+```ruby
+class UsersControllerTest < ActionDispatch::IntegrationTest
+  setup do
+    @user = create(:user)
+    @token = create(:auth_token, user: @user)
+    @headers = { 'Authorization' => "Bearer #{@token.token}" }
+  end
+
+  test "should get user profile" do
+    get user_path(@user), headers: @headers, as: :json
 
     assert_response :success
-    assert_equal user.name, response.parsed_body['name']
+    assert_equal @user.name, response.parsed_body['user']['name']
   end
+
+  test "requires authentication" do
+    get user_path(@user), as: :json
+
+    assert_response :unauthorized
+    assert_equal 'invalid_auth_token', response.parsed_body['error']['type']
+  end
+end
+```
+
+#### Testing Commands in Controllers
+```ruby
+class LessonsControllerTest < ActionDispatch::IntegrationTest
+  setup do
+    setup_user  # Helper method to set up authentication
+  end
+
+  test "delegates to Lesson::Create command" do
+    lesson = build(:lesson)
+    Lesson::Create.expects(:call).with(
+      @current_user,
+      title: "New Lesson",
+      content: "Content"
+    ).returns(lesson)
+
+    post lessons_path,
+      params: { lesson: { title: "New Lesson", content: "Content" } },
+      headers: @headers,
+      as: :json
+
+    assert_response :created
+  end
+
+  test "handles command validation errors" do
+    error = ValidationError.new(title: ["can't be blank"])
+    Lesson::Create.expects(:call).raises(error)
+
+    post lessons_path,
+      params: { lesson: { content: "Content" } },
+      headers: @headers,
+      as: :json
+
+    assert_response :bad_request
+    assert_equal ["can't be blank"], response.parsed_body['error']['errors']['title']
+  end
+end
+```
+
+#### Authentication Testing Helper
+```ruby
+# In test_helper.rb or a support file
+module AuthenticationHelper
+  def setup_user(user = nil)
+    @current_user = user || create(:user)
+    @auth_token = create(:auth_token, user: @current_user)
+    @headers = { 'Authorization' => "Bearer #{@auth_token.token}" }
+  end
+
+  def auth_headers_for(user)
+    token = create(:auth_token, user: user)
+    { 'Authorization' => "Bearer #{token.token}" }
+  end
+end
+
+class ActionDispatch::IntegrationTest
+  include AuthenticationHelper
+end
+```
+
+#### Testing Authentication Guards
+```ruby
+# Macro for testing authentication on all endpoints
+class ApplicationControllerTest < ActionDispatch::IntegrationTest
+  def self.guard_incorrect_token!(path_helper, args: [], method: :get)
+    test "#{method} #{path_helper} returns 401 with invalid token" do
+      path = send(path_helper, *args)
+      send(method, path, headers: { 'Authorization' => 'Bearer invalid' }, as: :json)
+
+      assert_response :unauthorized
+      assert_equal 'invalid_auth_token', response.parsed_body['error']['type']
+    end
+  end
+end
+
+# Usage in controller tests
+class ExercisesControllerTest < ApplicationControllerTest
+  guard_incorrect_token! :exercises_path
+  guard_incorrect_token! :exercise_path, args: [1]
+  guard_incorrect_token! :submit_exercise_path, args: [1], method: :post
 end
 ```
 
@@ -158,6 +264,172 @@ end
 - **Use traits wisely** to avoid complex factory hierarchies
 - **Prefer `build` over `create`** when database persistence isn't required
 - **Use `create_list` efficiently** for bulk data creation
+
+## Command Testing
+
+### Testing Mandate Commands
+
+Commands are tested independently from controllers:
+
+```ruby
+require "test_helper"
+
+class User::CreateTest < ActiveSupport::TestCase
+  test "creates user with valid params" do
+    user = User::Create.(
+      email: "test@example.com",
+      name: "Test User",
+      password: "secure123"
+    )
+
+    assert user.persisted?
+    assert_equal "test@example.com", user.email
+    assert_equal "Test User", user.name
+  end
+
+  test "raises ValidationError with blank email" do
+    error = assert_raises ValidationError do
+      User::Create.(email: "", name: "Test", password: "secure123")
+    end
+
+    assert_includes error.errors[:email], "can't be blank"
+  end
+
+  test "is idempotent for creating users" do
+    assert_idempotent_command do
+      User::Create.(email: "test@example.com", name: "Test", password: "secure123")
+    end
+  end
+end
+```
+
+### Mocking with Mocha
+
+```ruby
+class Exercise::SubmitTest < ActiveSupport::TestCase
+  test "queues evaluation job after submission" do
+    user = create(:user)
+    exercise = create(:exercise)
+
+    # Mock the job enqueueing
+    EvaluateSubmissionJob.expects(:perform_later).once
+
+    submission = Exercise::Submit.(user, exercise, "code")
+
+    assert submission.persisted?
+  end
+
+  test "sends notification email on completion" do
+    user = create(:user)
+    exercise = create(:exercise)
+
+    # Mock the mailer
+    ExerciseMailer.expects(:completed).with(user, exercise).returns(mock(deliver_later: true))
+
+    Exercise::Complete.(user, exercise)
+  end
+end
+```
+
+### WebMock Configuration
+
+```ruby
+# test/test_helper.rb
+require 'webmock/minitest'
+
+# Disable all external connections except allowed hosts
+WebMock.disable_net_connect!(
+  allow_localhost: true,
+  allow: [
+    "chromedriver.storage.googleapis.com",  # For system tests if added later
+    "127.0.0.1"  # Local services
+  ]
+)
+
+# Example of stubbing external API calls
+class Payment::ProcessTest < ActiveSupport::TestCase
+  test "processes Stripe payment successfully" do
+    # Stub Stripe API
+    stub_request(:post, "https://api.stripe.com/v1/charges")
+      .with(
+        body: { amount: 1000, currency: "usd", source: "tok_test" },
+        headers: { 'Authorization' => 'Bearer sk_test_key' }
+      )
+      .to_return(
+        status: 200,
+        body: { id: "ch_123", status: "succeeded" }.to_json,
+        headers: { 'Content-Type' => 'application/json' }
+      )
+
+    charge = Payment::Process.(amount: 1000, token: "tok_test")
+
+    assert_equal "ch_123", charge.stripe_id
+    assert_equal "succeeded", charge.status
+  end
+
+  test "handles Stripe API errors" do
+    stub_request(:post, "https://api.stripe.com/v1/charges")
+      .to_return(status: 402, body: { error: { message: "Card declined" } }.to_json)
+
+    assert_raises Payment::CardDeclinedError do
+      Payment::Process.(amount: 1000, token: "tok_test")
+    end
+  end
+end
+```
+
+## JSON Response Testing
+
+### Custom Assertions
+
+```ruby
+# test/support/json_assertions.rb
+module JsonAssertions
+  def assert_json_response(expected)
+    actual = response.parsed_body
+    assert_equal expected.deep_stringify_keys, actual
+  end
+
+  def assert_json_structure(structure, data = response.parsed_body)
+    structure.each do |key, expected_type|
+      assert data.key?(key.to_s), "Expected key '#{key}' in JSON response"
+
+      if expected_type.is_a?(Hash)
+        assert_json_structure(expected_type, data[key.to_s])
+      elsif expected_type.is_a?(Array) && expected_type.first.is_a?(Hash)
+        data[key.to_s].each do |item|
+          assert_json_structure(expected_type.first, item)
+        end
+      elsif expected_type
+        assert data[key.to_s].is_a?(expected_type),
+          "Expected '#{key}' to be #{expected_type}, got #{data[key.to_s].class}"
+      end
+    end
+  end
+end
+
+# Usage in tests
+class UsersControllerTest < ActionDispatch::IntegrationTest
+  include JsonAssertions
+
+  test "returns correct JSON structure" do
+    get user_path(@user), headers: @headers, as: :json
+
+    assert_json_structure({
+      user: {
+        id: Integer,
+        email: String,
+        name: String,
+        created_at: String,
+        progress: {
+          lessons_completed: Integer,
+          exercises_solved: Integer
+        }
+      }
+    })
+  end
+end
+```
 
 ## Support Files
 
