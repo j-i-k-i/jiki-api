@@ -12,7 +12,7 @@ class CreateLessons < ActiveRecord::Migration[8.0]
       t.timestamps
     end
     add_index :lessons, :slug, unique: true
-    add_index :lessons, [:level_id, :position], unique: true
+    add_index :lessons, %i[level_id position], unique: true
     add_index :lessons, :type
   end
 end

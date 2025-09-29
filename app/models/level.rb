@@ -2,6 +2,8 @@ class Level < ApplicationRecord
   disable_sti!
 
   has_many :lessons, -> { order(:position) }, dependent: :destroy, inverse_of: :level
+  has_many :user_levels, dependent: :destroy
+  has_many :users, through: :user_levels
 
   validates :slug, presence: true, uniqueness: true
   validates :title, presence: true
