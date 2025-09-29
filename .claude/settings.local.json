@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//Users/iHiD/Code/exercism/website/**)",
+      "WebSearch",
+      "Bash(chmod:*)",
+      "Bash(npm install)",
+      "Bash(npx husky init:*)",
+      "Bash(bundle:*)",
+      "Bash(bin/rubocop:*)",
+      "Bash(git checkout:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nReplace rubocop-rails-omakase with comprehensive Exercism Rubocop configuration\n\nThis commit replaces the minimal omakase configuration with Exercism''s \nmore comprehensive Rubocop setup including pre-commit hooks via Husky.\n\nChanges include:\n- Updated .rubocop.yml with comprehensive rules from Exercism\n- Replaced rubocop-rails-omakase with individual rubocop gems in Gemfile\n- Added --except Metrics flag to CI workflow to focus on style over complexity\n- Added package.json for Husky pre-commit hook setup\n- Added .husky/pre-commit hook for automated style checking\n- Added bin/rubocop-quick script for faster local linting\n- Updated .gitignore to exclude node_modules\n- Auto-corrected Ruby files to match new style rules\n\nThis provides better code quality enforcement while maintaining development\nvelocity through focused linting and automated pre-commit checks.\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(git push:*)",
+      "Bash(gh pr create --title \"Setup Rubocop with Exercism''s comprehensive configuration\" --body \"$(cat <<''EOF''\n## Summary\n- Replace minimal Rails omakase Rubocop configuration with Exercism''s comprehensive setup\n- Add Husky pre-commit hooks for automated code quality checks\n- Update CI workflow to use the new Rubocop configuration\n\n## Key Changes\n- **New Rubocop Configuration**: Replaced `rubocop-rails-omakase` with comprehensive `.rubocop.yml` based on Exercism''s proven configuration\n- **Pre-commit Hooks**: Added Husky integration with `bin/rubocop-quick` for fast pre-commit checks\n- **CI Integration**: Updated GitHub Actions workflow to use the new linting setup\n- **Development Dependencies**: Added necessary gems and npm packages for the toolchain\n- **Code Formatting**: Applied automatic formatting fixes across the codebase\n\n## Benefits\n- **Better Code Consistency**: Comprehensive rules ensure consistent Ruby style across the project\n- **Automated Formatting**: Pre-commit hooks catch issues before they reach the repository\n- **Faster Feedback**: Quick Rubocop checks during development workflow\n- **Proven Configuration**: Leverages Exercism''s battle-tested linting setup used across their platform\n\n## Files Modified\n- `.rubocop.yml` - Comprehensive linting rules\n- `.husky/pre-commit` - Pre-commit hook setup\n- `bin/rubocop-quick` - Fast linting script for development\n- `Gemfile` - Updated Ruby dependencies\n- `package.json` - Added Husky for git hooks\n- `.github/workflows/ci.yml` - Updated CI linting step\n- Various config files - Applied automatic formatting\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\nEOF\n)\")",
+      "Bash(bin/rails test:*)",
+      "Bash(bin/brakeman:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

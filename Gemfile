@@ -34,6 +34,10 @@ group :development, :test do
   # Static analysis for security vulnerabilities [https://brakemanscanner.org/]
   gem "brakeman", require: false
 
+  factorybot
+  # Test factories for creating test data
+  gem "factory_bot_rails"
+  
   # Rubocop for code style enforcement
   gem "rubocop", require: false
   gem "rubocop-rails", require: false

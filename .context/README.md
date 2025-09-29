@@ -18,6 +18,7 @@ Context files help AI assistants:
 - **[commands.md](./commands.md)** - Development commands, testing, linting, and Docker operations
 - **[architecture.md](./architecture.md)** - Rails API structure, components, and design patterns
 - **[configuration.md](./configuration.md)** - Environment variables, CORS, storage, and deployment config
+- **[testing.md](./testing.md)** - Testing framework, FactoryBot setup, and testing patterns
 
 ## How to Use These Files
 
@@ -27,6 +28,7 @@ Context files help AI assistants:
 2. **Commands** - Check `commands.md` for how to run tests, lint, and perform common tasks
 3. **Architecture** - Review `architecture.md` before making structural changes
 4. **Configuration** - Consult `configuration.md` when setting up new services or environments
+5. **Testing** - Reference `testing.md` for FactoryBot patterns, test organization, and quality standards
 
 ### When to Update
 
@@ -86,10 +88,10 @@ Before committing, review if any context files need updating based on your chang
 - Middleware optimized for APIs
 - CORS configuration required
 
-### Testing with Minitest
+### Testing with Minitest and FactoryBot
 - Parallel execution by default
-- Fixtures for test data
-- Test files in `test/` directory
+- FactoryBot for test data generation (no fixtures)
+- Test files in `test/` directory with factories in `test/factories/`
 - Run specific tests with `-n` flag
 
 ### Background Jobs
