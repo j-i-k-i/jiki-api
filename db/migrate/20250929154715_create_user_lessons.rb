@@ -10,5 +10,9 @@ class CreateUserLessons < ActiveRecord::Migration[8.0]
     end
 
     add_index :user_lessons, %i[user_id lesson_id], unique: true
+
+    # Add foreign key from users.current_user_lesson_id to user_lessons
+    add_foreign_key :users, :user_lessons, column: :current_user_lesson_id
+    add_index :users, :current_user_lesson_id
   end
 end

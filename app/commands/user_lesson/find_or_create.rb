@@ -11,6 +11,8 @@ class UserLesson::FindOrCreate
     user_level = UserLevel::FindOrCreate.(user, lesson.level)
     user_level.update!(current_user_lesson: user_lesson)
 
+    user.update!(current_user_lesson: user_lesson)
+
     user_lesson
   end
 end

@@ -137,4 +137,34 @@ class UserLesson::FindOrCreateTest < ActiveSupport::TestCase
 
     assert_equal user_level1.id, user_level2.id
   end
+
+  test "sets current_user_lesson on user" do
+    user = create(:user)
+    lesson = create(:lesson)
+
+    user_lesson = UserLesson::FindOrCreate.(user, lesson)
+
+    user.reload
+    assert_equal user_lesson.id, user.current_user_lesson_id
+  end
+
+  test "updates current_user_lesson when starting different lesson" do
+    user = create(:user)
+    lesson1 = create(:lesson, slug: "first-lesson")
+    lesson2 = create(:lesson, slug: "second-lesson")
+
+    user_lesson1 = UserLesson::FindOrCreate.(user, lesson1)
+    user.reload
+    assert_equal user_lesson1.id, user.current_user_lesson_id
+
+    user_lesson2 = UserLesson::FindOrCreate.(user, lesson2)
+    user.reload
+    assert_equal user_lesson2.id, user.current_user_lesson_id
+  end
+
+  test "initializes user with nil current_user_lesson" do
+    user = create(:user)
+
+    assert_nil user.current_user_lesson_id
+  end
 end

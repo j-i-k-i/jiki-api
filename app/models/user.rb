@@ -12,6 +12,8 @@ class User < ApplicationRecord
   has_many :user_levels, dependent: :destroy
   has_many :levels, through: :user_levels
 
+  belongs_to :current_user_lesson, class_name: "UserLesson", optional: true
+
   before_create do
     # Generate a unique JTI (JWT ID) for each user on creation
     self.jti = SecureRandom.uuid
