@@ -152,28 +152,113 @@ bin/rails test test/integration/
 
 ### API Testing Patterns
 
+#### JSON Response Testing
+
+**IMPORTANT**: Always use `assert_json_response` helper for testing complete JSON responses. This provides clearer, more maintainable tests compared to manual assertions.
+
+```ruby
+# CORRECT: Use assert_json_response for complete response verification
+test "GET index returns user data" do
+  user = create(:user, name: "Test User", email: "test@example.com")
+
+  get user_path(user), headers: @headers, as: :json
+
+  assert_response :success
+  assert_json_response({
+    user: {
+      id: user.id,
+      name: "Test User",
+      email: "test@example.com"
+    }
+  })
+end
+
+# INCORRECT: Don't manually parse JSON and assert each field
+test "GET index returns user data" do
+  user = create(:user, name: "Test User")
+
+  get user_path(user), headers: @headers, as: :json
+
+  assert_response :success
+  json = response.parsed_body
+  assert_equal user.id, json["user"]["id"]
+  assert_equal "Test User", json["user"]["name"]
+  # ... many more assertions
+end
+```
+
+**Benefits of `assert_json_response`:**
+- Compares entire response structure at once
+- Automatically handles string/symbol key conversions
+- More readable - shows expected structure clearly
+- Catches unexpected fields in response
+- Easier to maintain when response format changes
+
 #### Basic Controller Test
 ```ruby
 class UsersControllerTest < ActionDispatch::IntegrationTest
   setup do
-    @user = create(:user)
-    @token = create(:auth_token, user: @user)
-    @headers = { 'Authorization' => "Bearer #{@token.token}" }
+    setup_user
   end
 
   test "should get user profile" do
-    get user_path(@user), headers: @headers, as: :json
+    get user_path(@current_user), headers: @headers, as: :json
 
     assert_response :success
-    assert_equal @user.name, response.parsed_body['user']['name']
+    assert_json_response({
+      user: {
+        id: @current_user.id,
+        name: @current_user.name,
+        email: @current_user.email
+      }
+    })
   end
 
   test "requires authentication" do
-    get user_path(@user), as: :json
+    get user_path(@current_user), as: :json
 
     assert_response :unauthorized
-    assert_equal 'invalid_auth_token', response.parsed_body['error']['type']
+    assert_json_response({
+      error: {
+        type: "unauthorized",
+        message: "Unauthorized"
+      }
+    })
   end
+end
+```
+
+#### Testing Serializers in Controllers
+
+**IMPORTANT**: When testing that a controller uses a specific serializer, mock the serializer and verify it's called with the correct data. Don't test the serializer's output in controller tests - that belongs in serializer tests.
+
+```ruby
+# CORRECT: Test that serializer is called, not its output
+test "GET index uses SerializeLevels" do
+  levels = create_list(:level, 2)
+  serialized_data = [{ slug: "test" }]
+
+  SerializeLevels.expects(:call).with { |arg| arg.to_a == levels }.returns(serialized_data)
+
+  get levels_path, headers: @headers, as: :json
+
+  assert_response :success
+  assert_json_response({ levels: serialized_data })
+end
+
+# INCORRECT: Don't test serializer output in controller test
+test "GET index uses SerializeLevels" do
+  level = create(:level, slug: "test-level")
+
+  get levels_path, headers: @headers, as: :json
+
+  assert_response :success
+  json = response.parsed_body
+
+  # Testing serializer behavior - belongs in serializer test
+  assert json["levels"][0].key?("slug")
+  assert json["levels"][0].key?("lessons")
+  refute json["levels"][0].key?("title")
 end
 ```
 
@@ -181,7 +266,7 @@ end
 ```ruby
 class LessonsControllerTest < ActionDispatch::IntegrationTest
   setup do
-    setup_user  # Helper method to set up authentication
+    setup_user
   end
 
   test "delegates to Lesson::Create command" do
@@ -210,7 +295,13 @@ class LessonsControllerTest < ActionDispatch::IntegrationTest
       as: :json
 
     assert_response :bad_request
-    assert_equal ["can't be blank"], response.parsed_body['error']['errors']['title']
+    assert_json_response({
+      error: {
+        type: "validation_error",
+        message: "Validation failed",
+        errors: { title: ["can't be blank"] }
+      }
+    })
   end
 end
 ```

@@ -19,31 +19,30 @@ module V1
       get v1_levels_path, headers: @headers, as: :json
 
       assert_response :success
-
-      json = response.parsed_body
-      assert json["levels"].present?
-      assert_equal 2, json["levels"].length
-
-      # Check first level
-      assert_equal "level-1", json["levels"][0]["slug"]
-      assert_equal 2, json["levels"][0]["lessons"].length
-      assert_equal "lesson-1", json["levels"][0]["lessons"][0]["slug"]
-      assert_equal "exercise", json["levels"][0]["lessons"][0]["type"]
-      assert_equal({ "slug" => "ex1" }, json["levels"][0]["lessons"][0]["data"])
-
-      # Check second level
-      assert_equal "level-2", json["levels"][1]["slug"]
-      assert_equal 1, json["levels"][1]["lessons"].length
-      assert_equal "lesson-3", json["levels"][1]["lessons"][0]["slug"]
+      assert_json_response({
+        levels: [
+          {
+            slug: "level-1",
+            lessons: [
+              { slug: "lesson-1", type: "exercise", data: { slug: "ex1" } },
+              { slug: "lesson-2", type: "tutorial", data: { slug: "ex2" } }
+            ]
+          },
+          {
+            slug: "level-2",
+            lessons: [
+              { slug: "lesson-3", type: "exercise", data: { slug: "ex3" } }
+            ]
+          }
+        ]
+      })
     end
 
     test "GET index returns empty array when no levels exist" do
       get v1_levels_path, headers: @headers, as: :json
 
       assert_response :success
-
-      json = response.parsed_body
-      assert_empty json["levels"]
+      assert_json_response({ levels: [] })
     end
 
     test "GET index returns correct JSON structure" do
@@ -71,19 +70,17 @@ module V1
     end
 
     test "GET index uses SerializeLevels" do
-      level = create(:level)
-      create(:lesson, level: level)
+      Prosopite.finish # Stop scan before creating test data
+      levels = create_list(:level, 2)
+      serialized_data = [{ slug: "test" }]
 
+      SerializeLevels.expects(:call).with { |arg| arg.to_a == levels }.returns(serialized_data)
+
+      Prosopite.scan # Resume scan for the actual request
       get v1_levels_path, headers: @headers, as: :json
 
       assert_response :success
-      json = response.parsed_body
-
-      # Verify the serializer was used by checking the structure
-      assert json["levels"][0].key?("slug")
-      assert json["levels"][0].key?("lessons")
-      refute json["levels"][0].key?("title") # Title should not be included
-      refute json["levels"][0].key?("description") # Description should not be included
+      assert_json_response({ levels: serialized_data })
     end
   end
 end

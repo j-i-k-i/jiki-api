@@ -373,51 +373,64 @@ end
 
 ### Controller Test Structure
 
+**IMPORTANT**: Always use `assert_json_response` for testing complete JSON responses. This makes tests more maintainable and catches unexpected response changes.
+
 ```ruby
 require "test_helper"
 
-class UsersControllerTest < ActionDispatch::IntegrationTest
-  # Test authentication requirements
-  test "requires authentication for all endpoints" do
-    post users_path, params: { user: { email: "test@example.com" } }
-    assert_response :unauthorized
+class UsersControllerTest < ApplicationControllerTest
+  setup do
+    setup_user
   end
+
+  # Test authentication requirements using guard macro
+  guard_incorrect_token! :users_path, method: :post
 
   # Test successful operations
   test "creates user with valid params" do
     post users_path,
       params: { user: { email: "test@example.com", name: "Test", password: "secure123" } },
-      headers: auth_headers,
+      headers: @headers,
       as: :json
 
     assert_response :created
-    assert_equal "test@example.com", response.parsed_body["user"]["email"]
+    assert_json_response({
+      user: {
+        id: User.last.id,
+        email: "test@example.com",
+        name: "Test"
+      }
+    })
   end
 
   # Test error handling
   test "returns validation errors for invalid params" do
     post users_path,
       params: { user: { email: "invalid" } },
-      headers: auth_headers,
+      headers: @headers,
       as: :json
 
     assert_response :bad_request
-    assert_equal "validation_error", response.parsed_body["error"]["type"]
-    assert response.parsed_body["error"]["errors"]["email"].present?
-  end
-
-  private
-
-  def auth_headers
-    token = create(:auth_token)
-    { "Authorization" => "Bearer #{token.token}" }
+    assert_json_response({
+      error: {
+        type: "validation_error",
+        message: "Validation failed",
+        errors: { email: ["is invalid"] }
+      }
+    })
   end
 end
 ```
 
-### Testing Commands in Controllers
+**Key Principles:**
+- Use `assert_json_response` instead of manual `response.parsed_body` assertions
+- Use `guard_incorrect_token!` macro for authentication tests
+- Inherit from `ApplicationControllerTest` for API controller tests
+- Use `setup_user` helper to create authenticated user and headers
 
-Mock commands to test controller behavior:
+### Testing Commands and Serializers in Controllers
+
+Mock commands and serializers to test controller behavior in isolation:
 
 ```ruby
 test "delegates to User::Create command" do
@@ -430,7 +443,7 @@ test "delegates to User::Create command" do
 
   post users_path,
     params: { user: { email: "test@example.com", name: "Test", password: "secure123" } },
-    headers: auth_headers,
+    headers: @headers,
     as: :json
 
   assert_response :created
@@ -442,13 +455,32 @@ test "handles command exceptions" do
 
   post users_path,
     params: { user: { email: "invalid" } },
-    headers: auth_headers,
+    headers: @headers,
     as: :json
 
   assert_response :bad_request
-  assert_equal ["is invalid"], response.parsed_body["error"]["errors"]["email"]
+  assert_json_response({
+    error: {
+      type: "validation_error",
+      errors: { email: ["is invalid"] }
+    }
+  })
+end
+
+test "uses SerializeUser for response" do
+  user = create(:user)
+  serialized_data = { id: user.id, email: user.email }
+
+  SerializeUser.expects(:call).with(user).returns(serialized_data)
+
+  get user_path(user), headers: @headers, as: :json
+
+  assert_response :success
+  assert_json_response({ user: serialized_data })
 end
 ```
+
+**Important**: Test that serializers are called, not their output. Serializer behavior belongs in serializer tests.
 
 ## API Versioning
 

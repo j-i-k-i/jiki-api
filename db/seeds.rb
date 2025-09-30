@@ -17,3 +17,42 @@ puts "Loading levels from #{curriculum_file}..."
 Level::CreateAllFromJson.call(curriculum_file, delete_existing: false)
 
 puts "✓ Successfully loaded levels and lessons!"
+
+# Create some user progress data for testing
+if Level.any? && Lesson.any?
+  puts "\nCreating sample user progress..."
+
+  # Get first few levels and lessons
+  first_level = Level.first
+  second_level = Level.second
+
+  if first_level && second_level
+    # Create user_level records
+    user_level_1 = UserLevel.find_or_create_by!(user: user, level: first_level) do |ul|
+      ul.started_at = 2.days.ago
+    end
+
+    user_level_2 = UserLevel.find_or_create_by!(user: user, level: second_level) do |ul|
+      ul.started_at = 1.day.ago
+    end
+
+    # Create user_lesson records for first level (mix of completed and started)
+    first_level.lessons.limit(3).each_with_index do |lesson, index|
+      UserLesson.find_or_create_by!(user: user, lesson: lesson) do |ul|
+        ul.started_at = 2.days.ago - index.hours
+        ul.completed_at = index < 2 ? 2.days.ago - index.hours + 30.minutes : nil
+      end
+    end
+
+    # Create user_lesson records for second level (only started)
+    second_level.lessons.limit(2).each_with_index do |lesson, index|
+      UserLesson.find_or_create_by!(user: user, lesson: lesson) do |ul|
+        ul.started_at = 1.day.ago - index.hours
+      end
+    end
+
+    puts "✓ Created sample progress for user #{user.email}"
+    puts "  - #{user.user_levels.count} user_levels"
+    puts "  - #{user.user_lessons.count} user_lessons (#{user.user_lessons.where.not(completed_at: nil).count} completed)"
+  end
+end
