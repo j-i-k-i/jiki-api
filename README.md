@@ -38,7 +38,7 @@ All endpoints require authentication via Bearer token in the `Authorization` hea
   - **Response:**
     ```json
     {
-      "levels": [$LEVEL, $LEVEL, ...]
+      "levels": [Level, Level, ...]
     }
     ```
 
@@ -48,7 +48,7 @@ All endpoints require authentication via Bearer token in the `Authorization` hea
   - **Response:**
     ```json
     {
-      "user_levels": [$USER_LEVEL, $USER_LEVEL, ...]
+      "user_levels": [UserLevel, UserLevel, ...]
     }
     ```
 
@@ -88,7 +88,7 @@ All endpoints require authentication via Bearer token in the `Authorization` hea
 
 All API responses use serializers to format data consistently. Below are the data shapes for each serializer.
 
-### SerializeLesson
+### Lesson
 
 ```json
 {
@@ -100,16 +100,16 @@ All API responses use serializers to format data consistently. Below are the dat
 }
 ```
 
-### SerializeLevel
+### Level
 
 ```json
 {
   "slug": "basics",
-  "lessons": [$LESSON, $LESSON, ...]
+  "lessons": [Lesson, Lesson, ...]
 }
 ```
 
-### SerializeUserLesson
+### UserLesson
 
 ```json
 {
@@ -118,12 +118,12 @@ All API responses use serializers to format data consistently. Below are the dat
 }
 ```
 
-### SerializeUserLevel
+### UserLevel
 
 ```json
 {
   "level_slug": "basics",
-  "user_lessons": [$USER_LESSON, $USER_LESSON, ...]
+  "user_lessons": [UserLesson, UserLesson, ...]
 }
 ```
 
