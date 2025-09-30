@@ -25,7 +25,7 @@ class Level::CreateAllFromJsonTest < ActiveSupport::TestCase
     assert first_lesson
     assert_equal "Your First Function Call", first_lesson.title
     assert_equal "exercise", first_lesson.type
-    assert_equal({ "slug" => "solve-a-maze" }, first_lesson.data)
+    assert_equal({ slug: "solve-a-maze" }, first_lesson.data)
     assert_equal 1, first_lesson.position
   end
 

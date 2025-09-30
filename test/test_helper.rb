@@ -3,12 +3,17 @@ require_relative "../config/environment"
 require "rails/test_help"
 require "mocha/minitest"
 require "webmock/minitest"
+require "prosopite"
 
 # Configure WebMock to disable external connections
 WebMock.disable_net_connect!(
   allow_localhost: true,
   allow: ["127.0.0.1"]
 )
+
+# Configure Prosopite for N+1 query detection in tests
+Prosopite.rails_logger = true
+Prosopite.raise = true # Fail tests when N+1 queries are detected
 
 # Configure Mocha to be safe
 Mocha.configure do |c|
@@ -23,6 +28,15 @@ module ActiveSupport
 
     # Run tests in parallel with specified workers
     parallelize(workers: :number_of_processors)
+
+    # Setup Prosopite to scan each test for N+1 queries
+    setup do
+      Prosopite.scan
+    end
+
+    teardown do
+      Prosopite.finish
+    end
 
     # Add more helper methods to be used by all tests here...
 

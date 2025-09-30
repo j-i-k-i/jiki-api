@@ -1,1 +1,14 @@
-bin/rubocop-quick
+#!/bin/sh
+
+# Run rubocop on staged files
+bin/rubocop-quick || exit 1
+
+# Run tests
+echo "Running tests..."
+bin/rails test || exit 1
+
+# Run brakeman security scan
+echo "Running Brakeman security scan..."
+bin/brakeman -q || exit 1
+
+echo "✅ All pre-commit checks passed!"
