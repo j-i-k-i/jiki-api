@@ -12,6 +12,7 @@ Start by running:
 
 ```bash
 cat .context/README.md
+ls .context/
 ```
 
 ### How to complex a task
