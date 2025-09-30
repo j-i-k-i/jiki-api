@@ -13,8 +13,8 @@ class Level::CreateAllFromJson
       parsed_data["levels"].each do |level_data|
         level = create_or_update_level!(level_data)
 
-        level_data["lessons"]&.each_with_index do |lesson_data, lesson_index|
-          create_or_update_lesson!(level, lesson_data, lesson_index + 1)
+        level_data["lessons"]&.each do |lesson_data|
+          create_or_update_lesson!(level, lesson_data)
         end
       end
     end
@@ -53,7 +53,7 @@ class Level::CreateAllFromJson
     end
   end
 
-  def create_or_update_lesson!(level, lesson_data, position)
+  def create_or_update_lesson!(level, lesson_data)
     validate_lesson_data!(lesson_data)
 
     level.lessons.find_or_initialize_by(slug: lesson_data["slug"]).tap do |lesson|
@@ -61,8 +61,7 @@ class Level::CreateAllFromJson
         title: lesson_data["title"],
         description: lesson_data["description"] || "",
         type: lesson_data["type"],
-        data: lesson_data["data"] || {},
-        position: lesson.new_record? ? position : lesson.position
+        data: lesson_data["data"] || {}
       )
     end
   end
