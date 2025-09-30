@@ -10,8 +10,8 @@ class Level::CreateAllFromJson
     validate_json!
 
     ActiveRecord::Base.transaction do
-      parsed_data["levels"].each_with_index do |level_data, level_index|
-        level = create_or_update_level!(level_data, level_index + 1)
+      parsed_data["levels"].each do |level_data|
+        level = create_or_update_level!(level_data)
 
         level_data["lessons"]&.each_with_index do |lesson_data, lesson_index|
           create_or_update_lesson!(level, lesson_data, lesson_index + 1)
@@ -42,21 +42,15 @@ class Level::CreateAllFromJson
     raise InvalidJsonError, "Invalid JSON: #{e.message}"
   end
 
-  def create_or_update_level!(level_data, _position)
+  def create_or_update_level!(level_data)
     validate_level_data!(level_data)
 
     Level.find_or_initialize_by(slug: level_data["slug"]).tap do |level|
-      is_new = level.new_record?
       level.update!(
         title: level_data["title"],
-        description: level_data["description"],
-        position: is_new ? next_available_position : level.position
+        description: level_data["description"]
       )
     end
-  end
-
-  def next_available_position
-    (Level.unscoped.maximum(:position) || 0) + 1
   end
 
   def create_or_update_lesson!(level, lesson_data, position)
