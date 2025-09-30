@@ -37,12 +37,12 @@ class UserLevel::CompleteTest < ActiveSupport::TestCase
     assert_nil result.current_user_lesson_id
   end
 
-  test "delegates to UserLevel::Create for find or create logic" do
+  test "delegates to UserLevel::FindOrCreate for find or create logic" do
     user = create(:user)
     level = create(:level)
     user_level = create(:user_level, user: user, level: level)
 
-    UserLevel::Create.expects(:call).with(user, level).returns(user_level)
+    UserLevel::FindOrCreate.expects(:call).with(user, level).returns(user_level)
 
     UserLevel::Complete.(user, level)
   end

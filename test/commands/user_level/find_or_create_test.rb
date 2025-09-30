@@ -1,11 +1,11 @@
 require "test_helper"
 
-class UserLevel::CreateTest < ActiveSupport::TestCase
+class UserLevel::FindOrCreateTest < ActiveSupport::TestCase
   test "creates user_level" do
     user = create(:user)
     level = create(:level)
 
-    user_level = UserLevel::Create.(user, level)
+    user_level = UserLevel::FindOrCreate.(user, level)
 
     assert user_level.persisted?
     assert_equal user.id, user_level.user_id
@@ -16,8 +16,8 @@ class UserLevel::CreateTest < ActiveSupport::TestCase
     user = create(:user)
     level = create(:level)
 
-    user_level1 = UserLevel::Create.(user, level)
-    user_level2 = UserLevel::Create.(user, level)
+    user_level1 = UserLevel::FindOrCreate.(user, level)
+    user_level2 = UserLevel::FindOrCreate.(user, level)
 
     assert_equal user_level1.id, user_level2.id
   end
@@ -26,8 +26,8 @@ class UserLevel::CreateTest < ActiveSupport::TestCase
     user = create(:user)
     level = create(:level)
 
-    result_one = UserLevel::Create.(user, level)
-    result_two = UserLevel::Create.(user, level)
+    result_one = UserLevel::FindOrCreate.(user, level)
+    result_two = UserLevel::FindOrCreate.(user, level)
 
     assert_equal result_one.id, result_two.id
   end
@@ -37,8 +37,8 @@ class UserLevel::CreateTest < ActiveSupport::TestCase
     user2 = create(:user)
     level = create(:level)
 
-    user_level1 = UserLevel::Create.(user1, level)
-    user_level2 = UserLevel::Create.(user2, level)
+    user_level1 = UserLevel::FindOrCreate.(user1, level)
+    user_level2 = UserLevel::FindOrCreate.(user2, level)
 
     refute_equal user_level1.id, user_level2.id
     assert_equal level.id, user_level1.level_id
@@ -50,8 +50,8 @@ class UserLevel::CreateTest < ActiveSupport::TestCase
     level1 = create(:level)
     level2 = create(:level, slug: "different-level")
 
-    user_level1 = UserLevel::Create.(user, level1)
-    user_level2 = UserLevel::Create.(user, level2)
+    user_level1 = UserLevel::FindOrCreate.(user, level1)
+    user_level2 = UserLevel::FindOrCreate.(user, level2)
 
     refute_equal user_level1.id, user_level2.id
     assert_equal user.id, user_level1.user_id
@@ -62,7 +62,7 @@ class UserLevel::CreateTest < ActiveSupport::TestCase
     user = create(:user)
     level = create(:level)
 
-    user_level = UserLevel::Create.(user, level)
+    user_level = UserLevel::FindOrCreate.(user, level)
 
     assert_nil user_level.current_user_lesson_id
   end

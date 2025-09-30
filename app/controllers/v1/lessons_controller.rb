@@ -3,7 +3,7 @@ module V1
     before_action :use_lesson!
 
     def start
-      user_lesson = UserLesson::Create.(current_user, @lesson)
+      user_lesson = UserLesson::FindOrCreate.(current_user, @lesson)
 
       render json: {
         user_lesson: {

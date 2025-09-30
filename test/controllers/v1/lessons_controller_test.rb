@@ -26,9 +26,9 @@ module V1
       assert_nil json["user_lesson"]["completed_at"]
     end
 
-    test "POST start delegates to UserLesson::Create command" do
+    test "POST start delegates to UserLesson::FindOrCreate command" do
       user_lesson = build(:user_lesson, user: @current_user, lesson: @lesson)
-      UserLesson::Create.expects(:call).with(@current_user, @lesson).returns(user_lesson)
+      UserLesson::FindOrCreate.expects(:call).with(@current_user, @lesson).returns(user_lesson)
 
       post start_v1_lesson_path(@lesson.slug),
         headers: @headers,

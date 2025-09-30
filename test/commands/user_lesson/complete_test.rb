@@ -48,12 +48,12 @@ class UserLesson::CompleteTest < ActiveSupport::TestCase
     assert result.completed_at > old_completed_at
   end
 
-  test "delegates to UserLesson::Create for find or create logic" do
+  test "delegates to UserLesson::FindOrCreate for find or create logic" do
     user = create(:user)
     lesson = create(:lesson)
     user_lesson = create(:user_lesson, user: user, lesson: lesson)
 
-    UserLesson::Create.expects(:call).with(user, lesson).returns(user_lesson)
+    UserLesson::FindOrCreate.expects(:call).with(user, lesson).returns(user_lesson)
 
     UserLesson::Complete.(user, lesson)
   end

@@ -1,11 +1,11 @@
 require "test_helper"
 
-class UserLesson::CreateTest < ActiveSupport::TestCase
+class UserLesson::FindOrCreateTest < ActiveSupport::TestCase
   test "creates user_lesson with started_at set" do
     user = create(:user)
     lesson = create(:lesson)
 
-    user_lesson = UserLesson::Create.(user, lesson)
+    user_lesson = UserLesson::FindOrCreate.(user, lesson)
 
     assert user_lesson.persisted?
     assert_equal user.id, user_lesson.user_id
@@ -19,7 +19,7 @@ class UserLesson::CreateTest < ActiveSupport::TestCase
     lesson = create(:lesson)
 
     time_before = Time.current
-    user_lesson = UserLesson::Create.(user, lesson)
+    user_lesson = UserLesson::FindOrCreate.(user, lesson)
     time_after = Time.current
 
     assert user_lesson.started_at >= time_before
@@ -30,8 +30,8 @@ class UserLesson::CreateTest < ActiveSupport::TestCase
     user = create(:user)
     lesson = create(:lesson)
 
-    user_lesson1 = UserLesson::Create.(user, lesson)
-    user_lesson2 = UserLesson::Create.(user, lesson)
+    user_lesson1 = UserLesson::FindOrCreate.(user, lesson)
+    user_lesson2 = UserLesson::FindOrCreate.(user, lesson)
 
     assert_equal user_lesson1.id, user_lesson2.id
   end
@@ -40,8 +40,8 @@ class UserLesson::CreateTest < ActiveSupport::TestCase
     user = create(:user)
     lesson = create(:lesson)
 
-    result_one = UserLesson::Create.(user, lesson)
-    result_two = UserLesson::Create.(user, lesson)
+    result_one = UserLesson::FindOrCreate.(user, lesson)
+    result_two = UserLesson::FindOrCreate.(user, lesson)
 
     assert_equal result_one.id, result_two.id
   end
@@ -55,7 +55,7 @@ class UserLesson::CreateTest < ActiveSupport::TestCase
     user_lesson = UserLesson.create!(user: user, lesson: lesson, started_at: original_time)
 
     # Call command again
-    result = UserLesson::Create.(user, lesson)
+    result = UserLesson::FindOrCreate.(user, lesson)
 
     assert_equal user_lesson.id, result.id
     assert_equal original_time.to_i, result.started_at.to_i
@@ -66,8 +66,8 @@ class UserLesson::CreateTest < ActiveSupport::TestCase
     user2 = create(:user)
     lesson = create(:lesson)
 
-    user_lesson1 = UserLesson::Create.(user1, lesson)
-    user_lesson2 = UserLesson::Create.(user2, lesson)
+    user_lesson1 = UserLesson::FindOrCreate.(user1, lesson)
+    user_lesson2 = UserLesson::FindOrCreate.(user2, lesson)
 
     refute_equal user_lesson1.id, user_lesson2.id
     assert_equal lesson.id, user_lesson1.lesson_id
@@ -79,8 +79,8 @@ class UserLesson::CreateTest < ActiveSupport::TestCase
     lesson1 = create(:lesson)
     lesson2 = create(:lesson, slug: "different-lesson")
 
-    user_lesson1 = UserLesson::Create.(user, lesson1)
-    user_lesson2 = UserLesson::Create.(user, lesson2)
+    user_lesson1 = UserLesson::FindOrCreate.(user, lesson1)
+    user_lesson2 = UserLesson::FindOrCreate.(user, lesson2)
 
     refute_equal user_lesson1.id, user_lesson2.id
     assert_equal user.id, user_lesson1.user_id
@@ -91,7 +91,7 @@ class UserLesson::CreateTest < ActiveSupport::TestCase
     user = create(:user)
     lesson = create(:lesson)
 
-    UserLesson::Create.(user, lesson)
+    UserLesson::FindOrCreate.(user, lesson)
 
     user_level = UserLevel.find_by(user: user, level: lesson.level)
     assert user_level.present?
@@ -102,7 +102,7 @@ class UserLesson::CreateTest < ActiveSupport::TestCase
     user = create(:user)
     lesson = create(:lesson)
 
-    user_lesson = UserLesson::Create.(user, lesson)
+    user_lesson = UserLesson::FindOrCreate.(user, lesson)
 
     user_level = UserLevel.find_by(user: user, level: lesson.level)
     assert_equal user_lesson.id, user_level.current_user_lesson_id
@@ -114,11 +114,11 @@ class UserLesson::CreateTest < ActiveSupport::TestCase
     lesson1 = create(:lesson, level: level, slug: "first-lesson")
     lesson2 = create(:lesson, level: level, slug: "second-lesson")
 
-    user_lesson1 = UserLesson::Create.(user, lesson1)
+    user_lesson1 = UserLesson::FindOrCreate.(user, lesson1)
     user_level = UserLevel.find_by(user: user, level: level)
     assert_equal user_lesson1.id, user_level.current_user_lesson_id
 
-    user_lesson2 = UserLesson::Create.(user, lesson2)
+    user_lesson2 = UserLesson::FindOrCreate.(user, lesson2)
     user_level.reload
     assert_equal user_lesson2.id, user_level.current_user_lesson_id
   end
@@ -129,10 +129,10 @@ class UserLesson::CreateTest < ActiveSupport::TestCase
     lesson1 = create(:lesson, level: level, slug: "first-lesson")
     lesson2 = create(:lesson, level: level, slug: "second-lesson")
 
-    UserLesson::Create.(user, lesson1)
+    UserLesson::FindOrCreate.(user, lesson1)
     user_level1 = UserLevel.find_by(user: user, level: level)
 
-    UserLesson::Create.(user, lesson2)
+    UserLesson::FindOrCreate.(user, lesson2)
     user_level2 = UserLevel.find_by(user: user, level: level)
 
     assert_equal user_level1.id, user_level2.id

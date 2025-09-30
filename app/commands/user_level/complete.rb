@@ -4,7 +4,7 @@ class UserLevel::Complete
   initialize_with :user, :level
 
   def call
-    user_level = UserLevel::Create.(user, level)
+    user_level = UserLevel::FindOrCreate.(user, level)
     user_level.update!(current_user_lesson: nil)
     user_level
   end
