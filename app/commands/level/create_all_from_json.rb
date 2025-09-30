@@ -4,12 +4,12 @@ class Level::CreateAllFromJson
   initialize_with :file_path, delete_existing: false
 
   def call
-    delete_all_levels! if delete_existing
-
-    validate_file_exists!
-    validate_json!
-
     ActiveRecord::Base.transaction do
+      delete_all_levels! if delete_existing
+
+      validate_file_exists!
+      validate_json!
+
       parsed_data["levels"].each do |level_data|
         level = create_or_update_level!(level_data)
 

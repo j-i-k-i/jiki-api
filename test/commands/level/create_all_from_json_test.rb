@@ -254,8 +254,9 @@ class Level::CreateAllFromJsonTest < ActiveSupport::TestCase
       Level::CreateAllFromJson.(file.path, delete_existing: true)
     end
 
-    # Existing level should still be deleted (deletion happens before transaction)
-    assert_equal 0, Level.count
+    # Existing level should be preserved (deletion happens inside transaction)
+    assert_equal 1, Level.count
+    assert Level.exists?(slug: "existing")
   ensure
     file.unlink
   end
