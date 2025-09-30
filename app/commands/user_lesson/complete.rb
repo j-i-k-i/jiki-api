@@ -6,6 +6,10 @@ class UserLesson::Complete
   def call
     user_lesson = UserLesson::Create.(user, lesson)
     user_lesson.update!(completed_at: Time.current)
+
+    user_level = UserLevel::Create.(user, lesson.level)
+    user_level.update!(current_user_lesson: nil)
+
     user_lesson
   end
 end
