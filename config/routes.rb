@@ -19,7 +19,7 @@ Rails.application.routes.draw do
     resources :levels, only: [:index]
     resources :user_levels, only: [:index]
 
-    resources :lessons, only: [], param: :slug do
+    resources :user_lessons, only: [], param: :slug do
       member do
         post :start
         patch :complete

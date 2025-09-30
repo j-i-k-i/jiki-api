@@ -52,35 +52,15 @@ All endpoints require authentication via Bearer token in the `Authorization` hea
     }
     ```
 
-### Lessons
+### User Lessons
 
-- **POST** `/v1/lessons/:slug/start` - Start a lesson
+- **POST** `/v1/user_lessons/:slug/start` - Start a lesson
   - **Params (required):** `slug` (in URL)
-  - **Response:**
-    ```json
-    {
-      "user_lesson": {
-        "id": 123,
-        "lesson_id": 456,
-        "started_at": "2025-01-15T10:30:00Z",
-        "completed_at": null
-      }
-    }
-    ```
+  - **Response:** `{}`
 
-- **PATCH** `/v1/lessons/:slug/complete` - Complete a lesson
+- **PATCH** `/v1/user_lessons/:slug/complete` - Complete a lesson
   - **Params (required):** `slug` (in URL)
-  - **Response:**
-    ```json
-    {
-      "user_lesson": {
-        "id": 123,
-        "lesson_id": 456,
-        "started_at": "2025-01-15T10:30:00Z",
-        "completed_at": "2025-01-15T10:45:00Z"
-      }
-    }
-    ```
+  - **Response:** `{}`
 
 ---
 
