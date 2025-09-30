@@ -1,0 +1,81 @@
+require "test_helper"
+
+class UserLesson::CompleteTest < ActiveSupport::TestCase
+  test "completes existing user_lesson" do
+    user = create(:user)
+    lesson = create(:lesson)
+    user_lesson = create(:user_lesson, user: user, lesson: lesson)
+
+    result = UserLesson::Complete.(user, lesson)
+
+    assert_equal user_lesson.id, result.id
+    assert result.completed_at.present?
+  end
+
+  test "creates and completes user_lesson if it doesn't exist" do
+    user = create(:user)
+    lesson = create(:lesson)
+
+    user_lesson = UserLesson::Complete.(user, lesson)
+
+    assert user_lesson.persisted?
+    assert_equal user.id, user_lesson.user_id
+    assert_equal lesson.id, user_lesson.lesson_id
+    assert user_lesson.started_at.present?
+    assert user_lesson.completed_at.present?
+  end
+
+  test "sets completed_at to current time" do
+    user = create(:user)
+    lesson = create(:lesson)
+
+    time_before = Time.current
+    user_lesson = UserLesson::Complete.(user, lesson)
+    time_after = Time.current
+
+    assert user_lesson.completed_at >= time_before
+    assert user_lesson.completed_at <= time_after
+  end
+
+  test "updates completed_at on already completed lesson" do
+    user = create(:user)
+    lesson = create(:lesson)
+    user_lesson = create(:user_lesson, user: user, lesson: lesson, completed_at: 1.day.ago)
+    old_completed_at = user_lesson.completed_at
+
+    result = UserLesson::Complete.(user, lesson)
+
+    assert result.completed_at > old_completed_at
+  end
+
+  test "delegates to UserLesson::Create for find or create logic" do
+    user = create(:user)
+    lesson = create(:lesson)
+    user_lesson = create(:user_lesson, user: user, lesson: lesson)
+
+    UserLesson::Create.expects(:call).with(user, lesson).returns(user_lesson)
+
+    UserLesson::Complete.(user, lesson)
+  end
+
+  test "returns the completed user_lesson" do
+    user = create(:user)
+    lesson = create(:lesson)
+
+    result = UserLesson::Complete.(user, lesson)
+
+    assert_instance_of UserLesson, result
+    assert result.completed_at.present?
+  end
+
+  test "preserves started_at when completing" do
+    user = create(:user)
+    lesson = create(:lesson)
+    started_time = 2.days.ago
+    create(:user_lesson, user: user, lesson: lesson, started_at: started_time)
+
+    result = UserLesson::Complete.(user, lesson)
+
+    assert_equal started_time.to_i, result.started_at.to_i
+  end
+end

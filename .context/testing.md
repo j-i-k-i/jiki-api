@@ -237,8 +237,17 @@ end
 ```
 
 #### Testing Authentication Guards
+
+**IMPORTANT**: Use the `guard_incorrect_token!` macro instead of writing manual authentication tests.
+
+The `guard_incorrect_token!` macro automatically generates two tests:
+1. Test that the endpoint returns 401 with an invalid token
+2. Test that the endpoint returns 401 without any token
+
+This eliminates the need for repetitive manual authentication tests and ensures consistent coverage.
+
 ```ruby
-# Macro for testing authentication on all endpoints
+# Base test class with guard macro (defined in test_helper.rb)
 class ApplicationControllerTest < ActionDispatch::IntegrationTest
   def self.guard_incorrect_token!(path_helper, args: [], method: :get)
     test "#{method} #{path_helper} returns 401 with invalid token" do
@@ -246,18 +255,75 @@ class ApplicationControllerTest < ActionDispatch::IntegrationTest
       send(method, path, headers: { 'Authorization' => 'Bearer invalid' }, as: :json)
 
       assert_response :unauthorized
-      assert_equal 'invalid_auth_token', response.parsed_body['error']['type']
+      assert_equal 'unauthorized', response.parsed_body['error']['type']
+    end
+
+    test "#{method} #{path_helper} returns 401 without token" do
+      path = send(path_helper, *args)
+      send(method, path, as: :json)
+
+      assert_response :unauthorized
+      assert_equal 'unauthorized', response.parsed_body['error']['type']
     end
   end
 end
+```
 
-# Usage in controller tests
-class ExercisesControllerTest < ApplicationControllerTest
-  guard_incorrect_token! :exercises_path
-  guard_incorrect_token! :exercise_path, args: [1]
-  guard_incorrect_token! :submit_exercise_path, args: [1], method: :post
+**Usage Pattern:**
+
+```ruby
+# CORRECT: Use guard_incorrect_token! macro at the top of your test class
+class V1::LessonsControllerTest < ApplicationControllerTest
+  setup do
+    setup_user
+    @lesson = create(:lesson)
+  end
+
+  # Place guards at the top, before your actual tests
+  guard_incorrect_token! :start_v1_lesson_path, args: ["solve-a-maze"], method: :post
+  guard_incorrect_token! :complete_v1_lesson_path, args: ["solve-a-maze"], method: :patch
+
+  # Then write your functional tests (skip manual auth tests)
+  test "POST start successfully starts a lesson" do
+    post start_v1_lesson_path(@lesson.slug),
+      headers: @headers,
+      as: :json
+
+    assert_response :created
+  end
+
+  test "PATCH complete successfully completes a lesson" do
+    patch complete_v1_lesson_path(@lesson.slug),
+      headers: @headers,
+      as: :json
+
+    assert_response :ok
+  end
 end
 ```
+
+**INCORRECT: Don't write manual authentication tests**
+
+```ruby
+# DON'T DO THIS - the guard macro handles these automatically
+test "POST start requires authentication" do
+  post start_v1_lesson_path(@lesson.slug), as: :json
+  assert_response :unauthorized
+end
+
+test "POST start returns 401 with invalid token" do
+  post start_v1_lesson_path(@lesson.slug),
+    headers: { "Authorization" => "Bearer invalid" },
+    as: :json
+  assert_response :unauthorized
+end
+```
+
+**Why Use guard_incorrect_token!:**
+- **DRY**: Eliminates repetitive authentication tests across all controller tests
+- **Consistency**: Ensures all endpoints have the same authentication behavior
+- **Maintainability**: Changes to auth logic only require updating the macro once
+- **Coverage**: Automatically tests both invalid token and missing token scenarios
 
 ### Performance Considerations
 - **Minimize database calls** in factory definitions
