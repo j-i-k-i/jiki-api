@@ -44,6 +44,10 @@ group :development, :test do
   # Test factories for creating test data
   gem "factory_bot_rails"
 
+  # N+1 query detection
+  gem "prosopite"
+  gem "pg_query" # Required by Prosopite for PostgreSQL
+
   # Rubocop for code style enforcement
   gem "rubocop", require: false
   gem "rubocop-rails", require: false

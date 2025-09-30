@@ -11,3 +11,24 @@ class ActiveRecord::Base
     create_or_find_by!(*args, &block)
   end
 end
+
+class ActiveRecord::Relation
+  def to_active_relation
+    self
+  end
+end
+
+class Array
+  def to_active_relation
+    return User.none if empty?
+
+    ids = map(&:id)
+    klass = first.class.base_class
+
+    # PostgreSQL: Use unnest WITH ORDINALITY for ordering by array position
+    # This is more performant than array_position for large datasets
+    klass.joins(
+      "JOIN unnest(ARRAY[#{ids.join(',')}]) WITH ORDINALITY AS arr(id, ord) ON #{klass.table_name}.id = arr.id"
+    ).order("arr.ord")
+  end
+end

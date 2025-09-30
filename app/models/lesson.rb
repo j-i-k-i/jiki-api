@@ -5,6 +5,10 @@ class Lesson < ApplicationRecord
   has_many :user_lessons, dependent: :destroy
   has_many :users, through: :user_lessons
 
+  serialize :data, coder: JSONWithIndifferentAccess
+
+  def data = super || {}
+
   validates :slug, presence: true, uniqueness: true
   validates :title, presence: true
   validates :description, presence: true
