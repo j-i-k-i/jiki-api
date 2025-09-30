@@ -17,6 +17,7 @@ Rails.application.routes.draw do
   # V1 API endpoints
   namespace :v1 do
     resources :levels, only: [:index]
+    resources :user_levels, only: [:index]
 
     resources :lessons, only: [], param: :slug do
       member do

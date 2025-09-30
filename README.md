@@ -2,6 +2,133 @@
 
 Rails 8 API-only application that serves as the backend for Jiki, a Learn to Code platform.
 
+This files contains:
+- API Endpoints
+- Setup Instructions
+- Development Instructions
+- Testing Instructions
+- Additional Context
+
+---
+
+## API Endpoints
+
+All endpoints require authentication via Bearer token in the `Authorization` header (except authentication endpoints).
+
+### Authentication
+
+- **POST** `/v1/auth/signup` - Register a new user
+  - **Params (required):** `email`, `password`, `password_confirmation`
+  - **Response:** JWT token in `Authorization` header
+
+- **POST** `/v1/auth/login` - Sign in and receive JWT token
+  - **Params (required):** `email`, `password`
+  - **Response:** JWT token in `Authorization` header
+
+- **DELETE** `/v1/auth/logout` - Sign out (invalidate token)
+  - **Response:** 204 No Content
+
+- **POST** `/v1/auth/password` - Request password reset
+  - **Params (required):** `email`
+  - **Response:** 200 OK
+
+### Levels
+
+- **GET** `/v1/levels` - Get all levels with nested lessons
+  - **Response:**
+    ```json
+    {
+      "levels": [$LEVEL, $LEVEL, ...]
+    }
+    ```
+
+### User Levels
+
+- **GET** `/v1/user_levels` - Get current user's levels with progress
+  - **Response:**
+    ```json
+    {
+      "user_levels": [$USER_LEVEL, $USER_LEVEL, ...]
+    }
+    ```
+
+### Lessons
+
+- **POST** `/v1/lessons/:slug/start` - Start a lesson
+  - **Params (required):** `slug` (in URL)
+  - **Response:**
+    ```json
+    {
+      "user_lesson": {
+        "id": 123,
+        "lesson_id": 456,
+        "started_at": "2025-01-15T10:30:00Z",
+        "completed_at": null
+      }
+    }
+    ```
+
+- **PATCH** `/v1/lessons/:slug/complete` - Complete a lesson
+  - **Params (required):** `slug` (in URL)
+  - **Response:**
+    ```json
+    {
+      "user_lesson": {
+        "id": 123,
+        "lesson_id": 456,
+        "started_at": "2025-01-15T10:30:00Z",
+        "completed_at": "2025-01-15T10:45:00Z"
+      }
+    }
+    ```
+
+---
+
+## Serializers
+
+All API responses use serializers to format data consistently. Below are the data shapes for each serializer.
+
+### SerializeLesson
+
+```json
+{
+  "slug": "hello-world",
+  "type": "exercise",
+  "data": {
+    "slug": "basic-movement"
+  }
+}
+```
+
+### SerializeLevel
+
+```json
+{
+  "slug": "basics",
+  "lessons": [$LESSON, $LESSON, ...]
+}
+```
+
+### SerializeUserLesson
+
+```json
+{
+  "lesson_slug": "hello-world",
+  "status": "started|completed"
+}
+```
+
+### SerializeUserLevel
+
+```json
+{
+  "level_slug": "basics",
+  "user_lessons": [$USER_LESSON, $USER_LESSON, ...]
+}
+```
+
+---
+
 ## Ruby Version
 
 Ruby 3.4.4
@@ -42,6 +169,8 @@ bin/dev
 ```
 
 The server runs on port 3061 by default.
+
+## Tests
 
 ### Running Tests
 

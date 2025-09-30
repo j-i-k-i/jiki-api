@@ -1,32 +1,23 @@
 require "test_helper"
 
 class SerializeLessonTest < ActiveSupport::TestCase
-  test "basic serialization" do
+  test "serializes lesson with all fields" do
     lesson = create(:lesson, slug: "hello-world", type: "exercise", data: { slug: "basic-movement" })
 
-    expected = {
+    assert_equal({
       slug: "hello-world",
       type: "exercise",
       data: { slug: "basic-movement" }
-    }
-
-    assert_equal expected, SerializeLesson.(lesson)
+    }, SerializeLesson.(lesson))
   end
 
-  test "serializes all required fields" do
-    lesson = create(:lesson)
-    result = SerializeLesson.(lesson)
+  test "serializes complex data hash" do
+    lesson = create(:lesson, slug: "test", type: "tutorial", data: { slug: "test-exercise", difficulty: "easy", points: 10 })
 
-    assert result.key?(:slug)
-    assert result.key?(:type)
-    assert result.key?(:data)
-  end
-
-  test "serializes data as hash" do
-    data = { slug: "test-exercise", difficulty: "easy" }
-    lesson = create(:lesson, data: data)
-    result = SerializeLesson.(lesson)
-
-    assert_equal data, result[:data]
+    assert_equal({
+      slug: "test",
+      type: "tutorial",
+      data: { slug: "test-exercise", difficulty: "easy", points: 10 }
+    }, SerializeLesson.(lesson))
   end
 end

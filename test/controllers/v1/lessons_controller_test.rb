@@ -43,10 +43,12 @@ module V1
         as: :json
 
       assert_response :not_found
-
-      json = response.parsed_body
-      assert_equal "not_found", json["error"]["type"]
-      assert_equal "Lesson not found", json["error"]["message"]
+      assert_json_response({
+        error: {
+          type: "not_found",
+          message: "Lesson not found"
+        }
+      })
     end
 
     test "POST start returns correct JSON structure" do
@@ -144,10 +146,12 @@ module V1
         as: :json
 
       assert_response :not_found
-
-      json = response.parsed_body
-      assert_equal "not_found", json["error"]["type"]
-      assert_equal "Lesson not found", json["error"]["message"]
+      assert_json_response({
+        error: {
+          type: "not_found",
+          message: "Lesson not found"
+        }
+      })
     end
 
     test "PATCH complete returns correct JSON structure" do
