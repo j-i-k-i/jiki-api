@@ -138,33 +138,38 @@ class UserLesson::FindOrCreateTest < ActiveSupport::TestCase
     assert_equal user_level1.id, user_level2.id
   end
 
-  test "sets current_user_lesson on user" do
+  test "sets current_user_level on user" do
     user = create(:user)
     lesson = create(:lesson)
 
-    user_lesson = UserLesson::FindOrCreate.(user, lesson)
+    UserLesson::FindOrCreate.(user, lesson)
 
     user.reload
-    assert_equal user_lesson.id, user.current_user_lesson_id
+    user_level = UserLevel.find_by(user: user, level: lesson.level)
+    assert_equal user_level.id, user.current_user_level_id
   end
 
-  test "updates current_user_lesson when starting different lesson" do
+  test "updates current_user_level when starting lesson in different level" do
     user = create(:user)
-    lesson1 = create(:lesson, slug: "first-lesson")
-    lesson2 = create(:lesson, slug: "second-lesson")
+    level1 = create(:level, slug: "level-1")
+    level2 = create(:level, slug: "level-2")
+    lesson1 = create(:lesson, level: level1, slug: "first-lesson")
+    lesson2 = create(:lesson, level: level2, slug: "second-lesson")
 
-    user_lesson1 = UserLesson::FindOrCreate.(user, lesson1)
+    UserLesson::FindOrCreate.(user, lesson1)
     user.reload
-    assert_equal user_lesson1.id, user.current_user_lesson_id
+    user_level1 = UserLevel.find_by(user: user, level: level1)
+    assert_equal user_level1.id, user.current_user_level_id
 
-    user_lesson2 = UserLesson::FindOrCreate.(user, lesson2)
+    UserLesson::FindOrCreate.(user, lesson2)
     user.reload
-    assert_equal user_lesson2.id, user.current_user_lesson_id
+    user_level2 = UserLevel.find_by(user: user, level: level2)
+    assert_equal user_level2.id, user.current_user_level_id
   end
 
-  test "initializes user with nil current_user_lesson" do
+  test "initializes user with nil current_user_level" do
     user = create(:user)
 
-    assert_nil user.current_user_lesson_id
+    assert_nil user.current_user_level_id
   end
 end

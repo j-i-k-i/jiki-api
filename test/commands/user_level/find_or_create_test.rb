@@ -66,4 +66,40 @@ class UserLevel::FindOrCreateTest < ActiveSupport::TestCase
 
     assert_nil user_level.current_user_lesson_id
   end
+
+  test "sets started_at on creation" do
+    user = create(:user)
+    level = create(:level)
+
+    time_before = Time.current
+    user_level = UserLevel::FindOrCreate.(user, level)
+    time_after = Time.current
+
+    assert user_level.started_at >= time_before
+    assert user_level.started_at <= time_after
+  end
+
+  test "does not overwrite started_at on existing records" do
+    user = create(:user)
+    level = create(:level)
+    original_time = 2.days.ago
+
+    # Create with specific started_at
+    user_level = UserLevel.create!(user: user, level: level, started_at: original_time)
+
+    # Call command again
+    result = UserLevel::FindOrCreate.(user, level)
+
+    assert_equal user_level.id, result.id
+    assert_equal original_time.to_i, result.started_at.to_i
+  end
+
+  test "initializes with nil completed_at" do
+    user = create(:user)
+    level = create(:level)
+
+    user_level = UserLevel::FindOrCreate.(user, level)
+
+    assert_nil user_level.completed_at
+  end
 end

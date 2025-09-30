@@ -57,6 +57,8 @@ ActiveRecord::Schema[8.0].define(version: 2025_09_29_154727) do
     t.bigint "user_id", null: false
     t.bigint "level_id", null: false
     t.bigint "current_user_lesson_id"
+    t.datetime "started_at", null: false
+    t.datetime "completed_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["current_user_lesson_id"], name: "index_user_levels_on_current_user_lesson_id"
@@ -73,10 +75,10 @@ ActiveRecord::Schema[8.0].define(version: 2025_09_29_154727) do
     t.datetime "remember_created_at"
     t.string "name"
     t.string "jti", null: false
-    t.bigint "current_user_lesson_id"
+    t.bigint "current_user_level_id"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index ["current_user_lesson_id"], name: "index_users_on_current_user_lesson_id"
+    t.index ["current_user_level_id"], name: "index_users_on_current_user_level_id"
     t.index ["email"], name: "index_users_on_email", unique: true
     t.index ["jti"], name: "index_users_on_jti", unique: true
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
@@ -88,5 +90,5 @@ ActiveRecord::Schema[8.0].define(version: 2025_09_29_154727) do
   add_foreign_key "user_levels", "levels"
   add_foreign_key "user_levels", "user_lessons", column: "current_user_lesson_id"
   add_foreign_key "user_levels", "users"
-  add_foreign_key "users", "user_lessons", column: "current_user_lesson_id"
+  add_foreign_key "users", "user_levels", column: "current_user_level_id"
 end

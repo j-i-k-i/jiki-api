@@ -12,7 +12,7 @@ class User < ApplicationRecord
   has_many :user_levels, dependent: :destroy
   has_many :levels, through: :user_levels
 
-  belongs_to :current_user_lesson, class_name: "UserLesson", optional: true
+  belongs_to :current_user_level, class_name: "UserLevel", optional: true
 
   before_create do
     # Generate a unique JTI (JWT ID) for each user on creation

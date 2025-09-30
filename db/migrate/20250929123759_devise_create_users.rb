@@ -39,7 +39,7 @@ class DeviseCreateUsers < ActiveRecord::Migration[8.0]
       t.string :jti, null: false
 
       ## Current progress tracking
-      t.bigint :current_user_lesson_id
+      t.bigint :current_user_level_id
 
       t.timestamps null: false
     end
