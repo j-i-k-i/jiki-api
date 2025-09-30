@@ -1,0 +1,1 @@
+class InvalidJsonError < RuntimeError; end

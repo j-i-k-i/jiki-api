@@ -124,11 +124,36 @@ end
 
 ### 5. Error Handling
 
-Commands raise exceptions rather than returning error states:
+Commands raise exceptions rather than returning error states.
+
+#### Global Exception Definitions
+
+Application-wide exceptions are defined in `config/initializers/exceptions.rb`. This allows exceptions to be shared across multiple commands and accessed throughout the application:
 
 ```ruby
-class ExerciseLockedError < StandardError; end
-class ValidationError < StandardError
+# config/initializers/exceptions.rb
+class InvalidJsonError < RuntimeError; end
+class ExerciseLockedError < RuntimeError; end
+class ValidationError < RuntimeError; end
+```
+
+**Important**: Define exceptions in the initializer only when they need to be used across multiple commands or parts of the application. Command-specific exceptions can remain within the command class.
+
+#### Using Exceptions in Commands
+
+```ruby
+# Example using global exception
+class Level::CreateAllFromJson
+  include Mandate
+
+  def call
+    raise InvalidJsonError, "File not found" unless File.exist?(file_path)
+    # ...
+  end
+end
+
+# Example with custom exception class
+class ValidationError < RuntimeError
   attr_reader :errors
 
   def initialize(errors)

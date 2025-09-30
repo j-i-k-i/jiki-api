@@ -1,51 +1,66 @@
 {
   "levels": [
     {
-      "slug": "fundamentals",
-      "title": "Programming Fundamentals",
-      "description": "Learn the basics: function calls and literal values",
+      "slug": "your-first-program",
+      "title": "Your First Program",
+      "description": "Write your first program and understand how Jiki works!",
       "lessons": [
         {
-          "slug": "first-function-call",
+          "slug": "solve-a-maze",
           "title": "Your First Function Call",
           "description": "Learn how to call functions to make things happen",
           "type": "exercise",
           "data": {
-            "slug": "basic-movement"
+            "slug": "solve-a-maze"
           }
         },
         {
-          "slug": "sequence-matters",
-          "title": "Sequence Matters",
-          "description": "Understanding execution order",
+          "slug": "welcome-to-jiki",
+          "title": "Welcome To Jiki",
+          "description": "Meet your instructor, Jeremy, and your friendly helper, Jiki!",
+          "type": "video",
+          "data": {
+            "sources": [{
+              "host": "mux",
+              "id": "fVihIfKhBJaHQ2cekC00TQEnRJjCEzttdVHtBCbMfhKQ"
+            }]
+          }
+        },
+        {
+          "slug": "win-space-invaders",
+          "title": "Welcome to Space Invaders",
+          "description": "Use Functions to shoot down some Aliens",
           "type": "exercise",
           "data": {
-            "slug": "sequence-practice"
+            "slug": "win-space-invaders"
           }
         }
       ]
     },
     {
-      "slug": "variables",
-      "title": "Variables and Assignment",
-      "description": "Learn to store and manipulate data with variables",
+      "slug": "numbers",
+      "title": "Using Numbers to Draw",
+      "description": "Learn how to use ",
       "lessons": [
         {
-          "slug": "intro-to-variables",
-          "title": "Introduction to Variables",
-          "description": "What are variables and why do we need them?",
-          "type": "reading",
+          "slug": "functions-as-machines",
+          "title": "Functions are Machines",
+          "description": "Learn about how to think about functions as machines, and how to use numbers as their inputs",
+          "type": "video",
           "data": {
-            "content": "Variables are containers for storing data values..."
+            "sources": [{
+              "host": "mux",
+              "id": "fVihIfKhBJaHQ2cekC00TQEnRJjCEzttdVHtBCbMfhKQ"
+            }]
           }
         },
         {
-          "slug": "variable-practice",
-          "title": "Variable Practice",
-          "description": "Declare and use variables",
+          "slug": "solve-a-maze-with-numbers",
+          "title": "Solve the Maze with Numbers",
+          "description": "Use your ability to use functions with inputs to solve the maze more effectively.",
           "type": "exercise",
           "data": {
-            "slug": "variable-basics"
+            "slug": "solve-a-maze-with-numbers"
           }
         }
       ]

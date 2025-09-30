@@ -1,9 +1,11 @@
 class Level::CreateAllFromJson
   include Mandate
 
-  initialize_with :file_path
+  initialize_with :file_path, delete_existing: false
 
   def call
+    delete_all_levels! if delete_existing
+
     validate_file_exists!
     validate_json!
 
@@ -21,7 +23,9 @@ class Level::CreateAllFromJson
   end
 
   private
-  class InvalidJsonError < StandardError; end
+  def delete_all_levels!
+    Level.destroy_all
+  end
 
   def validate_file_exists!
     raise InvalidJsonError, "File not found: #{file_path}" unless File.exist?(file_path)
@@ -38,16 +42,21 @@ class Level::CreateAllFromJson
     raise InvalidJsonError, "Invalid JSON: #{e.message}"
   end
 
-  def create_or_update_level!(level_data, position)
+  def create_or_update_level!(level_data, _position)
     validate_level_data!(level_data)
 
     Level.find_or_initialize_by(slug: level_data["slug"]).tap do |level|
+      is_new = level.new_record?
       level.update!(
         title: level_data["title"],
         description: level_data["description"],
-        position: level.new_record? ? position : level.position
+        position: is_new ? next_available_position : level.position
       )
     end
+  end
+
+  def next_available_position
+    (Level.unscoped.maximum(:position) || 0) + 1
   end
 
   def create_or_update_lesson!(level, lesson_data, position)
