@@ -1,0 +1,54 @@
+{
+  "levels": [
+    {
+      "slug": "fundamentals",
+      "title": "Programming Fundamentals",
+      "description": "Learn the basics: function calls and literal values",
+      "lessons": [
+        {
+          "slug": "first-function-call",
+          "title": "Your First Function Call",
+          "description": "Learn how to call functions to make things happen",
+          "type": "exercise",
+          "data": {
+            "slug": "basic-movement"
+          }
+        },
+        {
+          "slug": "sequence-matters",
+          "title": "Sequence Matters",
+          "description": "Understanding execution order",
+          "type": "exercise",
+          "data": {
+            "slug": "sequence-practice"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "variables",
+      "title": "Variables and Assignment",
+      "description": "Learn to store and manipulate data with variables",
+      "lessons": [
+        {
+          "slug": "intro-to-variables",
+          "title": "Introduction to Variables",
+          "description": "What are variables and why do we need them?",
+          "type": "reading",
+          "data": {
+            "content": "Variables are containers for storing data values..."
+          }
+        },
+        {
+          "slug": "variable-practice",
+          "title": "Variable Practice",
+          "description": "Declare and use variables",
+          "type": "exercise",
+          "data": {
+            "slug": "variable-basics"
+          }
+        }
+      ]
+    }
+  ]
+}
