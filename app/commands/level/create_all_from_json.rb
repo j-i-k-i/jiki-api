@@ -1,18 +1,20 @@
 class Level::CreateAllFromJson
   include Mandate
 
-  initialize_with :file_path
+  initialize_with :file_path, delete_existing: false
 
   def call
-    validate_file_exists!
-    validate_json!
-
     ActiveRecord::Base.transaction do
-      parsed_data["levels"].each_with_index do |level_data, level_index|
-        level = create_or_update_level!(level_data, level_index + 1)
+      delete_all_levels! if delete_existing
 
-        level_data["lessons"]&.each_with_index do |lesson_data, lesson_index|
-          create_or_update_lesson!(level, lesson_data, lesson_index + 1)
+      validate_file_exists!
+      validate_json!
+
+      parsed_data["levels"].each do |level_data|
+        level = create_or_update_level!(level_data)
+
+        level_data["lessons"]&.each do |lesson_data|
+          create_or_update_lesson!(level, lesson_data)
         end
       end
     end
@@ -21,7 +23,9 @@ class Level::CreateAllFromJson
   end
 
   private
-  class InvalidJsonError < StandardError; end
+  def delete_all_levels!
+    Level.destroy_all
+  end
 
   def validate_file_exists!
     raise InvalidJsonError, "File not found: #{file_path}" unless File.exist?(file_path)
@@ -38,19 +42,18 @@ class Level::CreateAllFromJson
     raise InvalidJsonError, "Invalid JSON: #{e.message}"
   end
 
-  def create_or_update_level!(level_data, position)
+  def create_or_update_level!(level_data)
     validate_level_data!(level_data)
 
     Level.find_or_initialize_by(slug: level_data["slug"]).tap do |level|
       level.update!(
         title: level_data["title"],
-        description: level_data["description"],
-        position: level.new_record? ? position : level.position
+        description: level_data["description"]
       )
     end
   end
 
-  def create_or_update_lesson!(level, lesson_data, position)
+  def create_or_update_lesson!(level, lesson_data)
     validate_lesson_data!(lesson_data)
 
     level.lessons.find_or_initialize_by(slug: lesson_data["slug"]).tap do |lesson|
@@ -58,8 +61,7 @@ class Level::CreateAllFromJson
         title: lesson_data["title"],
         description: lesson_data["description"] || "",
         type: lesson_data["type"],
-        data: lesson_data["data"] || {},
-        position: lesson.new_record? ? position : lesson.position
+        data: lesson_data["data"] || {}
       )
     end
   end

@@ -9,23 +9,23 @@ class Level::CreateAllFromJsonTest < ActiveSupport::TestCase
     assert result
 
     # Verify levels were created
-    fundamentals = Level.find_by(slug: "fundamentals")
-    assert fundamentals
-    assert_equal "Programming Fundamentals", fundamentals.title
-    assert_equal 1, fundamentals.position
+    first_program = Level.find_by(slug: "your-first-program")
+    assert first_program
+    assert_equal "Your First Program", first_program.title
+    assert_equal 1, first_program.position
 
-    variables = Level.find_by(slug: "variables")
-    assert variables
-    assert_equal "Variables and Assignment", variables.title
-    assert_equal 2, variables.position
+    numbers = Level.find_by(slug: "numbers")
+    assert numbers
+    assert_equal "Using Numbers to Draw", numbers.title
+    assert_equal 2, numbers.position
 
     # Verify lessons were created
-    assert_equal 2, fundamentals.lessons.count
-    first_lesson = fundamentals.lessons.find_by(slug: "first-function-call")
+    assert_equal 3, first_program.lessons.count
+    first_lesson = first_program.lessons.find_by(slug: "solve-a-maze")
     assert first_lesson
     assert_equal "Your First Function Call", first_lesson.title
     assert_equal "exercise", first_lesson.type
-    assert_equal({ "slug" => "basic-movement" }, first_lesson.data)
+    assert_equal({ "slug" => "solve-a-maze" }, first_lesson.data)
     assert_equal 1, first_lesson.position
   end
 
@@ -38,13 +38,13 @@ class Level::CreateAllFromJsonTest < ActiveSupport::TestCase
     # Second run
     Level::CreateAllFromJson.(file_path.to_s)
 
-    # Verify counts haven't changed
+    # Verify counts haven't changed (2 levels, 5 lessons total: 3 + 2)
     assert_equal 2, Level.count
-    assert_equal 4, Lesson.count
+    assert_equal 5, Lesson.count
   end
 
   test "raises error for non-existent file" do
-    error = assert_raises Level::CreateAllFromJson::InvalidJsonError do
+    error = assert_raises InvalidJsonError do
       Level::CreateAllFromJson.("nonexistent.json")
     end
 
@@ -56,7 +56,7 @@ class Level::CreateAllFromJsonTest < ActiveSupport::TestCase
     file.write("{ invalid json")
     file.close
 
-    error = assert_raises Level::CreateAllFromJson::InvalidJsonError do
+    error = assert_raises InvalidJsonError do
       Level::CreateAllFromJson.(file.path)
     end
 
@@ -70,7 +70,7 @@ class Level::CreateAllFromJsonTest < ActiveSupport::TestCase
     file.write('{ "something": "else" }')
     file.close
 
-    error = assert_raises Level::CreateAllFromJson::InvalidJsonError do
+    error = assert_raises InvalidJsonError do
       Level::CreateAllFromJson.(file.path)
     end
 
@@ -84,7 +84,7 @@ class Level::CreateAllFromJsonTest < ActiveSupport::TestCase
     file.write('{ "levels": [{ "slug": "test" }] }')
     file.close
 
-    error = assert_raises Level::CreateAllFromJson::InvalidJsonError do
+    error = assert_raises InvalidJsonError do
       Level::CreateAllFromJson.(file.path)
     end
 
@@ -110,7 +110,7 @@ class Level::CreateAllFromJsonTest < ActiveSupport::TestCase
     }')
     file.close
 
-    assert_raises Level::CreateAllFromJson::InvalidJsonError do
+    assert_raises InvalidJsonError do
       Level::CreateAllFromJson.(file.path)
     end
 
@@ -140,6 +140,123 @@ class Level::CreateAllFromJsonTest < ActiveSupport::TestCase
     level.reload
     assert_equal "New Title", level.title
     assert_equal "New description", level.description
+  ensure
+    file.unlink
+  end
+
+  test "delete_existing: false (default) preserves existing records not in JSON" do
+    # Create some existing levels
+    existing_level1 = create(:level, slug: "existing-1", title: "Existing 1")
+    existing_level2 = create(:level, slug: "existing-2", title: "Existing 2")
+
+    file = Tempfile.new(['new', '.json'])
+    file.write('{
+      "levels": [{
+        "slug": "new-level",
+        "title": "New Level",
+        "description": "This is a new level",
+        "lessons": []
+      }]
+    }')
+    file.close
+
+    Level::CreateAllFromJson.(file.path, delete_existing: false)
+
+    # All three levels should exist
+    assert_equal 3, Level.count
+    assert Level.exists?(id: existing_level1.id)
+    assert Level.exists?(id: existing_level2.id)
+    assert Level.exists?(slug: "new-level")
+  ensure
+    file.unlink
+  end
+
+  test "delete_existing: true removes all existing levels before import" do
+    # Create some existing levels with lessons
+    existing_level1 = create(:level, slug: "existing-1", title: "Existing 1")
+    create(:lesson, level: existing_level1, slug: "existing-lesson-1", title: "Existing Lesson 1", type: "exercise")
+    create(:level, slug: "existing-2", title: "Existing 2")
+
+    file = Tempfile.new(['clean', '.json'])
+    file.write('{
+      "levels": [{
+        "slug": "new-level",
+        "title": "New Level",
+        "description": "This is a new level",
+        "lessons": []
+      }]
+    }')
+    file.close
+
+    Level::CreateAllFromJson.(file.path, delete_existing: true)
+
+    # Only the new level should exist
+    assert_equal 1, Level.count
+    refute Level.exists?(slug: "existing-1")
+    refute Level.exists?(slug: "existing-2")
+    assert Level.exists?(slug: "new-level")
+
+    # Lessons should also be deleted (cascade)
+    assert_equal 0, Lesson.where(slug: "existing-lesson-1").count
+  ensure
+    file.unlink
+  end
+
+  test "delete_existing: true with idempotent behavior" do
+    file = Tempfile.new(['idempotent', '.json'])
+    file.write('{
+      "levels": [{
+        "slug": "level-1",
+        "title": "Level 1",
+        "description": "First level",
+        "lessons": []
+      }]
+    }')
+    file.close
+
+    # First import
+    Level::CreateAllFromJson.(file.path, delete_existing: true)
+    assert_equal 1, Level.count
+    first_level_id = Level.find_by(slug: "level-1").id
+
+    # Second import - should delete and recreate
+    Level::CreateAllFromJson.(file.path, delete_existing: true)
+    assert_equal 1, Level.count
+
+    # ID should be different because it was deleted and recreated
+    second_level_id = Level.find_by(slug: "level-1").id
+    refute_equal first_level_id, second_level_id
+  ensure
+    file.unlink
+  end
+
+  test "delete_existing: true handles transaction rollback correctly" do
+    # Create existing data
+    create(:level, slug: "existing", title: "Existing")
+
+    file = Tempfile.new(['invalid_partial', '.json'])
+    file.write('{
+      "levels": [
+        {
+          "slug": "valid-level",
+          "title": "Valid Level",
+          "description": "This is valid",
+          "lessons": []
+        },
+        {
+          "slug": "invalid-level"
+        }
+      ]
+    }')
+    file.close
+
+    assert_raises InvalidJsonError do
+      Level::CreateAllFromJson.(file.path, delete_existing: true)
+    end
+
+    # Existing level should be preserved (deletion happens inside transaction)
+    assert_equal 1, Level.count
+    assert Level.exists?(slug: "existing")
   ensure
     file.unlink
   end
