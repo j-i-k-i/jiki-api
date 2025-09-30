@@ -74,4 +74,55 @@ class UserLevel::CompleteTest < ActiveSupport::TestCase
 
     assert_equal started_time.to_i, result.started_at.to_i
   end
+
+  test "creates user_level for next level when next level exists" do
+    user = create(:user)
+    level1 = create(:level, position: 1)
+    level2 = create(:level, position: 2)
+
+    UserLevel::Complete.(user, level1)
+
+    next_user_level = UserLevel.find_by(user: user, level: level2)
+    refute_nil next_user_level
+    refute_nil next_user_level.started_at
+    assert_nil next_user_level.completed_at
+  end
+
+  test "does not create next user_level when no next level exists" do
+    user = create(:user)
+    level = create(:level, position: 1)
+
+    UserLevel::Complete.(user, level)
+
+    assert_equal 1, user.user_levels.count
+  end
+
+  test "creates next user_level with gaps in position numbers" do
+    user = create(:user)
+    level1 = create(:level, position: 1)
+    level5 = create(:level, position: 5)
+
+    UserLevel::Complete.(user, level1)
+
+    next_user_level = UserLevel.find_by(user: user, level: level5)
+    refute_nil next_user_level
+    assert_equal level5, next_user_level.level
+  end
+
+  test "wraps completion and next level creation in transaction" do
+    user = create(:user)
+    level1 = create(:level, position: 1)
+    level2 = create(:level, position: 2)
+
+    # Stub to raise an error during next level creation
+    UserLevel::FindOrCreate.stubs(:call).with(user, level1).returns(create(:user_level, user: user, level: level1))
+    UserLevel::FindOrCreate.stubs(:call).with(user, level2).raises(ActiveRecord::RecordInvalid)
+
+    assert_raises(ActiveRecord::RecordInvalid) do
+      UserLevel::Complete.(user, level1)
+    end
+
+    # The completion should be rolled back
+    assert_nil UserLevel.find_by(user: user, level: level1)&.completed_at
+  end
 end
