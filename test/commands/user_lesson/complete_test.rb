@@ -48,12 +48,12 @@ class UserLesson::CompleteTest < ActiveSupport::TestCase
     assert result.completed_at > old_completed_at
   end
 
-  test "delegates to UserLesson::Create for find or create logic" do
+  test "delegates to UserLesson::FindOrCreate for find or create logic" do
     user = create(:user)
     lesson = create(:lesson)
     user_lesson = create(:user_lesson, user: user, lesson: lesson)
 
-    UserLesson::Create.expects(:call).with(user, lesson).returns(user_lesson)
+    UserLesson::FindOrCreate.expects(:call).with(user, lesson).returns(user_lesson)
 
     UserLesson::Complete.(user, lesson)
   end
@@ -77,5 +77,40 @@ class UserLesson::CompleteTest < ActiveSupport::TestCase
     result = UserLesson::Complete.(user, lesson)
 
     assert_equal started_time.to_i, result.started_at.to_i
+  end
+
+  test "clears current_user_lesson on user_level when completing" do
+    user = create(:user)
+    lesson = create(:lesson)
+
+    UserLesson::Complete.(user, lesson)
+
+    user_level = UserLevel.find_by(user: user, level: lesson.level)
+    assert_nil user_level.current_user_lesson_id
+  end
+
+  test "creates user_level if it doesn't exist when completing" do
+    user = create(:user)
+    lesson = create(:lesson)
+
+    UserLesson::Complete.(user, lesson)
+
+    user_level = UserLevel.find_by(user: user, level: lesson.level)
+    assert user_level.present?
+    assert_nil user_level.current_user_lesson_id
+  end
+
+  test "clears existing current_user_lesson on user_level" do
+    user = create(:user)
+    level = create(:level)
+    lesson1 = create(:lesson, level: level, slug: "first-lesson")
+    lesson2 = create(:lesson, level: level, slug: "second-lesson")
+    user_lesson1 = create(:user_lesson, user: user, lesson: lesson1)
+    user_level = create(:user_level, user: user, level: level, current_user_lesson: user_lesson1)
+
+    UserLesson::Complete.(user, lesson2)
+
+    user_level.reload
+    assert_nil user_level.current_user_lesson_id
   end
 end

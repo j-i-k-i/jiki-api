@@ -36,7 +36,7 @@ As you work through the plan, add new checkboxes if new tasks are added, and che
 Always perform these checks before committing code:
 
 1. **Run Tests**: `bin/rails test`
-2. **Run Linting**: `bin/rubocop --except Metrics` (excludes metrics cops to focus on style/correctness)
+2. **Run Linting**: `bin/rubocop`
 3. **Security Check**: `bin/brakeman`
 4. **Update Context Files**: Review if any `.context/` files need updating based on your changes
 5. **Commit Message**: Use clear, descriptive commit messages that explain the "why"
