@@ -85,5 +85,47 @@ module V1
       refute json["levels"][0].key?("title") # Title should not be included
       refute json["levels"][0].key?("description") # Description should not be included
     end
+
+    test "GET index returns nil for current_level_slug and current_lesson_slug when user has no progress" do
+      create(:level)
+
+      get v1_levels_path, headers: @headers, as: :json
+
+      assert_response :success
+      json = response.parsed_body
+
+      assert_nil json["current_level_slug"]
+      assert_nil json["current_lesson_slug"]
+    end
+
+    test "GET index returns current_level_slug but nil current_lesson_slug when user has level but no lesson" do
+      level = create(:level, slug: "intro-to-python")
+      user_level = create(:user_level, user: @current_user, level: level, current_user_lesson: nil)
+      @current_user.update!(current_user_level: user_level)
+
+      get v1_levels_path, headers: @headers, as: :json
+
+      assert_response :success
+      json = response.parsed_body
+
+      assert_equal "intro-to-python", json["current_level_slug"]
+      assert_nil json["current_lesson_slug"]
+    end
+
+    test "GET index returns both current_level_slug and current_lesson_slug when user has progress" do
+      level = create(:level, slug: "intro-to-python")
+      lesson = create(:lesson, level: level, slug: "variables-101")
+      user_lesson = create(:user_lesson, user: @current_user, lesson: lesson)
+      user_level = create(:user_level, user: @current_user, level: level, current_user_lesson: user_lesson)
+      @current_user.update!(current_user_level: user_level)
+
+      get v1_levels_path, headers: @headers, as: :json
+
+      assert_response :success
+      json = response.parsed_body
+
+      assert_equal "intro-to-python", json["current_level_slug"]
+      assert_equal "variables-101", json["current_lesson_slug"]
+    end
   end
 end
