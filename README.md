@@ -41,7 +41,7 @@ Ruby 3.4.4
 bin/dev
 ```
 
-The server runs on port 3061.
+The server runs on port 3061 by default.
 
 ### Running Tests
 

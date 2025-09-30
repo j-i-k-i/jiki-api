@@ -163,6 +163,7 @@ config.time_zone = 'UTC'
 
 ### Puma Web Server
 - Config file: `config/puma.rb`
+- Default port: 3061
 - Worker processes
 - Thread pool configuration
 - Preload app for performance
