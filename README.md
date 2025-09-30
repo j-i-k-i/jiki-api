@@ -23,14 +23,13 @@ Ruby 3.4.4
 
 2. **Set up the database:**
    ```bash
-   # Create and load the schema
-   bin/rails db:create
-   bin/rails db:schema:load
+   # Create, load schema, and seed with user and curriculum data
+   bin/rails db:setup
    ```
 
-3. **Load curriculum data:**
+3. **Reset curriculum data (optional):**
    ```bash
-   # Load levels and lessons from curriculum.json
+   # Delete and reload all levels and lessons from curriculum.json
    ruby scripts/bootstrap_levels.rb --delete-existing
    ```
 
