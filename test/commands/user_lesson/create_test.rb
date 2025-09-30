@@ -86,4 +86,55 @@ class UserLesson::CreateTest < ActiveSupport::TestCase
     assert_equal user.id, user_lesson1.user_id
     assert_equal user.id, user_lesson2.user_id
   end
+
+  test "creates user_level for the lesson's level" do
+    user = create(:user)
+    lesson = create(:lesson)
+
+    UserLesson::Create.(user, lesson)
+
+    user_level = UserLevel.find_by(user: user, level: lesson.level)
+    assert user_level.present?
+    assert_equal lesson.level.id, user_level.level_id
+  end
+
+  test "sets current_user_lesson on user_level" do
+    user = create(:user)
+    lesson = create(:lesson)
+
+    user_lesson = UserLesson::Create.(user, lesson)
+
+    user_level = UserLevel.find_by(user: user, level: lesson.level)
+    assert_equal user_lesson.id, user_level.current_user_lesson_id
+  end
+
+  test "updates current_user_lesson when starting different lesson in same level" do
+    user = create(:user)
+    level = create(:level)
+    lesson1 = create(:lesson, level: level, slug: "first-lesson")
+    lesson2 = create(:lesson, level: level, slug: "second-lesson")
+
+    user_lesson1 = UserLesson::Create.(user, lesson1)
+    user_level = UserLevel.find_by(user: user, level: level)
+    assert_equal user_lesson1.id, user_level.current_user_lesson_id
+
+    user_lesson2 = UserLesson::Create.(user, lesson2)
+    user_level.reload
+    assert_equal user_lesson2.id, user_level.current_user_lesson_id
+  end
+
+  test "reuses existing user_level for lessons in same level" do
+    user = create(:user)
+    level = create(:level)
+    lesson1 = create(:lesson, level: level, slug: "first-lesson")
+    lesson2 = create(:lesson, level: level, slug: "second-lesson")
+
+    UserLesson::Create.(user, lesson1)
+    user_level1 = UserLevel.find_by(user: user, level: level)
+
+    UserLesson::Create.(user, lesson2)
+    user_level2 = UserLevel.find_by(user: user, level: level)
+
+    assert_equal user_level1.id, user_level2.id
+  end
 end

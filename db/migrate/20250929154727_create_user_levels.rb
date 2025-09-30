@@ -3,6 +3,7 @@ class CreateUserLevels < ActiveRecord::Migration[8.0]
     create_table :user_levels do |t|
       t.references :user, null: false, foreign_key: true
       t.references :level, null: false, foreign_key: true
+      t.references :current_user_lesson, null: true, foreign_key: { to_table: :user_lessons }
 
       t.timestamps
     end
