@@ -1,0 +1,29 @@
+{
+  "ignored_warnings": [
+    {
+      "warning_type": "SQL Injection",
+      "warning_code": 0,
+      "fingerprint": "16163aeee94d5e98fcd38d254a93b2f9aede1c8a9df27c0c3721b5d1400c7ed2",
+      "check_name": "SQL",
+      "message": "Possible SQL injection",
+      "file": "config/initializers/active_record.rb",
+      "line": 31,
+      "link": "https://brakemanscanner.org/docs/warning_types/sql_injection/",
+      "code": "first.class.base_class.joins(\"JOIN unnest(ARRAY[#{map(&:id).join(\",\")}]) WITH ORDINALITY AS arr(id, ord) ON #{first.class.base_class.table_name}.id = arr.id\")",
+      "render_path": null,
+      "location": {
+        "type": "method",
+        "class": "Array",
+        "method": "to_active_relation"
+      },
+      "user_input": "map(&:id).join(\",\")",
+      "confidence": "Weak",
+      "cwe_id": [
+        89
+      ],
+      "note": "IDs are integers from ActiveRecord objects, not user input. Safe from SQL injection."
+    }
+  ],
+  "updated": "2025-09-30 00:00:00 +0000",
+  "brakeman_version": "7.1.0"
+}
