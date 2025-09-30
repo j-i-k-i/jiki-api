@@ -15,6 +15,9 @@ This files contains:
 
 All endpoints require authentication via Bearer token in the `Authorization` header (except authentication endpoints).
 
+See Serializers below for Lesson, UserLesson, etc. 
+These should have equivelent fe types.
+
 ### Authentication
 
 - **POST** `/v1/auth/signup` - Register a new user
