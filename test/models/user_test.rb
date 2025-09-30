@@ -62,4 +62,21 @@ class UserTest < ActiveSupport::TestCase
   test "JWT revocation strategy included" do
     assert_includes User.included_modules, Devise::JWT::RevocationStrategies::JTIMatcher
   end
+
+  test "deleting user cascades to delete user_lessons and user_levels" do
+    user = create(:user)
+    level = create(:level)
+    lesson = create(:lesson)
+
+    user_level = create(:user_level, user:, level:)
+    user_lesson = create(:user_lesson, user:, lesson:)
+
+    user_level_id = user_level.id
+    user_lesson_id = user_lesson.id
+
+    user.destroy!
+
+    refute UserLevel.exists?(user_level_id)
+    refute UserLesson.exists?(user_lesson_id)
+  end
 end
