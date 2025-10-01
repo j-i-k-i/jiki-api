@@ -37,11 +37,22 @@ These should have equivelent fe types.
 
 ### Levels
 
-- **GET** `/v1/levels` - Get all levels with nested lessons
+- **GET** `/v1/levels` - Get all levels with nested lessons (basic info only)
   - **Response:**
     ```json
     {
       "levels": [Level, Level, ...]
+    }
+    ```
+
+### Lessons
+
+- **GET** `/v1/lessons/:slug` - Get a single lesson with full data
+  - **Params (required):** `slug` (in URL)
+  - **Response:**
+    ```json
+    {
+      "lesson": Lesson
     }
     ```
 
@@ -88,9 +99,17 @@ All API responses use serializers to format data consistently. Below are the dat
 ```json
 {
   "slug": "basics",
-  "lessons": [Lesson, Lesson, ...]
+  "lessons": [
+    {
+      "slug": "hello-world",
+      "type": "exercise"
+    },
+    ...
+  ]
 }
 ```
+
+**Note:** Level serialization only includes basic lesson info (slug and type). Use `GET /v1/lessons/:slug` to fetch full lesson data including the `data` field.
 
 ### UserLesson
 
