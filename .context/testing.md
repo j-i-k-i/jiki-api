@@ -416,6 +416,59 @@ end
 - **Maintainability**: Changes to auth logic only require updating the macro once
 - **Coverage**: Automatically tests both invalid token and missing token scenarios
 
+### Serializer Testing Patterns
+
+**IMPORTANT**: When testing serializers, extract expected values into separate variables for improved readability and maintainability.
+
+```ruby
+# CORRECT: Extract expected hash into a variable
+test "serializes multiple levels with lessons" do
+  level1 = create(:level, slug: "level-1")
+  level2 = create(:level, slug: "level-2")
+  create(:lesson, level: level1, slug: "l1", type: "exercise", data: { slug: "ex1" })
+  create(:lesson, level: level2, slug: "l2", type: "tutorial", data: { slug: "ex2" })
+
+  expected = [
+    {
+      slug: "level-1",
+      lessons: [
+        { slug: "l1", type: "exercise", data: { slug: "ex1" } }
+      ]
+    },
+    {
+      slug: "level-2",
+      lessons: [
+        { slug: "l2", type: "tutorial", data: { slug: "ex2" } }
+      ]
+    }
+  ]
+
+  assert_equal(expected, SerializeLevels.([level1, level2]))
+end
+
+# INCORRECT: Inline hash makes tests harder to read
+test "serializes multiple levels with lessons" do
+  level1 = create(:level, slug: "level-1")
+  level2 = create(:level, slug: "level-2")
+  create(:lesson, level: level1, slug: "l1", type: "exercise", data: { slug: "ex1" })
+
+  assert_equal([
+                 {
+                   slug: "level-1",
+                   lessons: [
+                     { slug: "l1", type: "exercise", data: { slug: "ex1" } }
+                   ]
+                 }
+               ], SerializeLevels.([level1]))
+end
+```
+
+**Benefits:**
+- Easier to read and understand expected output
+- Simpler to modify expected values when requirements change
+- Better diffs when tests fail
+- Consistent formatting across test files
+
 ### Performance Considerations
 - **Minimize database calls** in factory definitions
 - **Use traits wisely** to avoid complex factory hierarchies

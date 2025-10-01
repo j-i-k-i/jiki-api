@@ -17,21 +17,23 @@ class SerializeUserLevelsTest < ActiveSupport::TestCase
     create(:user_lesson, user: user, lesson: lesson2, completed_at: nil)
     create(:user_lesson, user: user, lesson: lesson3, completed_at: Time.current)
 
-    assert_equal([
-                   {
-                     level_slug: "basics",
-                     user_lessons: [
-                       { lesson_slug: "lesson-1", status: "completed" },
-                       { lesson_slug: "lesson-2", status: "started" }
-                     ]
-                   },
-                   {
-                     level_slug: "advanced",
-                     user_lessons: [
-                       { lesson_slug: "lesson-3", status: "completed" }
-                     ]
-                   }
-                 ], SerializeUserLevels.(user.user_levels))
+    expected = [
+      {
+        level_slug: "basics",
+        user_lessons: [
+          { lesson_slug: "lesson-1", status: "completed" },
+          { lesson_slug: "lesson-2", status: "started" }
+        ]
+      },
+      {
+        level_slug: "advanced",
+        user_lessons: [
+          { lesson_slug: "lesson-3", status: "completed" }
+        ]
+      }
+    ]
+
+    assert_equal(expected, SerializeUserLevels.(user.user_levels))
   end
 
   test "returns empty array when no user_levels" do
@@ -67,11 +69,13 @@ class SerializeUserLevelsTest < ActiveSupport::TestCase
     create(:user_lesson, user: user, lesson: lesson2)
     create(:user_lesson, user: user, lesson: lesson3)
 
-    assert_equal([
-                   { level_slug: "level-a", user_lessons: [{ lesson_slug: "lesson-a", status: "started" }] },
-                   { level_slug: "level-b", user_lessons: [{ lesson_slug: "lesson-b", status: "started" }] },
-                   { level_slug: "level-c", user_lessons: [{ lesson_slug: "lesson-c", status: "started" }] }
-                 ], SerializeUserLevels.(user.user_levels))
+    expected = [
+      { level_slug: "level-a", user_lessons: [{ lesson_slug: "lesson-a", status: "started" }] },
+      { level_slug: "level-b", user_lessons: [{ lesson_slug: "lesson-b", status: "started" }] },
+      { level_slug: "level-c", user_lessons: [{ lesson_slug: "lesson-c", status: "started" }] }
+    ]
+
+    assert_equal(expected, SerializeUserLevels.(user.user_levels))
   end
 
   test "maintains lesson position order within levels" do
@@ -87,15 +91,17 @@ class SerializeUserLevelsTest < ActiveSupport::TestCase
     create(:user_lesson, user: user, lesson: lesson2)
     create(:user_lesson, user: user, lesson: lesson3)
 
-    assert_equal([
-                   {
-                     level_slug: "basics",
-                     user_lessons: [
-                       { lesson_slug: "lesson-a", status: "started" },
-                       { lesson_slug: "lesson-b", status: "started" },
-                       { lesson_slug: "lesson-c", status: "started" }
-                     ]
-                   }
-                 ], SerializeUserLevels.(user.user_levels))
+    expected = [
+      {
+        level_slug: "basics",
+        user_lessons: [
+          { lesson_slug: "lesson-a", status: "started" },
+          { lesson_slug: "lesson-b", status: "started" },
+          { lesson_slug: "lesson-c", status: "started" }
+        ]
+      }
+    ]
+
+    assert_equal(expected, SerializeUserLevels.(user.user_levels))
   end
 end
