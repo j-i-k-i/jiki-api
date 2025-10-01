@@ -3,7 +3,11 @@ class ExerciseSubmission::File::Create
 
   initialize_with :exercise_submission, :filename, :content
 
+  MAX_FILE_SIZE = 100_000 # 100KB
+
   def call
+    validate_file_size!
+
     exercise_submission.files.create!(
       filename:,
       digest:
@@ -17,6 +21,12 @@ class ExerciseSubmission::File::Create
   end
 
   private
+  def validate_file_size!
+    return if content.bytesize <= MAX_FILE_SIZE
+
+    raise FileTooLargeError, "File '#{filename}' is too large (maximum #{MAX_FILE_SIZE} bytes)"
+  end
+
   memoize
   def sanitized_content
     # Convert to UTF-8 encoding, replacing invalid characters

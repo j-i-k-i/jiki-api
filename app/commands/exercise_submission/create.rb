@@ -4,6 +4,9 @@ class ExerciseSubmission::Create
   initialize_with :user_lesson, :files
 
   def call
+    validate_file_count!
+    validate_unique_filenames!
+
     ExerciseSubmission.create!(
       user_lesson:,
       uuid:
@@ -19,6 +22,17 @@ class ExerciseSubmission::Create
   end
 
   private
+  def validate_file_count!
+    raise TooManyFilesError, "Too many files (maximum 20)" if files.length > 20
+  end
+
+  def validate_unique_filenames!
+    filenames = files.map { |f| f[:filename] }
+    duplicates = filenames.select { |fn| filenames.count(fn) > 1 }.uniq
+
+    raise DuplicateFilenameError, "Duplicate filenames: #{duplicates.join(', ')}" if duplicates.any?
+  end
+
   memoize
   def uuid = SecureRandom.uuid
 end

@@ -95,4 +95,57 @@ class V1::ExerciseSubmissionsControllerTest < ApplicationControllerTest
 
     assert_response :created
   end
+
+  test "POST create returns 422 for duplicate filenames" do
+    files = [
+      { filename: "main.rb", code: "code1" },
+      { filename: "main.rb", code: "code2" }
+    ]
+
+    post v1_lesson_exercise_submissions_path(lesson_slug: @lesson.slug),
+      params: { submission: { files: } },
+      headers: @headers,
+      as: :json
+
+    assert_response :unprocessable_entity
+    assert_json_response({
+      error: {
+        type: "duplicate_filename",
+        message: "Duplicate filenames: main.rb"
+      }
+    })
+  end
+
+  test "POST create returns 422 for too many files" do
+    files = Array.new(21) { |i| { filename: "file#{i}.rb", code: "code#{i}" } }
+
+    post v1_lesson_exercise_submissions_path(lesson_slug: @lesson.slug),
+      params: { submission: { files: } },
+      headers: @headers,
+      as: :json
+
+    assert_response :unprocessable_entity
+    assert_json_response({
+      error: {
+        type: "too_many_files",
+        message: "Too many files (maximum 20)"
+      }
+    })
+  end
+
+  test "POST create returns 422 for file too large" do
+    files = [
+      { filename: "large.rb", code: "a" * 100_001 }
+    ]
+
+    post v1_lesson_exercise_submissions_path(lesson_slug: @lesson.slug),
+      params: { submission: { files: } },
+      headers: @headers,
+      as: :json
+
+    assert_response :unprocessable_entity
+    json_response = JSON.parse(response.body)
+    assert_equal "file_too_large", json_response["error"]["type"]
+    assert_match(/File 'large.rb' is too large/, json_response["error"]["message"])
+  end
 end
