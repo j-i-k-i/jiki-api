@@ -222,7 +222,10 @@ Ruby 3.4.4
 - PostgreSQL
 - Bundler
 - Redis (for Sidekiq background jobs)
-- Hivemind (for running multiple processes: `brew install hivemind`)
+- Hivemind (for running multiple processes)
+  - **macOS**: `brew install hivemind`
+  - **Linux**: Download from [releases](https://github.com/DarthSim/hivemind/releases)
+  - **Alternative**: Use `foreman` gem (`gem install foreman` and run `foreman start -f Procfile.dev`)
 
 ### Installation
 
