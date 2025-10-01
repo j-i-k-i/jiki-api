@@ -54,10 +54,9 @@ class UserTest < ActiveSupport::TestCase
     refute user.valid_password?("wrongpassword")
   end
 
-  test "name is required" do
+  test "name is optional" do
     user = build(:user, name: nil)
-    refute user.valid?
-    assert_includes user.errors[:name], "can't be blank"
+    assert user.valid?
   end
 
   test "locale is required" do

@@ -16,6 +16,8 @@ class TestExampleCommand
 end
 
 class TestExampleCommandTest < ActiveSupport::TestCase
+  include ActiveJob::TestHelper
+
   test ".defer() enqueues MandateJob with correct arguments" do
     assert_enqueued_with(
       job: MandateJob,
@@ -124,6 +126,8 @@ class TestRateLimitedCommand
 end
 
 class TestRateLimitedCommandTest < ActiveSupport::TestCase
+  include ActiveJob::TestHelper
+
   test "requeue_job! triggers re-enqueueing" do
     assert_enqueued_jobs 1 do
       TestRateLimitedCommand.defer(true)
