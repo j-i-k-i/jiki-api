@@ -29,6 +29,40 @@ module V1
         assert token.start_with?("Bearer ")
       end
 
+      test "POST signup calls User::Bootstrap on successful registration" do
+        assert_enqueued_with(
+          job: MandateJob,
+          args: ->(args) { args[0] == "User::SendWelcomeEmail" },
+          queue: "mailers"
+        ) do
+          post user_registration_path, params: {
+            user: {
+              email: "bootstrap@example.com",
+              password: "password123",
+              password_confirmation: "password123",
+              name: "Bootstrap User"
+            }
+          }, as: :json
+        end
+
+        assert_response :created
+      end
+
+      test "POST signup does not call User::Bootstrap on failed registration" do
+        assert_no_enqueued_jobs do
+          post user_registration_path, params: {
+            user: {
+              email: "invalid-email",
+              password: "password123",
+              password_confirmation: "password123",
+              name: "Invalid User"
+            }
+          }, as: :json
+        end
+
+        assert_response :unprocessable_entity
+      end
+
       test "POST signup returns error with invalid email" do
         assert_no_difference("User.count") do
           post user_registration_path, params: {

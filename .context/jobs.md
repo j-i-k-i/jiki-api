@@ -289,6 +289,41 @@ end
 
 ## Common Patterns
 
+### User Bootstrapping
+
+When a user signs up, run initialization tasks via `User::Bootstrap`:
+
+```ruby
+# app/commands/user/bootstrap.rb
+class User::Bootstrap
+  include Mandate
+
+  initialize_with :user
+
+  def call
+    # Queue welcome email to be sent asynchronously
+    User::SendWelcomeEmail.defer(user.id)
+
+    # Future: Add other bootstrap operations here as needed:
+    # - Award badges
+    # - Create auth tokens
+    # - Track metrics
+  end
+end
+
+# Usage in Devise RegistrationsController
+def create
+  super do |resource|
+    User::Bootstrap.(resource) if resource.persisted?
+  end
+end
+```
+
+**Pattern Notes**:
+- Bootstrap command accepts the user object directly for synchronous operations
+- Async jobs (like email sending) receive `user.id` to avoid serialization issues
+- Keeps controller thin - all bootstrap logic encapsulated in command
+
 ### Email Sending
 
 ```ruby
@@ -301,13 +336,30 @@ class User::SendWelcomeEmail
 
   def call
     user = User.find(user_id)
-    UserMailer.welcome(user).deliver_now
+    WelcomeMailer.welcome(user, login_url:).deliver_now
+  end
+
+  private
+  def login_url
+    # Environment-specific URL generation
+    if Rails.env.production?
+      "https://jiki.io/login"
+    elsif Rails.env.development?
+      "http://localhost:3000/login"
+    else
+      "http://test.host/login"
+    end
   end
 end
 
 # Usage
 User::SendWelcomeEmail.defer(user.id)
 ```
+
+**Pattern Notes**:
+- Accept ID rather than object for background jobs (better serialization)
+- Use `:mailers` queue for all email operations
+- Generate URLs based on environment (will use config gem in future)
 
 ### Batch Processing
 

@@ -3,6 +3,12 @@ module V1
     class RegistrationsController < Devise::RegistrationsController
       respond_to :json
 
+      def create
+        super do |resource|
+          User::Bootstrap.(resource) if resource.persisted?
+        end
+      end
+
       private
       def respond_with(resource, _opts = {})
         if resource.persisted?
