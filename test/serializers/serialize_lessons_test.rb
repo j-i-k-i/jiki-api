@@ -6,10 +6,12 @@ class SerializeLessonsTest < ActiveSupport::TestCase
     lesson1 = create(:lesson, level: level, slug: "lesson-1", type: "exercise", data: { slug: "ex-1" })
     lesson2 = create(:lesson, level: level, slug: "lesson-2", type: "tutorial", data: { slug: "ex-2" })
 
-    assert_equal([
-                   { slug: "lesson-1", type: "exercise", data: { slug: "ex-1" } },
-                   { slug: "lesson-2", type: "tutorial", data: { slug: "ex-2" } }
-                 ], SerializeLessons.([lesson1, lesson2]))
+    expected = [
+      { slug: "lesson-1", type: "exercise", data: { slug: "ex-1" } },
+      { slug: "lesson-2", type: "tutorial", data: { slug: "ex-2" } }
+    ]
+
+    assert_equal(expected, SerializeLessons.([lesson1, lesson2]))
   end
 
   test "returns empty array for no lessons" do
@@ -19,8 +21,10 @@ class SerializeLessonsTest < ActiveSupport::TestCase
   test "serializes single lesson" do
     lesson = create(:lesson, slug: "solo", type: "exercise", data: { slug: "test" })
 
-    assert_equal([
-                   { slug: "solo", type: "exercise", data: { slug: "test" } }
-                 ], SerializeLessons.([lesson]))
+    expected = [
+      { slug: "solo", type: "exercise", data: { slug: "test" } }
+    ]
+
+    assert_equal(expected, SerializeLessons.([lesson]))
   end
 end

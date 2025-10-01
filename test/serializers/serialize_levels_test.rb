@@ -7,20 +7,22 @@ class SerializeLevelsTest < ActiveSupport::TestCase
     create(:lesson, level: level1, slug: "l1", type: "exercise", data: { slug: "ex1" })
     create(:lesson, level: level2, slug: "l2", type: "tutorial", data: { slug: "ex2" })
 
-    assert_equal([
-                   {
-                     slug: "level-1",
-                     lessons: [
-                       { slug: "l1", type: "exercise", data: { slug: "ex1" } }
-                     ]
-                   },
-                   {
-                     slug: "level-2",
-                     lessons: [
-                       { slug: "l2", type: "tutorial", data: { slug: "ex2" } }
-                     ]
-                   }
-                 ], SerializeLevels.([level1, level2]))
+    expected = [
+      {
+        slug: "level-1",
+        lessons: [
+          { slug: "l1", type: "exercise", data: { slug: "ex1" } }
+        ]
+      },
+      {
+        slug: "level-2",
+        lessons: [
+          { slug: "l2", type: "tutorial", data: { slug: "ex2" } }
+        ]
+      }
+    ]
+
+    assert_equal(expected, SerializeLevels.([level1, level2]))
   end
 
   test "returns empty array for no levels" do
@@ -31,13 +33,14 @@ class SerializeLevelsTest < ActiveSupport::TestCase
     level = create(:level, slug: "solo")
     create(:lesson, level: level, slug: "lesson-solo", type: "exercise", data: { slug: "test" })
 
-    assert_equal([
-                   {
-                     slug: "solo",
-                     lessons: [
-                       { slug: "lesson-solo", type: "exercise", data: { slug: "test" } }
-                     ]
-                   }
-                 ], SerializeLevels.([level]))
+    expected = [
+      {
+        slug: "solo",
+        lessons: [
+          { slug: "lesson-solo", type: "exercise", data: { slug: "test" } }
+        ]
+      }
+    ]
+    assert_equal(expected, SerializeLevels.([level]))
   end
 end

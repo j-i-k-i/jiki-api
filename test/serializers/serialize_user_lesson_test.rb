@@ -13,33 +13,41 @@ class SerializeUserLessonTest < ActiveSupport::TestCase
     lesson = create(:lesson, slug: "hello-world")
     user_lesson = create(:user_lesson, lesson: lesson, completed_at: Time.current)
 
-    assert_equal({
+    expected = {
       lesson_slug: "hello-world",
       status: "completed"
-    }, SerializeUserLesson.(user_lesson: user_lesson))
+    }
+
+    assert_equal(expected, SerializeUserLesson.(user_lesson: user_lesson))
   end
 
   test "serializes user_lesson model with started status" do
     lesson = create(:lesson, slug: "hello-world")
     user_lesson = create(:user_lesson, lesson: lesson, completed_at: nil)
 
-    assert_equal({
+    expected = {
       lesson_slug: "hello-world",
       status: "started"
-    }, SerializeUserLesson.(user_lesson: user_lesson))
+    }
+
+    assert_equal(expected, SerializeUserLesson.(user_lesson: user_lesson))
   end
 
   test "serializes user_lesson_data hash with completed status" do
-    assert_equal({
+    expected = {
       lesson_slug: "hello-world",
       status: "completed"
-    }, SerializeUserLesson.(user_lesson_data: { lesson_slug: "hello-world", completed_at: Time.current }))
+    }
+
+    assert_equal(expected, SerializeUserLesson.(user_lesson_data: { lesson_slug: "hello-world", completed_at: Time.current }))
   end
 
   test "serializes user_lesson_data hash with started status" do
-    assert_equal({
+    expected = {
       lesson_slug: "hello-world",
       status: "started"
-    }, SerializeUserLesson.(user_lesson_data: { lesson_slug: "hello-world", completed_at: nil }))
+    }
+
+    assert_equal(expected, SerializeUserLesson.(user_lesson_data: { lesson_slug: "hello-world", completed_at: nil }))
   end
 end
