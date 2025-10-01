@@ -103,9 +103,9 @@ class SerializeUserLessonTest < ActiveSupport::TestCase
     result = SerializeUserLesson.(user_lesson)
 
     assert_equal 2, result[:data][:last_submission][:files].length
-    assert_equal "main.rb", result[:data][:last_submission][:files][0][:filename]
-    assert_equal "main code", result[:data][:last_submission][:files][0][:content]
-    assert_equal "helper.rb", result[:data][:last_submission][:files][1][:filename]
-    assert_equal "helper code", result[:data][:last_submission][:files][1][:content]
+    assert_equal "helper.rb", result[:data][:last_submission][:files][0][:filename]
+    assert_equal "helper code", result[:data][:last_submission][:files][0][:content]
+    assert_equal "main.rb", result[:data][:last_submission][:files][1][:filename]
+    assert_equal "main code", result[:data][:last_submission][:files][1][:content]
   end
 end
