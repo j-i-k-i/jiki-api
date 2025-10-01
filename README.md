@@ -82,18 +82,6 @@ These should have equivelent fe types.
 
 All API responses use serializers to format data consistently. Below are the data shapes for each serializer.
 
-### Lesson
-
-```json
-{
-  "slug": "hello-world",
-  "type": "exercise",
-  "data": {
-    "slug": "basic-movement"
-  }
-}
-```
-
 ### Level
 
 ```json
@@ -110,6 +98,18 @@ All API responses use serializers to format data consistently. Below are the dat
 ```
 
 **Note:** Level serialization only includes basic lesson info (slug and type). Use `GET /v1/lessons/:slug` to fetch full lesson data including the `data` field.
+
+### Lesson
+
+```json
+{
+  "slug": "hello-world",
+  "type": "exercise",
+  "data": {
+    "slug": "basic-movement"
+  }
+}
+```
 
 ### UserLesson
 
