@@ -21,8 +21,8 @@ class SerializeExerciseSubmissionTest < ActiveSupport::TestCase
       lesson_slug: "test-lesson",
       created_at: submission.created_at.iso8601,
       files: [
-        { filename: "main.rb", digest: "digest1" },
-        { filename: "helper.rb", digest: "digest2" }
+        { filename: "helper.rb", digest: "digest2" },
+        { filename: "main.rb", digest: "digest1" }
       ]
     }
 

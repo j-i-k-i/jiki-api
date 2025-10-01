@@ -289,6 +289,41 @@ end
 
 ## Common Patterns
 
+### User Bootstrapping
+
+When a user signs up, run initialization tasks via `User::Bootstrap`:
+
+```ruby
+# app/commands/user/bootstrap.rb
+class User::Bootstrap
+  include Mandate
+
+  initialize_with :user
+
+  def call
+    # Queue welcome email to be sent asynchronously
+    User::SendWelcomeEmail.defer(user)
+
+    # Future: Add other bootstrap operations here as needed:
+    # - Award badges
+    # - Create auth tokens
+    # - Track metrics
+  end
+end
+
+# Usage in Devise RegistrationsController
+def create
+  super do |resource|
+    User::Bootstrap.(resource) if resource.persisted?
+  end
+end
+```
+
+**Pattern Notes**:
+- Bootstrap command accepts the user object directly for synchronous operations
+- Background jobs also receive user object - ActiveJob uses GlobalID for serialization
+- Keeps controller thin - all bootstrap logic encapsulated in command
+
 ### Email Sending
 
 ```ruby
@@ -297,17 +332,35 @@ class User::SendWelcomeEmail
 
   queue_as :mailers
 
-  initialize_with :user_id
+  initialize_with :user
 
   def call
-    user = User.find(user_id)
-    UserMailer.welcome(user).deliver_now
+    WelcomeMailer.welcome(user, login_url:).deliver_now
+  end
+
+  private
+  def login_url
+    # Environment-specific URL generation
+    if Rails.env.production?
+      "https://jiki.io/login"
+    elsif Rails.env.development?
+      "http://localhost:3000/login"
+    else
+      "http://test.host/login"
+    end
   end
 end
 
 # Usage
-User::SendWelcomeEmail.defer(user.id)
+User::SendWelcomeEmail.defer(user)
 ```
+
+**Pattern Notes**:
+- Pass ActiveRecord objects directly - ActiveJob handles serialization via GlobalID
+- GlobalID serializes as reference (e.g., `gid://app/User/123`), not a snapshot
+- User is fetched fresh from DB when job executes, ensuring current data
+- Use `:mailers` queue for all email operations
+- Generate URLs based on environment (will use config gem in future)
 
 ### Batch Processing
 
