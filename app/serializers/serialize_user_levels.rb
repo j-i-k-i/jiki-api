@@ -11,13 +11,12 @@ class SerializeUserLevels
     grouped.map do |level_slug, rows|
       {
         level_slug: level_slug,
+        # TODO: Inline lesson_slug and status here instead of using SerializeUserLesson
         user_lessons: rows.map do |row|
-          SerializeUserLesson.(
-            user_lesson_data: {
-              lesson_slug: row[:lesson_slug],
-              completed_at: row[:completed_at]
-            }
-          )
+          {
+            lesson_slug: row[:lesson_slug],
+            status: row[:completed_at].present? ? "completed" : "started"
+          }
         end
       }
     end

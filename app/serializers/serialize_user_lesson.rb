@@ -1,24 +1,49 @@
 class SerializeUserLesson
   include Mandate
 
-  initialize_with user_lesson: nil, user_lesson_data: nil
+  initialize_with :user_lesson
 
   def call
-    raise ArgumentError, "Either user_lesson or user_lesson_data must be provided" if user_lesson.nil? && user_lesson_data.nil?
-
     {
-      lesson_slug: lesson_slug,
-      status: status
+      lesson_slug: user_lesson.lesson.slug,
+      status: status,
+      data: data
     }
   end
 
   private
-  def lesson_slug
-    user_lesson_data ? user_lesson_data[:lesson_slug] : user_lesson.lesson.slug
+  def status
+    user_lesson.completed_at.present? ? "completed" : "started"
   end
 
-  def status
-    completed_at = user_lesson_data ? user_lesson_data[:completed_at] : user_lesson.completed_at
-    completed_at.present? ? "completed" : "started"
+  def data
+    case user_lesson.lesson.type
+    when "exercise"
+      exercise_data
+    else
+      {}
+    end
+  end
+
+  def exercise_data
+    { last_submission: exercise_data_last_submission }
+  end
+
+  def exercise_data_last_submission
+    last_submission = user_lesson.exercise_submissions.
+      includes(files: { content_attachment: :blob }).
+      order(created_at: :desc).
+      first
+    return nil unless last_submission
+
+    {
+      uuid: last_submission.uuid,
+      files: last_submission.files.map do |file|
+        {
+          filename: file.filename,
+          content: file.content.download
+        }
+      end
+    }
   end
 end
