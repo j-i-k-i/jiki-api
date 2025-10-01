@@ -54,8 +54,27 @@ class UserTest < ActiveSupport::TestCase
     refute user.valid_password?("wrongpassword")
   end
 
-  test "name is optional" do
+  test "name is required" do
     user = build(:user, name: nil)
+    refute user.valid?
+    assert_includes user.errors[:name], "can't be blank"
+  end
+
+  test "locale is required" do
+    user = build(:user, locale: nil)
+    refute user.valid?
+    assert_includes user.errors[:locale], "can't be blank"
+  end
+
+  test "locale must be en or hu" do
+    user = build(:user, locale: "fr")
+    refute user.valid?
+    assert_includes user.errors[:locale], "is not included in the list"
+
+    user.locale = "en"
+    assert user.valid?
+
+    user.locale = "hu"
     assert user.valid?
   end
 

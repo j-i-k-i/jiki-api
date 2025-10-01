@@ -4,5 +4,10 @@ FactoryBot.define do
     password { "password123" }
     password_confirmation { password }
     name { Faker::Name.name }
+    locale { "en" }
+
+    trait :hungarian do
+      locale { "hu" }
+    end
   end
 end

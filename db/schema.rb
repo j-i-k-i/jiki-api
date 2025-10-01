@@ -119,7 +119,8 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_01_114557) do
     t.string "reset_password_token"
     t.datetime "reset_password_sent_at"
     t.datetime "remember_created_at"
-    t.string "name"
+    t.string "name", null: false
+    t.string "locale", default: "en", null: false
     t.string "jti", null: false
     t.bigint "current_user_level_id"
     t.datetime "created_at", null: false

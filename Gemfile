@@ -37,6 +37,13 @@ gem "mandate", "~> 2.0"
 # Fast hashing for file deduplication
 gem "xxhash"
 
+# Email templating with MJML
+gem "mjml-rails"
+gem "mrml" # Rust-based MJML compiler (faster alternative to Node.js)
+
+# HAML templating
+gem "haml-rails"
+
 group :development, :test do
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem
   gem "debug", platforms: %i[mri windows], require: "debug/prelude"
@@ -56,6 +63,11 @@ group :development, :test do
   gem "rubocop-rails", require: false
   gem "rubocop-minitest", require: false
   gem "rubocop-performance", require: false
+end
+
+group :development do
+  # Preview emails in browser during development
+  gem "letter_opener"
 end
 
 group :test do
