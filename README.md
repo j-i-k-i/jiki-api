@@ -221,6 +221,11 @@ Ruby 3.4.4
 - Ruby 3.4.4 (see `.ruby-version`)
 - PostgreSQL
 - Bundler
+- Redis (for Sidekiq background jobs)
+- Hivemind (for running multiple processes)
+  - **macOS**: `brew install hivemind`
+  - **Linux**: Download from [releases](https://github.com/DarthSim/hivemind/releases)
+  - **Alternative**: Use `foreman` gem (`gem install foreman` and run `foreman start -f Procfile.dev`)
 
 ### Installation
 
@@ -249,7 +254,9 @@ Ruby 3.4.4
 bin/dev
 ```
 
-The server runs on port 3061 by default.
+This starts both the Rails server (port 3061) and Sidekiq worker using Hivemind.
+
+**Note:** Redis must be running for Sidekiq. Start Redis with `brew services start redis` if needed.
 
 ## Tests
 

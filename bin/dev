@@ -1,2 +1,13 @@
-#!/usr/bin/env ruby
-exec "./bin/rails", "server", *ARGV
+#!/usr/bin/env bash
+
+if ! command -v hivemind &> /dev/null; then
+  echo "Error: hivemind not found. Install with: brew install hivemind"
+  exit 1
+fi
+
+if [ ! -f Procfile.dev ]; then
+  echo "Error: Procfile.dev not found"
+  exit 1
+fi
+
+hivemind Procfile.dev
