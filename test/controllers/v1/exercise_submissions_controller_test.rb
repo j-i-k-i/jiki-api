@@ -148,4 +148,72 @@ class V1::ExerciseSubmissionsControllerTest < ApplicationControllerTest
     assert_equal "file_too_large", json_response["error"]["type"]
     assert_match(/File 'large.rb' is too large/, json_response["error"]["message"])
   end
+
+  test "POST create returns 422 for empty files array" do
+    post v1_lesson_exercise_submissions_path(lesson_slug: @lesson.slug),
+      params: { submission: { files: [] } },
+      headers: @headers,
+      as: :json
+
+    assert_response :unprocessable_entity
+    json_response = JSON.parse(response.body)
+    assert_equal "invalid_submission", json_response["error"]["type"]
+    assert_match(/at least one file/i, json_response["error"]["message"])
+  end
+
+  test "POST create returns 422 for missing filename" do
+    files = [{ code: "puts 'hello'" }]
+
+    post v1_lesson_exercise_submissions_path(lesson_slug: @lesson.slug),
+      params: { submission: { files: } },
+      headers: @headers,
+      as: :json
+
+    assert_response :unprocessable_entity
+    json_response = JSON.parse(response.body)
+    assert_equal "invalid_submission", json_response["error"]["type"]
+    assert_match(/filename.*required/i, json_response["error"]["message"])
+  end
+
+  test "POST create returns 422 for null filename" do
+    files = [{ filename: nil, code: "puts 'hello'" }]
+
+    post v1_lesson_exercise_submissions_path(lesson_slug: @lesson.slug),
+      params: { submission: { files: } },
+      headers: @headers,
+      as: :json
+
+    assert_response :unprocessable_entity
+    json_response = JSON.parse(response.body)
+    assert_equal "invalid_submission", json_response["error"]["type"]
+    assert_match(/filename.*required/i, json_response["error"]["message"])
+  end
+
+  test "POST create returns 422 for missing code" do
+    files = [{ filename: "main.rb" }]
+
+    post v1_lesson_exercise_submissions_path(lesson_slug: @lesson.slug),
+      params: { submission: { files: } },
+      headers: @headers,
+      as: :json
+
+    assert_response :unprocessable_entity
+    json_response = JSON.parse(response.body)
+    assert_equal "invalid_submission", json_response["error"]["type"]
+    assert_match(/code.*required/i, json_response["error"]["message"])
+  end
+
+  test "POST create returns 422 for null code" do
+    files = [{ filename: "main.rb", code: nil }]
+
+    post v1_lesson_exercise_submissions_path(lesson_slug: @lesson.slug),
+      params: { submission: { files: } },
+      headers: @headers,
+      as: :json
+
+    assert_response :unprocessable_entity
+    json_response = JSON.parse(response.body)
+    assert_equal "invalid_submission", json_response["error"]["type"]
+    assert_match(/code.*required/i, json_response["error"]["message"])
+  end
 end

@@ -5,6 +5,7 @@ module V1
     rescue_from DuplicateFilenameError, with: :render_duplicate_filename_error
     rescue_from FileTooLargeError, with: :render_file_too_large_error
     rescue_from TooManyFilesError, with: :render_too_many_files_error
+    rescue_from InvalidSubmissionError, with: :render_invalid_submission_error
 
     def create
       # Find or create UserLesson for current user and lesson
@@ -46,6 +47,15 @@ module V1
       render json: {
         error: {
           type: "too_many_files",
+          message: exception.message
+        }
+      }, status: :unprocessable_entity
+    end
+
+    def render_invalid_submission_error(exception)
+      render json: {
+        error: {
+          type: "invalid_submission",
           message: exception.message
         }
       }, status: :unprocessable_entity

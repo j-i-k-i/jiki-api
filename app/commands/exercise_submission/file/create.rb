@@ -6,6 +6,7 @@ class ExerciseSubmission::File::Create
   MAX_FILE_SIZE = 100_000 # 100KB
 
   def call
+    validate_required_fields!
     validate_file_size!
 
     exercise_submission.files.create!(
@@ -21,6 +22,11 @@ class ExerciseSubmission::File::Create
   end
 
   private
+  def validate_required_fields!
+    raise InvalidSubmissionError, "filename is required" if filename.blank?
+    raise InvalidSubmissionError, "code is required" if content.nil?
+  end
+
   def validate_file_size!
     return if content.bytesize <= MAX_FILE_SIZE
 

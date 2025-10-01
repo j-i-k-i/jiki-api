@@ -86,4 +86,43 @@ class ExerciseSubmission::File::CreateTest < ActiveSupport::TestCase
     assert file.persisted?
     assert file.content.attached?
   end
+
+  test "raises InvalidSubmissionError for blank filename" do
+    submission = create(:exercise_submission)
+
+    error = assert_raises(InvalidSubmissionError) do
+      ExerciseSubmission::File::Create.(submission, "", "code")
+    end
+
+    assert_equal "filename is required", error.message
+  end
+
+  test "raises InvalidSubmissionError for nil filename" do
+    submission = create(:exercise_submission)
+
+    error = assert_raises(InvalidSubmissionError) do
+      ExerciseSubmission::File::Create.(submission, nil, "code")
+    end
+
+    assert_equal "filename is required", error.message
+  end
+
+  test "raises InvalidSubmissionError for nil content" do
+    submission = create(:exercise_submission)
+
+    error = assert_raises(InvalidSubmissionError) do
+      ExerciseSubmission::File::Create.(submission, "test.rb", nil)
+    end
+
+    assert_equal "code is required", error.message
+  end
+
+  test "allows empty string content" do
+    submission = create(:exercise_submission)
+
+    file = ExerciseSubmission::File::Create.(submission, "empty.rb", "")
+
+    assert file.persisted?
+    assert file.content.attached?
+  end
 end
