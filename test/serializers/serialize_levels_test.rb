@@ -11,13 +11,13 @@ class SerializeLevelsTest < ActiveSupport::TestCase
       {
         slug: "level-1",
         lessons: [
-          { slug: "l1", type: "exercise", data: { slug: "ex1" } }
+          { slug: "l1", type: "exercise" }
         ]
       },
       {
         slug: "level-2",
         lessons: [
-          { slug: "l2", type: "tutorial", data: { slug: "ex2" } }
+          { slug: "l2", type: "tutorial" }
         ]
       }
     ]
@@ -37,7 +37,7 @@ class SerializeLevelsTest < ActiveSupport::TestCase
       {
         slug: "solo",
         lessons: [
-          { slug: "lesson-solo", type: "exercise", data: { slug: "test" } }
+          { slug: "lesson-solo", type: "exercise" }
         ]
       }
     ]
