@@ -6,10 +6,10 @@ class User::SendWelcomeEmailTest < ActiveSupport::TestCase
 
     assert_enqueued_with(
       job: MandateJob,
-      args: ["User::SendWelcomeEmail", user.id],
+      args: ["User::SendWelcomeEmail", user],
       queue: "mailers"
     ) do
-      User::SendWelcomeEmail.defer(user.id)
+      User::SendWelcomeEmail.defer(user)
     end
   end
 
@@ -18,7 +18,7 @@ class User::SendWelcomeEmailTest < ActiveSupport::TestCase
 
     assert_difference "ActionMailer::Base.deliveries.size", 1 do
       perform_enqueued_jobs do
-        User::SendWelcomeEmail.defer(user.id)
+        User::SendWelcomeEmail.defer(user)
       end
     end
   end
@@ -26,7 +26,7 @@ class User::SendWelcomeEmailTest < ActiveSupport::TestCase
   test "includes correct login URL for test environment" do
     user = create(:user)
 
-    command = User::SendWelcomeEmail.new(user.id)
+    command = User::SendWelcomeEmail.new(user)
     assert_equal "http://test.host/login", command.send(:login_url)
   end
 
@@ -34,7 +34,7 @@ class User::SendWelcomeEmailTest < ActiveSupport::TestCase
     user = create(:user, email: "test@example.com")
 
     perform_enqueued_jobs do
-      User::SendWelcomeEmail.defer(user.id)
+      User::SendWelcomeEmail.defer(user)
     end
 
     email = ActionMailer::Base.deliveries.last
@@ -45,7 +45,7 @@ class User::SendWelcomeEmailTest < ActiveSupport::TestCase
     user = create(:user, locale: "hu")
 
     perform_enqueued_jobs do
-      User::SendWelcomeEmail.defer(user.id)
+      User::SendWelcomeEmail.defer(user)
     end
 
     email = ActionMailer::Base.deliveries.last

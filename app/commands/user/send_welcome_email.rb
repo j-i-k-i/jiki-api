@@ -3,10 +3,9 @@ class User::SendWelcomeEmail
 
   queue_as :mailers
 
-  initialize_with :user_id
+  initialize_with :user
 
   def call
-    user = User.find(user_id)
     WelcomeMailer.welcome(user, login_url:).deliver_now
   end
 

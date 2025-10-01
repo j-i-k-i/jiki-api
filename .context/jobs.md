@@ -302,7 +302,7 @@ class User::Bootstrap
 
   def call
     # Queue welcome email to be sent asynchronously
-    User::SendWelcomeEmail.defer(user.id)
+    User::SendWelcomeEmail.defer(user)
 
     # Future: Add other bootstrap operations here as needed:
     # - Award badges
@@ -321,7 +321,7 @@ end
 
 **Pattern Notes**:
 - Bootstrap command accepts the user object directly for synchronous operations
-- Async jobs (like email sending) receive `user.id` to avoid serialization issues
+- Background jobs also receive user object - ActiveJob uses GlobalID for serialization
 - Keeps controller thin - all bootstrap logic encapsulated in command
 
 ### Email Sending
@@ -332,10 +332,9 @@ class User::SendWelcomeEmail
 
   queue_as :mailers
 
-  initialize_with :user_id
+  initialize_with :user
 
   def call
-    user = User.find(user_id)
     WelcomeMailer.welcome(user, login_url:).deliver_now
   end
 
@@ -353,11 +352,13 @@ class User::SendWelcomeEmail
 end
 
 # Usage
-User::SendWelcomeEmail.defer(user.id)
+User::SendWelcomeEmail.defer(user)
 ```
 
 **Pattern Notes**:
-- Accept ID rather than object for background jobs (better serialization)
+- Pass ActiveRecord objects directly - ActiveJob handles serialization via GlobalID
+- GlobalID serializes as reference (e.g., `gid://app/User/123`), not a snapshot
+- User is fetched fresh from DB when job executes, ensuring current data
 - Use `:mailers` queue for all email operations
 - Generate URLs based on environment (will use config gem in future)
 

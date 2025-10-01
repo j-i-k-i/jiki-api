@@ -6,7 +6,7 @@ class User::BootstrapTest < ActiveSupport::TestCase
 
     assert_enqueued_with(
       job: MandateJob,
-      args: ["User::SendWelcomeEmail", user.id],
+      args: ["User::SendWelcomeEmail", user],
       queue: "mailers"
     ) do
       User::Bootstrap.(user)

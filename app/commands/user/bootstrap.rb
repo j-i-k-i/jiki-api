@@ -5,7 +5,7 @@ class User::Bootstrap
 
   def call
     # Queue welcome email to be sent asynchronously
-    User::SendWelcomeEmail.defer(user.id)
+    User::SendWelcomeEmail.defer(user)
 
     # Future: Add other bootstrap operations here as needed:
     # - Award badges
