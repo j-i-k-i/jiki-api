@@ -48,6 +48,27 @@ class TestExampleCommandTest < ActiveSupport::TestCase
     end
   end
 
+  test "delayed job does not execute before delay expires" do
+    travel_to Time.current do
+      TestExampleCommand.defer("delayed", false, wait: 10)
+
+      # Try to execute jobs immediately - should not execute the delayed job
+      perform_enqueued_jobs(at: Time.current)
+
+      # Verify the job is still enqueued (not performed yet)
+      assert_equal 1, enqueued_jobs.count
+
+      # Travel forward past the delay
+      travel 11.seconds
+
+      # Now the job should execute
+      perform_enqueued_jobs(at: Time.current + 11.seconds)
+
+      # Verify job was performed
+      assert_equal 0, enqueued_jobs.count
+    end
+  end
+
   test "queue_as sets the correct queue" do
     assert_equal :low, TestExampleCommand.active_job_queue
   end
