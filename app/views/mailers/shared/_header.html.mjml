@@ -1,0 +1,7 @@
+-# Email header with logo and branding
+%mj-section{ "background-color": "#ffffff", "padding": "40px 20px" }
+  %mj-column
+    %mj-text{ "align": "center", "font-size": "32px", "font-weight": "bold", "color": "#0066cc" }
+      Jiki
+    %mj-text{ "align": "center", "font-size": "14px", "color": "#666666", "padding-top": "5px" }
+      Learn to Code

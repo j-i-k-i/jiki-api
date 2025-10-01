@@ -1,0 +1,13 @@
+-# Email footer with links and legal info
+%mj-section{ "background-color": "#333333", "padding": "30px 20px" }
+  %mj-column
+    %mj-text{ "align": "center", "color": "#ffffff", "font-size": "14px" }
+      %p{ style: "margin: 0 0 10px 0;" }
+        © #{Time.current.year} Jiki. All rights reserved.
+      %p{ style: "margin: 0;" }
+        %a.link{ href: "#", style: "color: #66b3ff; text-decoration: none; margin: 0 10px;" }
+          Unsubscribe
+        %a.link{ href: "#", style: "color: #66b3ff; text-decoration: none; margin: 0 10px;" }
+          Privacy Policy
+        %a.link{ href: "#", style: "color: #66b3ff; text-decoration: none; margin: 0 10px;" }
+          Contact Us

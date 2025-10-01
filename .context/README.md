@@ -21,6 +21,7 @@ Context files help AI assistants:
 - **[configuration.md](./configuration.md)** - Environment variables, CORS, storage, and deployment config
 - **[testing.md](./testing.md)** - Testing framework, FactoryBot setup, and testing patterns
 - **[serializers.md](./serializers.md)** - Serializer patterns using Mandate and JSON transformation
+- **[mailers.md](./mailers.md)** - Email system with MJML, HAML, and i18n patterns
 
 ## How to Use These Files
 
@@ -33,6 +34,7 @@ Context files help AI assistants:
 5. **Configuration** - Consult `configuration.md` when setting up new services or environments
 6. **Testing** - Reference `testing.md` for FactoryBot patterns, test organization, and quality standards
 7. **Serializers** - Reference `serializers.md` for JSON serialization patterns using Mandate
+8. **Mailers** - Reference `mailers.md` for email templates, MJML/HAML patterns, and i18n
 
 ### When to Update
 
