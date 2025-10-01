@@ -33,7 +33,8 @@ class DeviseCreateUsers < ActiveRecord::Migration[8.0]
       # t.datetime :locked_at
 
       ## User profile
-      t.string :name
+      t.string :name, null: false
+      t.string :locale, null: false, default: "en"
 
       ## JWT revocation
       t.string :jti, null: false

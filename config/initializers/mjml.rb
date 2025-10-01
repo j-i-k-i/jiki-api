@@ -8,8 +8,8 @@ Mjml.setup do |config|
   # Use HAML as template language for cleaner syntax
   config.template_language = :haml
 
-  # Use soft validation temporarily to see what the actual error is
-  config.validation_level = "soft"
+  # Strict validation to catch email template errors at compile time
+  config.validation_level = "strict"
 
   # Fail fast on rendering errors
   config.raise_render_exception = true

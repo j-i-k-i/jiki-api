@@ -14,6 +14,9 @@ class User < ApplicationRecord
 
   belongs_to :current_user_level, class_name: "UserLevel", optional: true
 
+  validates :name, presence: true
+  validates :locale, presence: true, inclusion: { in: %w[en hu] }
+
   before_create do
     # Generate a unique JTI (JWT ID) for each user on creation
     self.jti = SecureRandom.uuid
