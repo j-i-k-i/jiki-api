@@ -24,14 +24,14 @@ module V1
           {
             slug: "level-1",
             lessons: [
-              { slug: "lesson-1", type: "exercise", data: { slug: "ex1" } },
-              { slug: "lesson-2", type: "tutorial", data: { slug: "ex2" } }
+              { slug: "lesson-1", type: "exercise" },
+              { slug: "lesson-2", type: "tutorial" }
             ]
           },
           {
             slug: "level-2",
             lessons: [
-              { slug: "lesson-3", type: "exercise", data: { slug: "ex3" } }
+              { slug: "lesson-3", type: "exercise" }
             ]
           }
         ]
@@ -60,8 +60,7 @@ module V1
             lessons: [
               {
                 slug: String,
-                type: String,
-                data: Hash
+                type: String
               }
             ]
           }

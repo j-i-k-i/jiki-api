@@ -82,7 +82,9 @@ Based on `/overview/tech/backend.md`:
 For detailed information, see the context files:
 - **Commands**: `.context/commands.md` - All development, testing, and deployment commands
 - **Architecture**: `.context/architecture.md` - Rails API structure and design patterns
+- **Controllers**: `.context/controllers.md` - Controller patterns and helper methods
 - **Configuration**: `.context/configuration.md` - Environment variables, CORS, storage setup
+- **Testing**: `.context/testing.md` - Testing framework and patterns
 
 ## Next Implementation Priorities
 

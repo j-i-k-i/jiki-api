@@ -37,11 +37,22 @@ These should have equivelent fe types.
 
 ### Levels
 
-- **GET** `/v1/levels` - Get all levels with nested lessons
+- **GET** `/v1/levels` - Get all levels with nested lessons (basic info only)
   - **Response:**
     ```json
     {
       "levels": [Level, Level, ...]
+    }
+    ```
+
+### Lessons
+
+- **GET** `/v1/lessons/:slug` - Get a single lesson with full data
+  - **Params (required):** `slug` (in URL)
+  - **Response:**
+    ```json
+    {
+      "lesson": Lesson
     }
     ```
 
@@ -71,6 +82,23 @@ These should have equivelent fe types.
 
 All API responses use serializers to format data consistently. Below are the data shapes for each serializer.
 
+### Level
+
+```json
+{
+  "slug": "basics",
+  "lessons": [
+    {
+      "slug": "hello-world",
+      "type": "exercise"
+    },
+    ...
+  ]
+}
+```
+
+**Note:** Level serialization only includes basic lesson info (slug and type). Use `GET /v1/lessons/:slug` to fetch full lesson data including the `data` field.
+
 ### Lesson
 
 ```json
@@ -80,15 +108,6 @@ All API responses use serializers to format data consistently. Below are the dat
   "data": {
     "slug": "basic-movement"
   }
-}
-```
-
-### Level
-
-```json
-{
-  "slug": "basics",
-  "lessons": [Lesson, Lesson, ...]
 }
 ```
 
@@ -179,6 +198,7 @@ For detailed development guidelines, architecture decisions, and patterns, see t
 - `.context/README.md` - Overview and index of all context files
 - `.context/commands.md` - Development commands reference
 - `.context/architecture.md` - Rails API structure and patterns
+- `.context/controllers.md` - Controller patterns and helper methods
 - `.context/testing.md` - Testing guidelines and FactoryBot usage
 
 See `CLAUDE.md` for AI assistant guidelines.

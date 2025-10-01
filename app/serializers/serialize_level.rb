@@ -6,7 +6,7 @@ class SerializeLevel
   def call
     {
       slug: level.slug,
-      lessons: SerializeLessons.(level.lessons)
+      lessons: level.lessons.map { |lesson| { slug: lesson.slug, type: lesson.type } }
     }
   end
 end

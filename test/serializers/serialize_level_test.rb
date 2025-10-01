@@ -9,8 +9,8 @@ class SerializeLevelTest < ActiveSupport::TestCase
     expected = {
       slug: "level-1",
       lessons: [
-        { slug: "lesson-1", type: "exercise", data: { slug: "ex-1" } },
-        { slug: "lesson-2", type: "tutorial", data: { slug: "ex-2" } }
+        { slug: "lesson-1", type: "exercise" },
+        { slug: "lesson-2", type: "tutorial" }
       ]
     }
 

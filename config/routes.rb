@@ -18,6 +18,7 @@ Rails.application.routes.draw do
   namespace :v1 do
     resources :levels, only: [:index]
     resources :user_levels, only: [:index]
+    resources :lessons, only: [:show], param: :slug
 
     resources :user_lessons, only: [], param: :slug do
       member do
