@@ -59,12 +59,20 @@ class MandateJobTest < ActiveJob::TestCase
   end
 
   test "handles requeue_job! and re-enqueues with wait time" do
-    assert_enqueued_with(
-      job: MandateJob,
-      args: ["MandateJobTest::TestRequeueCommand", true],
-      queue: "default"
-    ) do
+    # Execute job which will call requeue_job!(30)
+    travel_to Time.current do
+      expected_time = 30.seconds.from_now
+
       MandateJob.perform_now("MandateJobTest::TestRequeueCommand", true)
+
+      # Verify job was enqueued
+      enqueued_job = enqueued_jobs.last
+      assert_equal "MandateJob", enqueued_job[:job].name
+      assert_equal ["MandateJobTest::TestRequeueCommand", true], enqueued_job[:args][0..1]
+      assert_equal "default", enqueued_job[:queue]
+
+      # Verify wait time matches the requeue_job! parameter (30 seconds)
+      assert_in_delta expected_time.to_f, enqueued_job[:at].to_f, 1
     end
   end
 
