@@ -18,7 +18,8 @@ class ApplicationController < ActionController::API
   end
 
   def use_lesson!
-    @lesson = Lesson.find_by!(slug: params[:slug])
+    slug = params[:slug] || params[:lesson_slug]
+    @lesson = Lesson.find_by!(slug:)
   rescue ActiveRecord::RecordNotFound
     render json: {
       error: {

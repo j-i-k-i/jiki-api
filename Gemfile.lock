@@ -348,6 +348,7 @@ GEM
       base64
       websocket-extensions (>= 0.1.0)
     websocket-extensions (0.1.5)
+    xxhash (0.7.0)
     zeitwerk (2.7.3)
 
 PLATFORMS
@@ -388,6 +389,7 @@ DEPENDENCIES
   thruster
   tzinfo-data
   webmock
+  xxhash
 
 BUNDLED WITH
    2.6.9

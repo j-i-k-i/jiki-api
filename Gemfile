@@ -34,6 +34,9 @@ gem "rack-cors"
 # Command pattern implementation for business logic
 gem "mandate", "~> 2.0"
 
+# Fast hashing for file deduplication
+gem "xxhash"
+
 group :development, :test do
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem
   gem "debug", platforms: %i[mri windows], require: "debug/prelude"
