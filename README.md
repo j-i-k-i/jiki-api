@@ -281,3 +281,7 @@ For detailed development guidelines, architecture decisions, and patterns, see t
 - `.context/testing.md` - Testing guidelines and FactoryBot usage
 
 See `CLAUDE.md` for AI assistant guidelines.
+
+---
+
+Copyright (c) 2025 Jiki Ltd. All rights reserved.

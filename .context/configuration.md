@@ -202,3 +202,59 @@ config.time_zone = 'UTC'
 - Enforced in production
 - Handled by load balancer/CDN
 - Force SSL in Rails: `config.force_ssl = true`
+
+## Jiki Config Gem Pattern
+
+### Overview
+Following the Exercism pattern, Jiki will use a custom `jiki-config` gem to manage environment-specific configuration. This provides a clean abstraction over environment variables and external configuration sources.
+
+### Pattern Details
+
+**Development/Test**: Configuration loaded from YAML files
+- Files: `settings/local.yml` and `settings/ci.yml`
+- Simple, flat YAML structure with ERB support
+- Easy to modify for local development
+
+**Production**: Configuration loaded from DynamoDB
+- Centralized configuration management
+- No ENV vars hardcoded in application code
+- Easy to update without code deploys
+
+### Configuration Interface
+
+All configuration accessed via `Jiki.config.*`:
+
+```ruby
+# Sidekiq Redis connection
+Jiki.config.sidekiq_redis_url  # => "redis://localhost:6379/0"
+
+# Future examples
+Jiki.config.aws_s3_bucket      # => "jiki-production-storage"
+Jiki.config.stripe_secret_key  # => Retrieved from secrets
+```
+
+### Implementation Status
+
+**Current**: Placeholder implementation using ENV vars
+- `config/initializers/sidekiq.rb` uses `ENV.fetch('REDIS_URL', 'redis://localhost:6379/0')`
+- Temporary until jiki-config gem is implemented
+
+**Future**: Full jiki-config gem (separate task)
+- Structure: `lib/jiki.rb`, `lib/jiki_config/`
+- Commands: `DetermineEnvironment`, `RetrieveConfig`, `RetrieveSecrets`
+- Uses Zeitwerk for autoloading
+- Settings files in `settings/` directory
+
+### Related Configuration
+
+**Sidekiq**: Uses `Jiki.config.sidekiq_redis_url`
+```ruby
+# config/initializers/sidekiq.rb
+Sidekiq.configure_server do |config|
+  config.redis = { url: Jiki.config.sidekiq_redis_url }
+end
+```
+
+### See Also
+- Exercism's exercism-config gem at `../../exercism/config` for reference implementation
+- Background job configuration in `.context/jobs.md`

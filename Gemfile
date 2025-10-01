@@ -34,6 +34,10 @@ gem "rack-cors"
 # Command pattern implementation for business logic
 gem "mandate", "~> 2.0"
 
+# Background job processing
+gem "sidekiq", "~> 8.0"
+gem "redis", "~> 5.0"
+
 # Fast hashing for file deduplication
 gem "xxhash"
 

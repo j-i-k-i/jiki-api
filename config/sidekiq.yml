@@ -1,0 +1,16 @@
+---
+:queues:
+  # High priority - critical operations that must complete quickly
+  - critical
+
+  # Default priority - standard background jobs
+  - default
+
+  # Email sending
+  - mailers
+
+  # Background processing - lower priority, bulk operations
+  - background
+
+  # Lowest priority - metrics, cleanup, non-urgent tasks
+  - low
