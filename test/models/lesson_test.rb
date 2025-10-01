@@ -33,4 +33,10 @@ class LessonTest < ActiveSupport::TestCase
     assert_equal 1, lesson1.position
     assert_equal 1, lesson2.position
   end
+
+  test "to_param returns slug" do
+    lesson = create(:lesson, slug: "hello-world")
+
+    assert_equal "hello-world", lesson.to_param
+  end
 end

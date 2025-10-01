@@ -72,17 +72,49 @@ Every command has a single public `call` method that:
 - Returns a meaningful value
 - Raises exceptions for errors
 
+**Important Pattern**: The `call` method should contain only the primary creates/updates or calls to bang methods. All other logic should be packaged into memoized methods (objects masquerading as methods).
+
 ```ruby
+# GOOD: Clean call method with logic extracted
 def call
-  guard!
-  perform_operation!
-  result
+  ExerciseSubmission.create!(
+    user_lesson:,
+    uuid:
+  ).tap do |submission|
+    files.each do |file_params|
+      ExerciseSubmission::File::Create.(
+        submission,
+        file_params[:filename],
+        file_params[:code]
+      )
+    end
+  end
+end
+
+private
+memoize
+def uuid = SecureRandom.uuid
+
+# BAD: Logic inline in call method
+def call
+  uuid = SecureRandom.uuid  # Should be a memoized method
+
+  submission = ExerciseSubmission.create!(
+    user_lesson:,
+    uuid:
+  )
+
+  files.each do |file_params|
+    ExerciseSubmission::File::Create.(...)
+  end
+
+  submission  # Should use .tap instead
 end
 ```
 
 ### 3. Memoization
 
-Use `memoize` to cache expensive computations:
+Use `memoize` to cache expensive computations and to extract logic from the `call` method:
 
 ```ruby
 memoize
@@ -94,7 +126,32 @@ memoize
 def validation_errors
   # Expensive validation logic
 end
+
+# Extract data transformations into memoized methods
+memoize
+def sanitized_content
+  content.encode('UTF-8', invalid: :replace, undef: :replace, replace: '')
+end
+
+memoize
+def digest = XXhash.xxh64(sanitized_content).to_s
+
+# Then use in call method:
+def call
+  exercise_submission.files.create!(
+    filename:,
+    digest:  # Uses memoized method
+  ).tap do |file|
+    file.content.attach(
+      io: StringIO.new(sanitized_content),  # Uses memoized method
+      filename:,
+      content_type: 'text/plain'
+    )
+  end
+end
 ```
+
+**Pattern**: Treat memoized methods as "objects masquerading as methods" - they encapsulate data transformations and computations, keeping the `call` method clean and focused on the primary operation.
 
 ### 4. Method Naming Conventions
 
@@ -238,7 +295,7 @@ class Lesson::Create
     validate!
 
     Lesson.create!(
-      track: track,
+      track:,
       title: params[:title],
       content: params[:content],
       position: next_position
@@ -253,6 +310,42 @@ class Lesson::Create
   end
 end
 ```
+
+**Using `.tap` for Creation with Side Effects**
+
+When you need to perform additional operations after creating a record, use `.tap`:
+
+```ruby
+class ExerciseSubmission::Create
+  include Mandate
+
+  initialize_with :user_lesson, :files
+
+  def call
+    ExerciseSubmission.create!(
+      user_lesson:,
+      uuid:
+    ).tap do |submission|
+      files.each do |file_params|
+        ExerciseSubmission::File::Create.(
+          submission,
+          file_params[:filename],
+          file_params[:code]
+        )
+      end
+    end
+  end
+
+  private
+  memoize
+  def uuid = SecureRandom.uuid
+end
+```
+
+This pattern:
+- Returns the created object
+- Keeps side effects explicit
+- Avoids intermediate variables in the `call` method
 
 ### Update Commands
 

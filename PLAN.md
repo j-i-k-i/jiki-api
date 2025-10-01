@@ -1,97 +1,136 @@
-# Devise + JWT Authentication Implementation Plan
+# Exercise Submission Implementation Plan
 
-## Phase 1: Documentation ✅
-- [x] Create comprehensive auth documentation in `.context/auth.md`
+## Overview
+Add exercise submission functionality to allow users to submit code for exercises. Submissions are stored with Active Storage, files are deduplicated using XXHash, and UTF-8 encoding is validated.
 
-## Phase 2: Setup & Configuration
-- [x] Create feature branch `feature/auth-setup`
-- [x] Add Devise and JWT gems to Gemfile
-- [x] Run bundle install
-- [x] Run `rails generate devise:install`
-- [x] Configure Devise for API-only mode in initializer
-- [x] Add JWT configuration to Devise initializer
-- [x] Configure Rails credentials for JWT secret
+## Implementation Steps
 
-## Phase 3: User Model
-- [x] Generate User model with Devise
-- [x] Add JTI field for JWT revocation
-- [x] Add name field for user profiles
-- [x] Run migrations
+### 1. Dependencies
+- [ ] Add `gem 'xxhash'` to Gemfile
+- [ ] Run `bundle install`
 
-## Phase 4: JWT Configuration
-- [x] Install and configure devise-jwt revocation strategy
-- [x] Set up JWT dispatch and revocation paths
-- [x] Configure token expiration (30 days)
-- [x] Add JWT secret to credentials
+### 2. Database Schema
+- [ ] Create migration for `exercise_submissions` table
+  - `user_lesson_id` (bigint, foreign key to user_lessons, null: false)
+  - `uuid` (string, null: false, indexed, unique)
+  - `created_at`, `updated_at` (timestamps)
+- [ ] Create migration for `exercise_submission_files` table
+  - `exercise_submission_id` (bigint, foreign key, null: false)
+  - `filename` (string, null: false)
+  - `digest` (string, null: false) - XXHash64 for deduplication
+  - `created_at`, `updated_at` (timestamps)
+- [ ] Run migrations
 
-## Phase 5: Custom Controllers
-- [x] Create `Api::V1::Auth::RegistrationsController`
-- [x] Create `Api::V1::Auth::SessionsController`
-- [x] Create `Api::V1::Auth::PasswordsController`
-- [x] Ensure all controllers return JSON responses
-- [x] Handle authorization header for JWT tokens
+### 3. Models
+- [ ] Create `ExerciseSubmission` model
+  - `belongs_to :user_lesson`
+  - `has_many :files, class_name: "ExerciseSubmission::File", dependent: :destroy`
+  - Validations: presence of user_lesson, uuid
+  - Delegate user and lesson through user_lesson
+- [ ] Create `ExerciseSubmission::File` model
+  - `belongs_to :exercise_submission`
+  - `has_one_attached :content` (Active Storage)
+  - Validations: presence of exercise_submission, filename, digest
 
-## Phase 6: Routing & Configuration
-- [x] Set up routes under `/api/v1/auth/*`
-- [x] Configure CORS in `config/initializers/cors.rb`
-- [x] Configure mailer default URL options
-- [ ] Create custom mailer for frontend password reset URLs
+### 4. Commands
+- [ ] Create `ExerciseSubmission::File::Create` command
+  - Parameters: `exercise_submission`, `filename`, `content` (string)
+  - Sanitize/validate UTF-8 encoding (handle encoding errors gracefully)
+  - Calculate XXHash64 digest: `XXhash.xxh64(content).to_s`
+  - Create `ExerciseSubmission::File` record
+  - Attach content to Active Storage
+  - Return created file
+- [ ] Create `ExerciseSubmission::Create` command
+  - Parameters: `user_lesson`, `files` (array of `{filename:, code:}`)
+  - Generate UUID for submission
+  - Create `ExerciseSubmission` record
+  - Loop through files and call `ExerciseSubmission::File::Create` for each
+  - Return created submission
 
-## Phase 7: Testing Infrastructure
-- [x] Create User factory with FactoryBot
-- [x] Create authentication helper for tests
-- [x] Write unit tests for User model
-  - [x] Validation tests
-  - [x] Authentication tests
-  - [x] Token generation tests
-- [x] Write API controller tests
-  - [x] Registration endpoint tests
-  - [x] Login endpoint tests
-  - [x] Logout endpoint tests
-  - [x] Password reset request tests
-  - [x] Password reset completion tests
-  - [x] Authentication guard tests
+### 5. Controller & Routes
+- [ ] Add route: `POST /v1/lessons/:slug/exercise_submissions`
+- [ ] Create `V1::ExerciseSubmissionsController`
+  - `before_action :use_lesson!` to find lesson by slug
+  - `create` action:
+    - Find or create `UserLesson` for current_user + @lesson
+    - Parse params for files: `[{filename:, code:}]`
+    - Call `ExerciseSubmission::Create.(user_lesson, files)`
+    - Render serialized submission with 201 status
+  - Strong params for files array
 
-## Phase 8: Quality Assurance
-- [ ] Run all tests: `bin/rails test`
-- [ ] Run RuboCop: `bin/rubocop`
-- [ ] Fix any RuboCop issues
-- [ ] Run Brakeman: `bin/brakeman`
-- [ ] Address any security concerns
-- [ ] Manual testing with curl commands
+### 6. Serializer
+- [ ] Create `SerializeExerciseSubmission` serializer
+  - Return: `uuid`, `lesson_slug`, `created_at`, `files` array
+  - Each file: `filename`, `digest`
 
-## Phase 9: Git Workflow
-- [ ] Review all changes
-- [ ] Commit with descriptive message
-- [ ] Push feature branch to remote
-- [ ] Create pull request with comprehensive description
+### 7. Factories
+- [ ] Create `test/factories/exercise_submissions.rb`
+  - Factory for `ExerciseSubmission`
+  - Association to `user_lesson`
+  - Generate UUID
+- [ ] Create `test/factories/exercise_submission_files.rb`
+  - Factory for `ExerciseSubmission::File`
+  - Association to `exercise_submission`
+  - Generate filename and digest
+  - Attach sample content via Active Storage
 
-## Testing Commands
+### 8. Tests
+- [ ] Test `ExerciseSubmission::File::Create` command
+  - Creates file with correct attributes
+  - Attaches content to Active Storage
+  - Calculates correct XXHash64 digest
+  - Handles UTF-8 encoding errors gracefully
+- [ ] Test `ExerciseSubmission::Create` command
+  - Creates submission with UUID
+  - Creates all files via File::Create
+  - Associates with user_lesson correctly
+- [ ] Test `ExerciseSubmission` model
+  - Validations
+  - Associations
+  - Delegates user/lesson correctly
+- [ ] Test `ExerciseSubmission::File` model
+  - Validations
+  - Associations
+  - Active Storage attachment
+- [ ] Test `V1::ExerciseSubmissionsController`
+  - `guard_incorrect_token!` for authentication
+  - POST create successfully creates submission
+  - POST create finds/creates UserLesson
+  - POST create returns correct JSON structure
+  - POST create handles invalid lesson slug (404)
+- [ ] Test `SerializeExerciseSubmission`
+  - Returns correct structure
+  - Includes all required fields
 
-### Registration Test
-```bash
-curl -X POST http://localhost:3000/api/v1/auth/signup \
-  -H "Content-Type: application/json" \
-  -d '{"user":{"email":"test@example.com","password":"password123","password_confirmation":"password123","name":"Test User"}}'
-```
+### 9. Quality Checks
+- [ ] Run tests: `bin/rails test`
+- [ ] Run linter: `bin/rubocop`
+- [ ] Run security scan: `bin/brakeman`
 
-### Login Test
-```bash
-curl -X POST http://localhost:3000/api/v1/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"user":{"email":"test@example.com","password":"password123"}}'
-```
+### 10. Documentation
+- [ ] Update `.context/architecture.md` if needed
+- [ ] Update `.context/controllers.md` with new controller pattern if needed
 
-### Authenticated Request Test
-```bash
-curl -X GET http://localhost:3000/api/v1/profile \
-  -H "Authorization: Bearer <jwt_token>"
-```
+## Files to Create/Modify
 
-## Notes
+### New Files
+- `db/migrate/YYYYMMDDHHMMSS_create_exercise_submissions.rb`
+- `db/migrate/YYYYMMDDHHMMSS_create_exercise_submission_files.rb`
+- `app/models/exercise_submission.rb`
+- `app/models/exercise_submission/file.rb`
+- `app/commands/exercise_submission/create.rb`
+- `app/commands/exercise_submission/file/create.rb`
+- `app/controllers/v1/exercise_submissions_controller.rb`
+- `app/serializers/serialize_exercise_submission.rb`
+- `test/factories/exercise_submissions.rb`
+- `test/factories/exercise_submission_files.rb`
+- `test/commands/exercise_submission/create_test.rb`
+- `test/commands/exercise_submission/file/create_test.rb`
+- `test/models/exercise_submission_test.rb`
+- `test/models/exercise_submission/file_test.rb`
+- `test/controllers/v1/exercise_submissions_controller_test.rb`
+- `test/serializers/serialize_exercise_submission_test.rb`
 
-- Using devise-jwt with JTIMatcher revocation strategy for simplicity
-- OAuth fields added to User model for future implementation
-- Password reset emails will link to frontend URL (configured via environment variable)
-- All endpoints return JSON with consistent error format as per `.context/api.md`
-- Tests follow patterns from `.context/testing.md`
+### Modified Files
+- `Gemfile` - add xxhash gem
+- `config/routes.rb` - add exercise_submissions route

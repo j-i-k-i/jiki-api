@@ -76,6 +76,28 @@ These should have equivelent fe types.
   - **Params (required):** `slug` (in URL)
   - **Response:** `{}`
 
+### Exercise Submissions
+
+- **POST** `/v1/lessons/:slug/exercise_submissions` - Submit code for an exercise
+  - **Params (required):** `slug` (in URL), `submission` (object with `files` array)
+  - **Request Body:**
+    ```json
+    {
+      "submission": {
+        "files": [
+          {"filename": "main.rb", "code": "puts 'hello'"},
+          {"filename": "helper.rb", "code": "def help\nend"}
+        ]
+      }
+    }
+    ```
+  - **Response:** `{}`
+  - **Notes:**
+    - Files are stored using Active Storage
+    - Each file gets a digest calculated using XXHash64 for deduplication
+    - UTF-8 encoding is automatically sanitized
+    - Creates or updates the UserLesson for the current user
+
 ---
 
 ## Serializers

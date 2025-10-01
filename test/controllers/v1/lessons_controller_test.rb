@@ -13,7 +13,7 @@ module V1
       level = create(:level)
       create(:lesson, level: level, slug: "test-lesson", type: "exercise", data: { slug: "ex1", title: "Test Exercise" })
 
-      get v1_lesson_path(slug: "test-lesson"), headers: @headers, as: :json
+      get v1_lesson_path(lesson_slug: "test-lesson"), headers: @headers, as: :json
 
       assert_response :success
       assert_json_response({
@@ -26,7 +26,7 @@ module V1
     end
 
     test "GET show returns 404 for non-existent lesson" do
-      get v1_lesson_path(slug: "non-existent"), headers: @headers, as: :json
+      get v1_lesson_path(lesson_slug: "non-existent"), headers: @headers, as: :json
 
       assert_response :not_found
     end
@@ -40,7 +40,7 @@ module V1
       SerializeLesson.expects(:call).with(lesson).returns(serialized_data)
 
       Prosopite.scan # Resume scan for the actual request
-      get v1_lesson_path(slug: "test-lesson"), headers: @headers, as: :json
+      get v1_lesson_path(lesson_slug: "test-lesson"), headers: @headers, as: :json
 
       assert_response :success
       assert_json_response({ lesson: serialized_data })

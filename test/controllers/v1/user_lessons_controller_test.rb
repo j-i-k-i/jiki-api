@@ -13,7 +13,7 @@ module V1
 
     # POST /v1/user_lessons/:slug/start tests
     test "POST start successfully starts a lesson" do
-      post start_v1_user_lesson_path(@lesson.slug),
+      post start_v1_user_lesson_path(lesson_slug: @lesson.slug),
         headers: @headers,
         as: :json
 
@@ -24,7 +24,7 @@ module V1
     test "POST start delegates to UserLesson::FindOrCreate command" do
       UserLesson::FindOrCreate.expects(:call).with(@current_user, @lesson)
 
-      post start_v1_user_lesson_path(@lesson.slug),
+      post start_v1_user_lesson_path(lesson_slug: @lesson.slug),
         headers: @headers,
         as: :json
 
@@ -32,7 +32,7 @@ module V1
     end
 
     test "POST start returns 404 for non-existent lesson" do
-      post start_v1_user_lesson_path("non-existent-slug"),
+      post start_v1_user_lesson_path(lesson_slug: "non-existent-slug"),
         headers: @headers,
         as: :json
 
@@ -47,7 +47,7 @@ module V1
 
     test "POST start is idempotent" do
       assert_difference "UserLesson.count", 1 do
-        post start_v1_user_lesson_path(@lesson.slug),
+        post start_v1_user_lesson_path(lesson_slug: @lesson.slug),
           headers: @headers,
           as: :json
       end
@@ -55,7 +55,7 @@ module V1
       assert_response :success
 
       assert_no_difference "UserLesson.count" do
-        post start_v1_user_lesson_path(@lesson.slug),
+        post start_v1_user_lesson_path(lesson_slug: @lesson.slug),
           headers: @headers,
           as: :json
       end
@@ -65,7 +65,7 @@ module V1
 
     test "POST start creates user_lesson record" do
       assert_difference "UserLesson.count", 1 do
-        post start_v1_user_lesson_path(@lesson.slug),
+        post start_v1_user_lesson_path(lesson_slug: @lesson.slug),
           headers: @headers,
           as: :json
       end
@@ -75,13 +75,13 @@ module V1
 
     test "POST start does not create duplicate user_lessons" do
       # First start
-      post start_v1_user_lesson_path(@lesson.slug),
+      post start_v1_user_lesson_path(lesson_slug: @lesson.slug),
         headers: @headers,
         as: :json
 
       # Second start should not create another record
       assert_no_difference "UserLesson.count" do
-        post start_v1_user_lesson_path(@lesson.slug),
+        post start_v1_user_lesson_path(lesson_slug: @lesson.slug),
           headers: @headers,
           as: :json
       end
@@ -91,7 +91,7 @@ module V1
 
     # PATCH /v1/user_lessons/:slug/complete tests
     test "PATCH complete successfully completes a lesson" do
-      patch complete_v1_user_lesson_path(@lesson.slug),
+      patch complete_v1_user_lesson_path(lesson_slug: @lesson.slug),
         headers: @headers,
         as: :json
 
@@ -102,7 +102,7 @@ module V1
     test "PATCH complete delegates to UserLesson::Complete command" do
       UserLesson::Complete.expects(:call).with(@current_user, @lesson)
 
-      patch complete_v1_user_lesson_path(@lesson.slug),
+      patch complete_v1_user_lesson_path(lesson_slug: @lesson.slug),
         headers: @headers,
         as: :json
 
@@ -110,7 +110,7 @@ module V1
     end
 
     test "PATCH complete returns 404 for non-existent lesson" do
-      patch complete_v1_user_lesson_path("non-existent-slug"),
+      patch complete_v1_user_lesson_path(lesson_slug: "non-existent-slug"),
         headers: @headers,
         as: :json
 
@@ -125,7 +125,7 @@ module V1
 
     test "PATCH complete is idempotent" do
       assert_difference "UserLesson.count", 1 do
-        patch complete_v1_user_lesson_path(@lesson.slug),
+        patch complete_v1_user_lesson_path(lesson_slug: @lesson.slug),
           headers: @headers,
           as: :json
       end
@@ -133,7 +133,7 @@ module V1
       assert_response :success
 
       assert_no_difference "UserLesson.count" do
-        patch complete_v1_user_lesson_path(@lesson.slug),
+        patch complete_v1_user_lesson_path(lesson_slug: @lesson.slug),
           headers: @headers,
           as: :json
       end
@@ -143,7 +143,7 @@ module V1
 
     test "PATCH complete creates user_lesson if not started yet" do
       assert_difference "UserLesson.count", 1 do
-        patch complete_v1_user_lesson_path(@lesson.slug),
+        patch complete_v1_user_lesson_path(lesson_slug: @lesson.slug),
           headers: @headers,
           as: :json
       end
@@ -153,13 +153,13 @@ module V1
 
     test "PATCH complete does not create duplicate user_lessons" do
       # First completion
-      patch complete_v1_user_lesson_path(@lesson.slug),
+      patch complete_v1_user_lesson_path(lesson_slug: @lesson.slug),
         headers: @headers,
         as: :json
 
       # Second completion should not create another record
       assert_no_difference "UserLesson.count" do
-        patch complete_v1_user_lesson_path(@lesson.slug),
+        patch complete_v1_user_lesson_path(lesson_slug: @lesson.slug),
           headers: @headers,
           as: :json
       end
