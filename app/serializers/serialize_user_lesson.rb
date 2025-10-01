@@ -34,6 +34,7 @@ class SerializeUserLesson
       includes(files: { content_attachment: :blob }).
       order(created_at: :desc).
       first
+
     return nil unless last_submission
 
     {
