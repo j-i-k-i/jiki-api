@@ -8,8 +8,52 @@ module V1
     end
 
     # Authentication guards
+    guard_incorrect_token! :v1_user_lesson_path, args: ["solve-a-maze"], method: :get
     guard_incorrect_token! :start_v1_user_lesson_path, args: ["solve-a-maze"], method: :post
     guard_incorrect_token! :complete_v1_user_lesson_path, args: ["solve-a-maze"], method: :patch
+
+    # GET /v1/user_lessons/:slug tests
+    test "GET show returns user lesson progress" do
+      user_lesson = create(:user_lesson, user: @current_user, lesson: @lesson)
+      serialized_data = { lesson_slug: @lesson.slug, status: "started", data: {} }
+
+      SerializeUserLesson.expects(:call).with(user_lesson).returns(serialized_data)
+
+      get v1_user_lesson_path(lesson_slug: @lesson.slug),
+        headers: @headers,
+        as: :json
+
+      assert_response :success
+      assert_json_response({ user_lesson: serialized_data })
+    end
+
+    test "GET show returns 404 when user_lesson does not exist" do
+      get v1_user_lesson_path(lesson_slug: @lesson.slug),
+        headers: @headers,
+        as: :json
+
+      assert_response :not_found
+      assert_json_response({
+        error: {
+          type: "not_found",
+          message: "User lesson not found"
+        }
+      })
+    end
+
+    test "GET show returns 404 for non-existent lesson" do
+      get v1_user_lesson_path(lesson_slug: "non-existent-slug"),
+        headers: @headers,
+        as: :json
+
+      assert_response :not_found
+      assert_json_response({
+        error: {
+          type: "not_found",
+          message: "Lesson not found"
+        }
+      })
+    end
 
     # POST /v1/user_lessons/:slug/start tests
     test "POST start successfully starts a lesson" do

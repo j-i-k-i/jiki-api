@@ -25,7 +25,7 @@ Rails.application.routes.draw do
       resources :exercise_submissions, only: [:create]
     end
 
-    resources :user_lessons, only: [], param: :lesson_slug do
+    resources :user_lessons, only: [:show], param: :lesson_slug do
       member do
         post :start
         patch :complete

@@ -12,12 +12,10 @@ class SerializeUserLevels
       {
         level_slug: level_slug,
         user_lessons: rows.map do |row|
-          SerializeUserLesson.(
-            user_lesson_data: {
-              lesson_slug: row[:lesson_slug],
-              completed_at: row[:completed_at]
-            }
-          )
+          {
+            lesson_slug: row[:lesson_slug],
+            status: row[:completed_at].present? ? "completed" : "started"
+          }
         end
       }
     end

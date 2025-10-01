@@ -68,12 +68,22 @@ These should have equivelent fe types.
 
 ### User Lessons
 
-- **POST** `/v1/user_lessons/:slug/start` - Start a lesson
-  - **Params (required):** `slug` (in URL)
+- **GET** `/v1/user_lessons/:lesson_slug` - Get user's progress on a specific lesson
+  - **Params (required):** `lesson_slug` (in URL)
+  - **Response:**
+    ```json
+    {
+      "user_lesson": UserLesson
+    }
+    ```
+  - **Error:** Returns 404 if user hasn't started the lesson
+
+- **POST** `/v1/user_lessons/:lesson_slug/start` - Start a lesson
+  - **Params (required):** `lesson_slug` (in URL)
   - **Response:** `{}`
 
-- **PATCH** `/v1/user_lessons/:slug/complete` - Complete a lesson
-  - **Params (required):** `slug` (in URL)
+- **PATCH** `/v1/user_lessons/:lesson_slug/complete` - Complete a lesson
+  - **Params (required):** `lesson_slug` (in URL)
   - **Response:** `{}`
 
 ### Exercise Submissions
@@ -135,21 +145,68 @@ All API responses use serializers to format data consistently. Below are the dat
 
 ### UserLesson
 
+The UserLesson serializer returns different data based on the lesson type:
+
+**Non-exercise lesson (tutorial, video, etc.):**
+```json
+{
+  "lesson_slug": "intro-tutorial",
+  "status": "started|completed",
+  "data": {}
+}
+```
+
+**Exercise lesson with submission:**
 ```json
 {
   "lesson_slug": "hello-world",
-  "status": "started|completed"
+  "status": "completed",
+  "data": {
+    "last_submission": {
+      "uuid": "abc-123",
+      "files": [
+        {
+          "filename": "solution.rb",
+          "content": "puts 'Hello World'"
+        }
+      ]
+    }
+  }
+}
+```
+
+**Exercise lesson without submission:**
+```json
+{
+  "lesson_slug": "hello-world",
+  "status": "started",
+  "data": {
+    "last_submission": null
+  }
 }
 ```
 
 ### UserLevel
 
+The UserLevel serializer inlines lesson data for optimal query performance:
+
 ```json
 {
   "level_slug": "basics",
-  "user_lessons": [UserLesson, UserLesson, ...]
+  "user_lessons": [
+    {
+      "lesson_slug": "hello-world",
+      "status": "completed"
+    },
+    {
+      "lesson_slug": "variables",
+      "status": "started"
+    }
+  ]
 }
 ```
+
+**Note:** UserLevel only includes basic lesson progress (slug and status). Use `GET /v1/user_lessons/:lesson_slug` to fetch detailed progress including submission data.
 
 ---
 
