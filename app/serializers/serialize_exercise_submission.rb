@@ -1,11 +1,7 @@
 class SerializeExerciseSubmission
-  def self.call(submission)
-    new(submission).()
-  end
+  include Mandate
 
-  def initialize(submission)
-    @submission = submission
-  end
+  initialize_with :submission
 
   def call
     {
@@ -17,8 +13,6 @@ class SerializeExerciseSubmission
   end
 
   private
-  attr_reader :submission
-
   def serialize_file(file)
     {
       filename: file.filename,

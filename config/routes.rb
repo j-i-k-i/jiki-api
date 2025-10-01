@@ -18,11 +18,14 @@ Rails.application.routes.draw do
   namespace :v1 do
     resources :levels, only: [:index]
     resources :user_levels, only: [:index]
-    resources :lessons, only: [:show], param: :slug do
+
+    # Always have the param as lesson slug - auto-prefixed in the second
+    resources :lessons, only: [:show], param: :lesson_slug
+    resources :lessons, only: [], param: :slug do
       resources :exercise_submissions, only: [:create]
     end
 
-    resources :user_lessons, only: [], param: :slug do
+    resources :user_lessons, only: [], param: :lesson_slug do
       member do
         post :start
         patch :complete

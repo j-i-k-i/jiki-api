@@ -20,6 +20,8 @@ class Lesson < ApplicationRecord
 
   default_scope { order(:position) }
 
+  def to_param = slug
+
   private
   def set_position
     return if position.present?
