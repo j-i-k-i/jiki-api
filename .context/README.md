@@ -22,6 +22,7 @@ Context files help AI assistants:
 - **[testing.md](./testing.md)** - Testing framework, FactoryBot setup, and testing patterns
 - **[serializers.md](./serializers.md)** - Serializer patterns using Mandate and JSON transformation
 - **[mailers.md](./mailers.md)** - Email system with MJML, HAML, and i18n patterns
+- **[jobs.md](./jobs.md)** - Background jobs with Sidekiq, Mandate integration, and queue management
 
 ## How to Use These Files
 
@@ -35,6 +36,7 @@ Context files help AI assistants:
 6. **Testing** - Reference `testing.md` for FactoryBot patterns, test organization, and quality standards
 7. **Serializers** - Reference `serializers.md` for JSON serialization patterns using Mandate
 8. **Mailers** - Reference `mailers.md` for email templates, MJML/HAML patterns, and i18n
+9. **Jobs** - Reference `jobs.md` for background job patterns, Sidekiq configuration, and queue management
 
 ### When to Update
 
@@ -101,9 +103,10 @@ Before committing, review if any context files need updating based on your chang
 - Run specific tests with `-n` flag
 
 ### Background Jobs
-- Use Active Job for async processing
-- Configure queue adapter per environment
-- Monitor job performance in production
+- Use Sidekiq 8.0 with ActiveJob for async processing
+- Integrate with Mandate using `.defer()` method
+- Queue priorities: critical > default > mailers > background > low
+- See `jobs.md` for comprehensive patterns and testing
 
 ## Security Notes
 

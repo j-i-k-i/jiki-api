@@ -29,6 +29,16 @@ module ActiveSupport
     # Run tests in parallel with specified workers
     parallelize(workers: :number_of_processors)
 
+    # Use test adapter for ActiveJob tests
+    setup do
+      @original_adapter = ActiveJob::Base.queue_adapter
+      ActiveJob::Base.queue_adapter = :test
+    end
+
+    teardown do
+      ActiveJob::Base.queue_adapter = @original_adapter
+    end
+
     # Setup Prosopite to scan each test for N+1 queries
     setup do
       Prosopite.scan
