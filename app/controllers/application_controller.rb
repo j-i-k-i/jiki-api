@@ -27,4 +27,13 @@ class ApplicationController < ActionController::API
       }
     }, status: :not_found
   end
+
+  def render_not_found(message)
+    render json: {
+      error: {
+        type: "not_found",
+        message: message
+      }
+    }, status: :not_found
+  end
 end
