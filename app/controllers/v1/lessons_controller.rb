@@ -1,10 +1,10 @@
 module V1
   class LessonsController < ApplicationController
-    def show
-      lesson = Lesson.find_by!(slug: params[:slug])
+    before_action :use_lesson!
 
+    def show
       render json: {
-        lesson: SerializeLesson.(lesson)
+        lesson: SerializeLesson.(@lesson)
       }
     end
   end

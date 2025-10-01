@@ -198,6 +198,7 @@ For detailed development guidelines, architecture decisions, and patterns, see t
 - `.context/README.md` - Overview and index of all context files
 - `.context/commands.md` - Development commands reference
 - `.context/architecture.md` - Rails API structure and patterns
+- `.context/controllers.md` - Controller patterns and helper methods
 - `.context/testing.md` - Testing guidelines and FactoryBot usage
 
 See `CLAUDE.md` for AI assistant guidelines.
