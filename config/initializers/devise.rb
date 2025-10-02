@@ -330,7 +330,8 @@ Devise.setup do |config|
     # Dispatch tokens in Authorization header
     jwt.dispatch_requests = [
       ['POST', %r{^/v1/auth/login$}],
-      ['POST', %r{^/v1/auth/signup$}]
+      ['POST', %r{^/v1/auth/signup$}],
+      ['POST', %r{^/v1/auth/refresh$}]
     ]
 
     # Revoke tokens on logout
@@ -338,8 +339,8 @@ Devise.setup do |config|
       ['DELETE', %r{^/v1/auth/logout$}]
     ]
 
-    # Token expiration time (30 days)
-    jwt.expiration_time = 30.days.to_i
+    # Token expiration time (1 hour for security with refresh tokens)
+    jwt.expiration_time = 1.hour.to_i
   end
 
   # Warden configuration for API responses

@@ -37,10 +37,10 @@ class UserTest < ActiveSupport::TestCase
     assert(user.errors[:password].any? { |msg| msg.include?("is too short") })
   end
 
-  test "generates JTI on creation" do
+  test "has jwt_tokens association for Allowlist strategy" do
     user = create(:user)
-    assert user.jti.present?
-    assert_match(/^[a-f0-9-]{36}$/, user.jti) # UUID format
+    assert_respond_to user, :jwt_tokens
+    assert_empty user.jwt_tokens.to_a
   end
 
   test "authenticates with correct password" do
@@ -78,7 +78,7 @@ class UserTest < ActiveSupport::TestCase
   end
 
   test "JWT revocation strategy included" do
-    assert_includes User.included_modules, Devise::JWT::RevocationStrategies::JTIMatcher
+    assert_includes User.included_modules, Devise::JWT::RevocationStrategies::Allowlist
   end
 
   test "deleting user cascades to delete user_lessons and user_levels" do
