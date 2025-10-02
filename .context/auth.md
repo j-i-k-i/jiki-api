@@ -75,10 +75,12 @@ This document describes the authentication system for the Jiki API and its integ
 7. Frontend can auto-login or redirect to login
 
 #### JWT Token Lifecycle
-- **Generation**: On login/registration
-- **Expiry**: 30 days (configurable)
-- **Revocation**: On logout (using JTIMatcher strategy)
-- **Refresh**: Not implemented (tokens are long-lived)
+- **Generation**: On login/registration (dual-token system)
+- **Access Token Expiry**: 1 hour (short-lived for security)
+- **Refresh Token Expiry**: 30 days (long-lived for UX)
+- **Revocation**: On logout (using Allowlist strategy)
+- **Refresh**: POST /v1/auth/refresh with refresh token to get new access token
+- **Multi-Device Support**: Users can have multiple active sessions across devices
 
 ## API Endpoints
 
@@ -107,12 +109,13 @@ Register a new user account.
     "email": "user@example.com",
     "name": "John Doe",
     "created_at": "2024-01-01T00:00:00Z"
-  }
+  },
+  "refresh_token": "long_lived_refresh_token_here"
 }
 ```
 **Headers:**
 ```
-Authorization: Bearer <jwt_token>
+Authorization: Bearer <short_lived_access_token>
 ```
 
 **Error Response (422):**
@@ -150,12 +153,13 @@ Authenticate and receive JWT token.
     "email": "user@example.com",
     "name": "John Doe",
     "created_at": "2024-01-01T00:00:00Z"
-  }
+  },
+  "refresh_token": "long_lived_refresh_token_here"
 }
 ```
 **Headers:**
 ```
-Authorization: Bearer <jwt_token>
+Authorization: Bearer <short_lived_access_token>
 ```
 
 **Error Response (401):**
@@ -169,7 +173,7 @@ Authorization: Bearer <jwt_token>
 ```
 
 #### DELETE /api/v1/auth/logout
-Revoke the current JWT token.
+Revoke all refresh tokens for the user (logs out from all devices).
 
 **Headers Required:**
 ```
@@ -178,6 +182,57 @@ Authorization: Bearer <jwt_token>
 
 **Success Response (204):**
 No content
+
+#### POST /v1/auth/refresh
+Refresh an expired access token using a refresh token.
+
+**Request:**
+```json
+{
+  "refresh_token": "long_lived_refresh_token_here"
+}
+```
+
+**Success Response (200):**
+```json
+{
+  "message": "Access token refreshed successfully"
+}
+```
+**Headers:**
+```
+Authorization: Bearer <new_short_lived_access_token>
+```
+
+**Error Response (401 - Invalid):**
+```json
+{
+  "error": {
+    "type": "invalid_token",
+    "message": "Invalid refresh token"
+  }
+}
+```
+
+**Error Response (401 - Expired):**
+```json
+{
+  "error": {
+    "type": "expired_token",
+    "message": "Refresh token has expired"
+  }
+}
+```
+
+**Error Response (400 - Missing):**
+```json
+{
+  "error": {
+    "type": "invalid_request",
+    "message": "Refresh token is required"
+  }
+}
+```
 
 #### POST /api/v1/auth/password
 Request password reset email.
@@ -278,17 +333,33 @@ import { persist } from 'zustand/middleware';
 const useAuthStore = create(
   persist(
     (set, get) => ({
-      token: null,
+      accessToken: null,      // Short-lived (1 hour), stored in memory/sessionStorage
+      refreshToken: null,     // Long-lived (30 days), stored in localStorage
       user: null,
 
-      setAuth: (token, user) => set({ token, user }),
+      setAuth: (accessToken, refreshToken, user) => set({
+        accessToken,
+        refreshToken,
+        user
+      }),
 
-      clearAuth: () => set({ token: null, user: null }),
+      setAccessToken: (accessToken) => set({ accessToken }),
 
-      isAuthenticated: () => !!get().token,
+      clearAuth: () => set({
+        accessToken: null,
+        refreshToken: null,
+        user: null
+      }),
+
+      isAuthenticated: () => !!get().accessToken,
     }),
     {
       name: 'auth-storage',
+      // Only persist refreshToken and user, not accessToken
+      partialize: (state) => ({
+        refreshToken: state.refreshToken,
+        user: state.user
+      }),
     }
   )
 );
@@ -305,33 +376,90 @@ const apiClient = axios.create({
   },
 });
 
-// Request interceptor to add auth token
+let isRefreshing = false;
+let failedQueue = [];
+
+const processQueue = (error, token = null) => {
+  failedQueue.forEach(prom => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token);
+    }
+  });
+  failedQueue = [];
+};
+
+// Request interceptor to add access token
 apiClient.interceptors.request.use(
   (config) => {
-    const token = useAuthStore.getState().token;
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    const accessToken = useAuthStore.getState().accessToken;
+    if (accessToken) {
+      config.headers.Authorization = `Bearer ${accessToken}`;
     }
     return config;
   },
   (error) => Promise.reject(error)
 );
 
-// Response interceptor to extract token
+// Response interceptor to handle token refresh
 apiClient.interceptors.response.use(
   (response) => {
-    const token = response.headers.authorization?.replace('Bearer ', '');
-    if (token) {
-      const user = response.data.user;
-      useAuthStore.getState().setAuth(token, user);
+    // Extract access token from login/signup responses
+    const accessToken = response.headers.authorization?.replace('Bearer ', '');
+    if (accessToken && response.data.user) {
+      const { user, refresh_token } = response.data;
+      useAuthStore.getState().setAuth(accessToken, refresh_token, user);
     }
     return response;
   },
-  (error) => {
-    if (error.response?.status === 401) {
-      useAuthStore.getState().clearAuth();
-      window.location.href = '/login';
+  async (error) => {
+    const originalRequest = error.config;
+
+    // If 401 and we haven't tried to refresh yet
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      if (isRefreshing) {
+        // Queue this request to retry after refresh completes
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        }).then(token => {
+          originalRequest.headers.Authorization = `Bearer ${token}`;
+          return apiClient(originalRequest);
+        });
+      }
+
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      const refreshToken = useAuthStore.getState().refreshToken;
+      if (!refreshToken) {
+        useAuthStore.getState().clearAuth();
+        window.location.href = '/login';
+        return Promise.reject(error);
+      }
+
+      try {
+        const response = await apiClient.post('/v1/auth/refresh', {
+          refresh_token: refreshToken
+        });
+
+        const newAccessToken = response.headers.authorization?.replace('Bearer ', '');
+        useAuthStore.getState().setAccessToken(newAccessToken);
+
+        processQueue(null, newAccessToken);
+
+        originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+        return apiClient(originalRequest);
+      } catch (refreshError) {
+        processQueue(refreshError, null);
+        useAuthStore.getState().clearAuth();
+        window.location.href = '/login';
+        return Promise.reject(refreshError);
+      } finally {
+        isRefreshing = false;
+      }
     }
+
     return Promise.reject(error);
   }
 );
@@ -411,41 +539,56 @@ create_table :users do |t|
   t.string   :reset_password_token
   t.datetime :reset_password_sent_at
 
-  # Devise rememberable
-  t.datetime :remember_created_at
-
-  # Devise trackable
-  t.integer  :sign_in_count, default: 0, null: false
-  t.datetime :current_sign_in_at
-  t.datetime :last_sign_in_at
-  t.string   :current_sign_in_ip
-  t.string   :last_sign_in_ip
+  # User profile
+  t.string :locale, null: false, default: "en"
 
   # OAuth ready fields (for future)
   t.string :google_id
   t.string :github_id
   t.string :provider
 
-  # JWT revocation
-  t.string :jti, null: false
-
   t.timestamps
 end
 
 add_index :users, :email, unique: true
 add_index :users, :reset_password_token, unique: true
-add_index :users, :jti, unique: true
 add_index :users, :google_id, unique: true
 add_index :users, :github_id, unique: true
+
+# JWT Allowlist - stores active access tokens (1 hour expiry)
+create_table :user_jwt_tokens do |t|
+  t.references :user, null: false, foreign_key: true
+  t.string :jti, null: false         # JWT ID from token payload
+  t.string :aud                      # Device identifier (User-Agent)
+  t.datetime :exp, null: false       # Expiration time
+  t.timestamps
+end
+
+add_index :user_jwt_tokens, :jti, unique: true
+
+# Refresh Tokens - stores long-lived refresh tokens (30 days)
+create_table :user_refresh_tokens do |t|
+  t.references :user, null: false, foreign_key: true
+  t.string :crypted_token, null: false  # SHA256 hash of refresh token
+  t.string :aud                         # Device identifier (User-Agent)
+  t.datetime :exp, null: false          # Expiration time
+  t.timestamps
+end
+
+add_index :user_refresh_tokens, :crypted_token, unique: true
 ```
 
 ## Security Considerations
 
 ### JWT Token Security
-- Tokens are signed with Rails secret key
-- JTI (JWT ID) used for revocation tracking
-- Tokens expire after 30 days
-- Revoked tokens are blacklisted via JTIMatcher
+- **Dual-Token System**: Access tokens (1hr) + Refresh tokens (30 days)
+- **Access Tokens**: Signed with Rails secret key, stored in Allowlist table
+- **Refresh Tokens**: SHA256 hashed before storage (like passwords)
+- **JTI (JWT ID)**: Used for tracking and revoking individual access tokens
+- **Multi-Device Support**: Users can have multiple active sessions
+- **Revocation**: Allowlist strategy - tokens must exist in db to be valid
+- **Device Tracking**: User-Agent stored in `aud` field for session management
+- **Expired Token Cleanup**: Expired refresh tokens automatically destroyed on use
 
 ### Password Security
 - Minimum 6 characters required
@@ -454,10 +597,14 @@ add_index :users, :github_id, unique: true
 - Reset tokens are single-use
 
 ### Frontend Security
-- XSS Protection: Sanitize all user input
-- Token Storage: Consider memory-only storage for high security
-- HTTPS Required: Always use HTTPS in production
-- CORS: Restrict to known frontend domains
+- **XSS Protection**: Sanitize all user input
+- **Token Storage Strategy**:
+  - Access tokens: sessionStorage or memory (short-lived, less critical)
+  - Refresh tokens: localStorage (long-lived, enables persistence)
+- **HTTPS Required**: Always use HTTPS in production
+- **CORS**: Restrict to known frontend domains
+- **Token Refresh**: Automatic refresh on 401 minimizes exposure window
+- **Request Queueing**: Multiple concurrent 401s handled gracefully
 
 ### API Security
 - Rate limiting on auth endpoints (implement with rack-attack)
@@ -547,4 +694,4 @@ end
 - [ ] Magic link authentication
 - [ ] Biometric authentication (mobile)
 - [ ] Single Sign-On (SSO)
-- [ ] Multi-device session management
+- [x] Multi-device session management (✅ Implemented with Allowlist strategy)

@@ -15,6 +15,11 @@ module V1
           }
         }, as: :json
 
+        unless response.successful?
+          puts "Response status: #{response.status}"
+          puts "Response body: #{response.body}"
+        end
+
         assert_response :ok
 
         json = response.parsed_body
@@ -74,6 +79,11 @@ module V1
         token = response.headers["Authorization"]
         assert token.present?
 
+        # Verify jwt_token and refresh_token were created
+        @user.reload
+        assert @user.jwt_tokens.any?, "Should have created a jwt_token on login"
+        assert @user.refresh_tokens.any?, "Should have created a refresh_token on login"
+
         # Now logout with the token
         delete destroy_user_session_path,
           headers: { "Authorization" => token },
@@ -81,9 +91,9 @@ module V1
 
         assert_response :no_content
 
-        # The user's JTI should be updated, invalidating the old token
+        # All refresh tokens should be revoked
         @user.reload
-        assert @user.jti.present?
+        assert_equal 0, @user.refresh_tokens.count, "All refresh tokens should be revoked on logout"
       end
 
       test "DELETE logout without token returns error" do

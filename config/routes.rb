@@ -16,6 +16,11 @@ Rails.application.routes.draw do
 
   # V1 API endpoints
   namespace :v1 do
+    # Auth endpoints
+    namespace :auth do
+      post "refresh", to: "refresh_tokens#create"
+    end
+
     resources :levels, only: [:index]
     resources :user_levels, only: [:index]
 
