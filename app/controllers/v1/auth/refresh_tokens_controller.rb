@@ -53,7 +53,7 @@ module V1
         user.jwt_tokens.create!(
           jti: payload["jti"],
           aud: payload["aud"],
-          exp: Time.zone.at(payload["exp"].to_i)
+          expires_at: Time.zone.at(payload["exp"].to_i)
         )
 
         # Return the new access token in the Authorization header

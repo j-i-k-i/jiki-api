@@ -11,7 +11,7 @@ module V1
         # Create a valid refresh token
         refresh_token = @user.refresh_tokens.create!(
           aud: "Test Device",
-          exp: 30.days.from_now
+          expires_at: 30.days.from_now
         )
 
         post refresh_path, params: {
@@ -48,7 +48,7 @@ module V1
         # Create an expired refresh token
         refresh_token = @user.refresh_tokens.create!(
           aud: "Test Device",
-          exp: 1.day.ago
+          expires_at: 1.day.ago
         )
 
         token_id = refresh_token.id
@@ -98,7 +98,7 @@ module V1
       test "POST refresh creates new JWT token in allowlist" do
         refresh_token = @user.refresh_tokens.create!(
           aud: "Test Device",
-          exp: 30.days.from_now
+          expires_at: 30.days.from_now
         )
 
         initial_jwt_count = @user.jwt_tokens.count
@@ -117,7 +117,7 @@ module V1
       test "POST refresh can be called multiple times with same refresh token" do
         refresh_token = @user.refresh_tokens.create!(
           aud: "Test Device",
-          exp: 30.days.from_now
+          expires_at: 30.days.from_now
         )
 
         # First refresh

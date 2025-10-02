@@ -50,7 +50,7 @@ module V1
         # Create a new refresh token with 30 day expiry
         user.refresh_tokens.create!(
           aud: aud,
-          exp: 30.days.from_now
+          expires_at: 30.days.from_now
         )
       end
     end

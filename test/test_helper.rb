@@ -75,7 +75,7 @@ module AuthenticationHelper
     user.jwt_tokens.create!(
       jti: payload["jti"],
       aud: payload["aud"],
-      exp: Time.zone.at(payload["exp"].to_i)
+      expires_at: Time.zone.at(payload["exp"].to_i)
     )
 
     { "Authorization" => "Bearer #{token}" }

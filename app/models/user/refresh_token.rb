@@ -6,12 +6,12 @@ class User::RefreshToken < ApplicationRecord
   # Virtual attribute for the plain text token (never stored in DB)
   attr_accessor :token
 
-  validates :exp, presence: true
+  validates :expires_at, presence: true
   validates :crypted_token, uniqueness: true, allow_nil: true
 
   # Scopes
-  scope :expired, -> { where("exp < ?", Time.current) }
-  scope :active, -> { where("exp >= ?", Time.current) }
+  scope :expired, -> { where("expires_at < ?", Time.current) }
+  scope :active, -> { where("expires_at >= ?", Time.current) }
 
   # Generate a new refresh token before validation (so it's available for uniqueness check)
   before_validation :generate_token, on: :create
@@ -25,7 +25,7 @@ class User::RefreshToken < ApplicationRecord
 
   # Check if this refresh token has expired
   def expired?
-    exp < Time.current
+    expires_at < Time.current
   end
 
   # Optional: Extract device information from aud header

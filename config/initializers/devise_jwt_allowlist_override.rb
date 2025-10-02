@@ -32,7 +32,7 @@ module Devise
           allowlisted_jwts.create!(
             jti: payload["jti"],
             aud: payload["aud"],
-            exp: Time.zone.at(payload["exp"].to_i)
+            expires_at: Time.zone.at(payload["exp"].to_i)
           )
         end
 

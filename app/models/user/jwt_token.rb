@@ -4,11 +4,11 @@ class User::JwtToken < ApplicationRecord
   belongs_to :user
 
   validates :jti, presence: true, uniqueness: true
-  validates :exp, presence: true
+  validates :expires_at, presence: true
 
   # Clean up expired tokens
-  scope :expired, -> { where("exp < ?", Time.current) }
-  scope :active, -> { where("exp >= ?", Time.current) }
+  scope :expired, -> { where("expires_at < ?", Time.current) }
+  scope :active, -> { where("expires_at >= ?", Time.current) }
 
   # Optional: Extract device information from aud header
   def device_name
@@ -46,6 +46,6 @@ class User::JwtToken < ApplicationRecord
 
   # Check if token is expired
   def expired?
-    exp < Time.current
+    expires_at < Time.current
   end
 end

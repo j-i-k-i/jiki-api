@@ -588,7 +588,8 @@ add_index :user_refresh_tokens, :crypted_token, unique: true
 - **Multi-Device Support**: Users can have multiple active sessions
 - **Revocation**: Allowlist strategy - tokens must exist in db to be valid
 - **Device Tracking**: User-Agent stored in `aud` field for session management
-- **Expired Token Cleanup**: Expired refresh tokens automatically destroyed on use
+- **Automated Token Cleanup**: Hourly Sidekiq job removes tokens expired >1 hour ago
+- **Database Indexes**: `expires_at` indexed on both tables for efficient cleanup queries
 
 ### Password Security
 - Minimum 6 characters required
@@ -658,6 +659,40 @@ Rails.application.config.middleware.insert_before 0, Rack::Cors do
 end
 ```
 
+## Background Jobs
+
+### Token Cleanup Job
+
+**Purpose**: Automatically remove expired tokens to prevent database growth
+
+**Schedule**: Runs hourly via `sidekiq-scheduler`
+
+**Configuration**: `config/sidekiq-schedule.yml`
+```yaml
+cleanup_expired_auth_tokens:
+  interval: "1h"
+  class: "Auth::CleanupExpiredTokensJob"
+  queue: default
+```
+
+**Implementation**: `app/jobs/auth/cleanup_expired_tokens_job.rb`
+- Deletes JWT access tokens where `expires_at < 1.hour.ago`
+- Deletes refresh tokens where `expires_at < 1.hour.ago`
+- 1-hour buffer prevents edge cases during token validation
+- Logs deletion counts for monitoring
+
+**Manual Execution**:
+```ruby
+# In Rails console
+Auth::CleanupExpiredTokensJob.perform_now
+```
+
+**Database Impact**:
+- With 1M users, avg 2 devices, 30-day retention:
+  - Without cleanup: ~60M tokens/month (unbounded growth)
+  - With hourly cleanup: ~2M active tokens (bounded)
+- `expires_at` indexes enable efficient deletion queries
+
 ## Monitoring & Debugging
 
 ### Logging
@@ -672,6 +707,7 @@ end
 - Password reset completion rate
 - Average session duration
 - Token refresh patterns
+- Expired tokens cleaned per hour (via `Auth::CleanupExpiredTokensJob` logs)
 
 ### Common Issues & Solutions
 1. **CORS errors**: Check origins in cors.rb

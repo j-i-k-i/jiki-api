@@ -91,9 +91,10 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_01_234844) do
     t.bigint "user_id", null: false
     t.string "jti", null: false
     t.string "aud"
-    t.datetime "exp", null: false
+    t.datetime "expires_at", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.index ["expires_at"], name: "index_user_jwt_tokens_on_expires_at"
     t.index ["jti"], name: "index_user_jwt_tokens_on_jti", unique: true
     t.index ["user_id"], name: "index_user_jwt_tokens_on_user_id"
   end
@@ -128,10 +129,11 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_01_234844) do
     t.bigint "user_id", null: false
     t.string "crypted_token", null: false
     t.string "aud"
-    t.datetime "exp", null: false
+    t.datetime "expires_at", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["crypted_token"], name: "index_user_refresh_tokens_on_crypted_token", unique: true
+    t.index ["expires_at"], name: "index_user_refresh_tokens_on_expires_at"
     t.index ["user_id"], name: "index_user_refresh_tokens_on_user_id"
   end
 
