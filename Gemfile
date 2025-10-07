@@ -48,15 +48,10 @@ gem "mrml" # Rust-based MJML compiler (faster alternative to Node.js)
 # HAML templating
 gem "haml-rails"
 
-# Configuration management (use local path in development, gem source in CI/production)
-if ENV["JIKI_USE_LOCAL_CONFIG"] == "true" || (ENV["RAILS_ENV"].nil? && File.exist?(File.expand_path("../../config", __dir__)))
-  gem "jiki-config", path: "../config"
-else
-  # In CI/production, use gem from source (rubygems or private gem server)
-  # gem "jiki-config", "~> 0.1.0", source: "https://rubygems.org"
-  # For now, fall back to local path until gem is published
-  gem "jiki-config", path: "../config"
-end
+# Configuration management
+# Uses GitHub source for CI/production
+# For local development, run: bundle config set --local local.jiki-config ../config
+gem "jiki-config", github: "jiki-education/config", branch: "main"
 
 group :development, :test do
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem

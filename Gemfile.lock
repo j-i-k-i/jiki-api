@@ -1,5 +1,7 @@
-PATH
-  remote: ../config
+GIT
+  remote: https://github.com/jiki-education/config.git
+  revision: 31ac75123ddf711024a3887db9ff7c2bec6a32f9
+  branch: main
   specs:
     jiki-config (0.1.0)
       aws-sdk-dynamodb (~> 1.0)

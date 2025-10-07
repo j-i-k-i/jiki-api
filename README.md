@@ -234,13 +234,21 @@ Ruby 3.4.4
    bundle install
    ```
 
-2. **Set up the database:**
+2. **Configure local config gem** (required for development):
+   ```bash
+   # Tell Bundler to use the local config repo instead of GitHub
+   bundle config set --local local.jiki-config ../config
+   ```
+
+   **Note:** The `jiki-config` gem contains environment-specific settings. In development, we use the local `../config` repository for faster iteration. CI and production use the GitHub source automatically.
+
+3. **Set up the database:**
    ```bash
    # Create, load schema, and seed with user and curriculum data
    bin/rails db:setup
    ```
 
-3. **Reset curriculum data (optional):**
+4. **Reset curriculum data (optional):**
    ```bash
    # Delete and reload all levels and lessons from curriculum.json
    ruby scripts/bootstrap_levels.rb --delete-existing
