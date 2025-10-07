@@ -48,6 +48,11 @@ gem "mrml" # Rust-based MJML compiler (faster alternative to Node.js)
 # HAML templating
 gem "haml-rails"
 
+# Configuration management
+# Uses GitHub source for CI/production
+# For local development, run: bundle config set --local local.jiki-config ../config
+gem "jiki-config", github: "jiki-education/config", branch: "main"
+
 group :development, :test do
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem
   gem "debug", platforms: %i[mri windows], require: "debug/prelude"
