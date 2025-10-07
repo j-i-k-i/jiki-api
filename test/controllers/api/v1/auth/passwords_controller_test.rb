@@ -20,6 +20,42 @@ module V1
         assert_equal "Reset instructions sent to test@example.com", json["message"]
       end
 
+      test "POST password reset sends email with correct content and frontend URL" do
+        # Mock config to have predictable URL
+        Jiki.config.stubs(:frontend_base_url).returns("http://test.frontend.com")
+
+        assert_emails 1 do
+          post user_password_path, params: {
+            user: {
+              email: "test@example.com"
+            }
+          }, as: :json
+        end
+
+        mail = ActionMailer::Base.deliveries.last
+        assert_equal ["test@example.com"], mail.to
+        assert_equal "Reset Your Password", mail.subject
+
+        # Check email contains frontend reset URL
+        html_body = mail.html_part.body.to_s
+        assert_match %r{http://test\.frontend\.com/auth/reset-password\?token=}, html_body
+        assert_match "Reset My Password", html_body
+      end
+
+      test "POST password reset email respects user locale" do
+        create(:user, :hungarian, email: "magyar@example.com", name: "József")
+
+        post user_password_path, params: {
+          user: {
+            email: "magyar@example.com"
+          }
+        }, as: :json
+
+        mail = ActionMailer::Base.deliveries.last
+        assert_equal "Jelszó visszaállítása", mail.subject
+        assert_match "Szia József,", mail.html_part.body.to_s
+      end
+
       test "POST password reset with non-existent email still returns success (security)" do
         post user_password_path, params: {
           user: {

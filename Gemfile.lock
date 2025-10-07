@@ -1,3 +1,12 @@
+PATH
+  remote: ../config
+  specs:
+    jiki-config (0.1.0)
+      aws-sdk-dynamodb (~> 1.0)
+      aws-sdk-secretsmanager (~> 1.0)
+      mandate
+      zeitwerk
+
 GEM
   remote: https://rubygems.org/
   specs:
@@ -75,6 +84,23 @@ GEM
     addressable (2.8.7)
       public_suffix (>= 2.0.2, < 7.0)
     ast (2.4.3)
+    aws-eventstream (1.4.0)
+    aws-partitions (1.1119.0)
+    aws-sdk-core (3.226.0)
+      aws-eventstream (~> 1, >= 1.3.0)
+      aws-partitions (~> 1, >= 1.992.0)
+      aws-sigv4 (~> 1.9)
+      base64
+      jmespath (~> 1, >= 1.6.1)
+      logger
+    aws-sdk-dynamodb (1.145.0)
+      aws-sdk-core (~> 3, >= 3.225.0)
+      aws-sigv4 (~> 1.5)
+    aws-sdk-secretsmanager (1.116.0)
+      aws-sdk-core (~> 3, >= 3.225.0)
+      aws-sigv4 (~> 1.5)
+    aws-sigv4 (1.12.1)
+      aws-eventstream (~> 1, >= 1.0.2)
     base64 (0.3.0)
     bcrypt (3.1.20)
     benchmark (0.4.1)
@@ -165,6 +191,7 @@ GEM
       pp (>= 0.6.0)
       rdoc (>= 4.0.0)
       reline (>= 0.4.2)
+    jmespath (1.6.2)
     json (2.15.0)
     jwt (3.1.2)
       base64
@@ -410,6 +437,7 @@ DEPENDENCIES
   factory_bot_rails
   faker
   haml-rails
+  jiki-config!
   letter_opener
   mandate (~> 2.0)
   minitest-retry
