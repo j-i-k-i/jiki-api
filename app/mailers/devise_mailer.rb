@@ -5,7 +5,6 @@ class DeviseMailer < Devise::Mailer
 
   def reset_password_instructions(record, token, _opts = {})
     with_locale(record) do
-      @token = token
       @user = record
       @reset_password_url = "#{Jiki.config.frontend_base_url}/auth/reset-password?token=#{token}"
 
