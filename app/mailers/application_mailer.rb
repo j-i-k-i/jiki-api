@@ -38,24 +38,18 @@ class ApplicationMailer < ActionMailer::Base
     # Render subject with Liquid
     subject = Liquid::Template.parse(template.subject).render(liquid_context)
 
-    # Render MJML body with Liquid
-    mjml_with_variables = Liquid::Template.parse(template.body_mjml).render(liquid_context)
-
-    # Convert HAML MJML to pure MJML, then compile to HTML using mrml gem
-    haml_engine = Haml::Template.new { mjml_with_variables }
-    mjml_content = haml_engine.render
-    html_body = begin
-      require 'mrml' unless defined?(::Mrml)
-      ::Mrml.to_html(mjml_content)[:html]
-    end
+    # Render MJML body content with Liquid (content only, no layout wrapper)
+    # Content is already in MJML format (<mj-section> tags), not HAML
+    @mjml_content = Liquid::Template.parse(template.body_mjml).render(liquid_context).html_safe
 
     # Render text body with Liquid
     text_body = Liquid::Template.parse(template.body_text).render(liquid_context)
 
     # Send email in user's locale with multipart HTML/text
+    # The layout will wrap @mjml_content and compile it via MJML/MRML
     with_locale(user) do
       mail(to: user.email, subject:) do |format|
-        format.html { render html: html_body.html_safe }
+        format.html { render inline: @mjml_content, layout: 'mailer' }
         format.text { render plain: text_body }
       end
     end

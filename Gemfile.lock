@@ -1,12 +1,13 @@
 GIT
   remote: https://github.com/jiki-education/config.git
-  revision: 31ac75123ddf711024a3887db9ff7c2bec6a32f9
+  revision: 895e08d6bd58e5fc4ceda99af39a5fbaab82395b
   branch: main
   specs:
     jiki-config (0.1.0)
       aws-sdk-dynamodb (~> 1.0)
       aws-sdk-secretsmanager (~> 1.0)
       mandate
+      ostruct
       zeitwerk
 
 GEM
@@ -261,6 +262,7 @@ GEM
     nokogiri (1.18.10-x86_64-linux-musl)
       racc (~> 1.4)
     orm_adapter (0.5.0)
+    ostruct (0.6.2)
     parallel (1.27.0)
     parser (3.3.9.0)
       ast (~> 2.4.1)

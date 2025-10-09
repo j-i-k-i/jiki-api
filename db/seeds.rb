@@ -61,34 +61,46 @@ puts "\nCreating email templates for level 1 completion..."
 # English template
 EmailTemplate.find_or_create_by!(
   template_type: :level_completion,
-  key: "level-1",
+  key: Level.first.slug,
   locale: "en"
 ) do |template|
   template.subject = "Congratulations {{ user.name }}! You've completed {{ level.title }}!"
   template.body_mjml = <<~MJML
-    %mj-section{ "background-color": "#ffffff" }
-      %mj-column
-        %mj-text
-          %h1{ style: "color: #0066cc; font-size: 28px; font-weight: bold;" } Congratulations, {{ user.name }}!
+    <mj-section background-color="#ffffff">
+      <mj-column>
+        <mj-text>
+          <h1 style="color: #0066cc; font-size: 28px; font-weight: bold;">Congratulations, {{ user.name }}!</h1>
+        </mj-text>
 
-        %mj-text
-          %p{ style: "font-size: 16px; line-height: 24px;" }
+        <mj-text>
+          <p style="font-size: 16px; line-height: 24px;">
             You've just completed <strong>{{ level.title }}</strong> (Level {{ level.position }})!
+          </p>
+        </mj-text>
 
-        %mj-text
-          %p{ style: "font-size: 16px; line-height: 24px;" }
+        <mj-text>
+          <p style="font-size: 16px; line-height: 24px;">
             {{ level.description }}
+          </p>
+        </mj-text>
 
-        %mj-text
-          %p{ style: "font-size: 16px; line-height: 24px;" }
+        <mj-text>
+          <p style="font-size: 16px; line-height: 24px;">
             This is an incredible milestone in your learning journey. Keep up the amazing work!
+          </p>
+        </mj-text>
 
-        %mj-button{ "href": "https://jiki.io", "background-color": "#0066cc", "color": "#ffffff" }
+        <mj-button href="https://jiki.io" background-color="#0066cc" color="#ffffff">
           Continue Learning
+        </mj-button>
 
-        %mj-text
-          %p{ style: "font-size: 14px; color: #666666; margin-top: 20px;" }
+        <mj-text>
+          <p style="font-size: 14px; color: #666666; margin-top: 20px;">
             Ready for the next challenge? Log in to continue your progress!
+          </p>
+        </mj-text>
+      </mj-column>
+    </mj-section>
   MJML
   template.body_text = <<~TEXT
     Congratulations, {{ user.name }}!
@@ -108,34 +120,46 @@ end
 # Hungarian template
 EmailTemplate.find_or_create_by!(
   template_type: :level_completion,
-  key: "level-1",
+  key: Level.first.slug,
   locale: "hu"
 ) do |template|
   template.subject = "Gratulálunk {{ user.name }}! Teljesítetted a(z) {{ level.title }} szintet!"
   template.body_mjml = <<~MJML
-    %mj-section{ "background-color": "#ffffff" }
-      %mj-column
-        %mj-text
-          %h1{ style: "color: #0066cc; font-size: 28px; font-weight: bold;" } Gratulálunk, {{ user.name }}!
+    <mj-section background-color="#ffffff">
+      <mj-column>
+        <mj-text>
+          <h1 style="color: #0066cc; font-size: 28px; font-weight: bold;">Gratulálunk, {{ user.name }}!</h1>
+        </mj-text>
 
-        %mj-text
-          %p{ style: "font-size: 16px; line-height: 24px;" }
+        <mj-text>
+          <p style="font-size: 16px; line-height: 24px;">
             Épp most teljesítetted a(z) <strong>{{ level.title }}</strong> szintet ({{ level.position }}. szint)!
+          </p>
+        </mj-text>
 
-        %mj-text
-          %p{ style: "font-size: 16px; line-height: 24px;" }
+        <mj-text>
+          <p style="font-size: 16px; line-height: 24px;">
             {{ level.description }}
+          </p>
+        </mj-text>
 
-        %mj-text
-          %p{ style: "font-size: 16px; line-height: 24px;" }
+        <mj-text>
+          <p style="font-size: 16px; line-height: 24px;">
             Ez egy hihetetlen mérföldkő a tanulási utadon. Csak így tovább!
+          </p>
+        </mj-text>
 
-        %mj-button{ "href": "https://jiki.io", "background-color": "#0066cc", "color": "#ffffff" }
+        <mj-button href="https://jiki.io" background-color="#0066cc" color="#ffffff">
           Tanulás Folytatása
+        </mj-button>
 
-        %mj-text
-          %p{ style: "font-size: 14px; color: #666666; margin-top: 20px;" }
+        <mj-text>
+          <p style="font-size: 14px; color: #666666; margin-top: 20px;">
             Készen állsz a következő kihívásra? Jelentkezz be a folytatáshoz!
+          </p>
+        </mj-text>
+      </mj-column>
+    </mj-section>
   MJML
   template.body_text = <<~TEXT
     Gratulálunk, {{ user.name }}!

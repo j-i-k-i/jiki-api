@@ -6,12 +6,16 @@ FactoryBot.define do
     subject { "Congratulations {{ user.name }}!" }
     body_mjml do
       <<~MJML
-        %mj-section{ "background-color": "#ffffff" }
-          %mj-column
-            %mj-text
-              %h1 Congratulations, {{ user.name }}!
-            %mj-text
-              %p You completed {{ level.title }}!
+        <mj-section background-color="#ffffff">
+          <mj-column>
+            <mj-text>
+              <h1>Congratulations, {{ user.name }}!</h1>
+            </mj-text>
+            <mj-text>
+              <p>You completed {{ level.title }}!</p>
+            </mj-text>
+          </mj-column>
+        </mj-section>
       MJML
     end
     body_text { "Congratulations, {{ user.name }}! You completed {{ level.title }}!" }
@@ -21,12 +25,16 @@ FactoryBot.define do
       subject { "Gratulálunk {{ user.name }}!" }
       body_mjml do
         <<~MJML
-          %mj-section{ "background-color": "#ffffff" }
-            %mj-column
-              %mj-text
-                %h1 Gratulálunk, {{ user.name }}!
-              %mj-text
-                %p Teljesítetted: {{ level.title }}!
+          <mj-section background-color="#ffffff">
+            <mj-column>
+              <mj-text>
+                <h1>Gratulálunk, {{ user.name }}!</h1>
+              </mj-text>
+              <mj-text>
+                <p>Teljesítetted: {{ level.title }}!</p>
+              </mj-text>
+            </mj-column>
+          </mj-section>
         MJML
       end
       body_text { "Gratulálunk, {{ user.name }}! Teljesítetted: {{ level.title }}!" }
