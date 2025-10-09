@@ -22,9 +22,9 @@ class ApplicationMailer < ActionMailer::Base
   #   )
   #
   # @return [Mail::Message, nil] The mail message if template found, nil otherwise
-  def mail_template_with_locale(user, _template_type, template_key, context = {})
+  def mail_template_with_locale(user, template_type, template_key, context = {})
     # Find the template for this type, key, and user's locale
-    template = EmailTemplate.find_for_level_completion(template_key, user.locale)
+    template = EmailTemplate.find_for(template_type, template_key, user.locale)
     return unless template
 
     # Build Liquid context with user automatically included
