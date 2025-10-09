@@ -48,6 +48,9 @@ gem "mrml" # Rust-based MJML compiler (faster alternative to Node.js)
 # HAML templating
 gem "haml-rails"
 
+# Liquid templating for user-editable email templates
+gem "liquid"
+
 # Configuration management
 # Uses GitHub source for CI/production
 # For local development, run: bundle config set --local local.jiki-config ../config

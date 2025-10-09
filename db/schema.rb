@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_10_01_222641) do
+ActiveRecord::Schema[8.0].define(version: 2025_10_09_124423) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -40,6 +40,18 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_01_222641) do
     t.bigint "blob_id", null: false
     t.string "variation_digest", null: false
     t.index ["blob_id", "variation_digest"], name: "index_active_storage_variant_records_uniqueness", unique: true
+  end
+
+  create_table "email_templates", force: :cascade do |t|
+    t.integer "template_type", null: false
+    t.string "key"
+    t.string "locale", null: false
+    t.text "subject", null: false
+    t.text "body_mjml", null: false
+    t.text "body_text", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["template_type", "key", "locale"], name: "index_email_templates_on_template_type_and_key_and_locale", unique: true
   end
 
   create_table "exercise_submission_files", force: :cascade do |t|
@@ -107,6 +119,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_01_222641) do
     t.datetime "completed_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "email_status", default: 0, null: false
     t.index ["current_user_lesson_id"], name: "index_user_levels_on_current_user_lesson_id"
     t.index ["level_id"], name: "index_user_levels_on_level_id"
     t.index ["user_id", "level_id"], name: "index_user_levels_on_user_id_and_level_id", unique: true

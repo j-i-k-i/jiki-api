@@ -1,4 +1,18 @@
 Rails.application.routes.draw do
+  # Sidekiq Web UI with Basic Auth
+  require "sidekiq/web"
+  Sidekiq::Web.use Rack::Auth::Basic do |username, password|
+    ActiveSupport::SecurityUtils.secure_compare(
+      ::Digest::SHA256.hexdigest(username),
+      ::Digest::SHA256.hexdigest(Jiki.secrets.sidekiq_username)
+    ) &
+      ActiveSupport::SecurityUtils.secure_compare(
+        ::Digest::SHA256.hexdigest(password),
+        ::Digest::SHA256.hexdigest(Jiki.secrets.sidekiq_password)
+      )
+  end
+  mount Sidekiq::Web => "/sidekiq"
+
   # API routes
   devise_for :users,
     path: "v1/auth",
