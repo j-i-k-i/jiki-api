@@ -16,6 +16,11 @@ class User < ApplicationRecord
 
   validates :locale, presence: true, inclusion: { in: %w[en hu] }
 
+  before_create do
+    # Generate a unique JTI (JWT ID) for each user on creation
+    self.jti = SecureRandom.uuid
+  end
+
   # Placeholder for email preferences - always allow emails for now
   # TODO: Implement actual email preferences when communication_preferences are built
   def may_receive_emails?
