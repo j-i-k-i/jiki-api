@@ -5,11 +5,5 @@ class LevelDrop < Liquid::Drop
   end
   # rubocop:enable Lint/MissingSuper
 
-  delegate :title, to: :@level
-
-  delegate :description, to: :@level
-
-  delegate :slug, to: :@level
-
-  delegate :position, to: :@level
+  delegate :title, :description, :slug, :position, to: :@level
 end

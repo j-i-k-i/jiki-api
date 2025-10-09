@@ -5,9 +5,5 @@ class UserDrop < Liquid::Drop
   end
   # rubocop:enable Lint/MissingSuper
 
-  delegate :name, to: :@user
-
-  delegate :email, to: :@user
-
-  delegate :locale, to: :@user
+  delegate :name, :email, :locale, to: :@user
 end
