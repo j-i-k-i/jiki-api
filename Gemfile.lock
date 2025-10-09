@@ -205,6 +205,9 @@ GEM
     letter_opener (1.10.0)
       launchy (>= 2.2, < 4)
     lint_roller (1.1.0)
+    liquid (5.8.7)
+      bigdecimal
+      strscan (>= 3.1.1)
     logger (1.7.0)
     loofah (2.24.1)
       crass (~> 1.0.2)
@@ -382,6 +385,7 @@ GEM
       rack (>= 3.1.0)
       redis-client (>= 0.23.2)
     stringio (3.1.7)
+    strscan (3.1.5)
     temple (0.10.4)
     thor (1.4.0)
     thruster (0.1.15)
@@ -441,6 +445,7 @@ DEPENDENCIES
   haml-rails
   jiki-config!
   letter_opener
+  liquid
   mandate (~> 2.0)
   minitest-retry
   mjml-rails
