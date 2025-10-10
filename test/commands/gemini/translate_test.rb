@@ -233,7 +233,7 @@ class Gemini::TranslateTest < ActiveSupport::TestCase
   end
 
   test "raises ArgumentError if google_api_key is not set" do
-    Jiki.secrets.stubs(:google_api_key).returns(nil)
+    Jiki.secrets.expects(:google_api_key).returns(nil).at_least_once
 
     error = assert_raises ArgumentError do
       Gemini::Translate.(@prompt, model: :flash)
