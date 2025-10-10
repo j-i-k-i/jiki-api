@@ -2,12 +2,19 @@
 # development, test). The code here should be idempotent so that it can be executed at any point in every environment.
 # The data can then be loaded with the bin/rails db:seed command (or created alongside the database with db:setup).
 
+# Create an admin user
+User.find_or_create_by!(email: "ihid@jiki.io") do |u|
+  u.admin = true
+  u.password = "password"
+  u.password_confirmation = "password"
+end
+puts "Created admin user"
+
 # Create a test user
 user = User.find_or_create_by!(email: "test@example.com") do |u|
   u.password = "password123"
   u.password_confirmation = "password123"
 end
-
 puts "Created user: #{user.email}"
 
 # Bootstrap levels from curriculum.json
@@ -60,8 +67,8 @@ puts "\nCreating email templates for level 1 completion..."
 
 # English template
 EmailTemplate.find_or_create_by!(
-  template_type: :level_completion,
-  key: Level.first.slug,
+  type: :level_completion,
+  slug: Level.first.slug,
   locale: "en"
 ) do |template|
   template.subject = "Congratulations {{ user.name }}! You've completed {{ level.title }}!"
@@ -119,8 +126,8 @@ end
 
 # Hungarian template
 EmailTemplate.find_or_create_by!(
-  template_type: :level_completion,
-  key: Level.first.slug,
+  type: :level_completion,
+  slug: Level.first.slug,
   locale: "hu"
 ) do |template|
   template.subject = "Gratulálunk {{ user.name }}! Teljesítetted a(z) {{ level.title }} szintet!"

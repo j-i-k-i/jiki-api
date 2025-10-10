@@ -45,6 +45,15 @@ Rails.application.routes.draw do
         patch :complete
       end
     end
+
+    # Admin routes
+    namespace :admin do
+      resources :email_templates, only: %i[index show create update destroy] do
+        collection do
+          get :types
+        end
+      end
+    end
   end
 
   # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.

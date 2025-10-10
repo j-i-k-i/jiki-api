@@ -10,6 +10,9 @@ All API controllers are namespaced under `V1` to support versioning:
 app/controllers/
 ├── application_controller.rb    # Base controller with shared functionality
 └── v1/                          # API version 1
+    ├── admin/                   # Admin-only controllers
+    │   ├── base_controller.rb
+    │   └── email_templates_controller.rb
     ├── auth/                    # Devise authentication controllers
     ├── lessons_controller.rb
     ├── levels_controller.rb
@@ -101,20 +104,14 @@ All controller actions should have tests covering:
 
 See `.context/testing.md` for detailed testing patterns.
 
-## Controller Namespacing Pattern
+### Controller Namespacing Pattern
 
 **IMPORTANT:** Always use `class V1::ControllerName` format instead of module wrapping:
 
 ```ruby
 # CORRECT: Use class V1:: pattern
 class V1::LessonsController < ApplicationController
-  before_action :use_lesson!
-
-  def show
-    render json: {
-      lesson: SerializeLesson.(@lesson)
-    }
-  end
+  # ...
 end
 
 # INCORRECT: Don't use module wrapping
@@ -136,8 +133,6 @@ end
 ```ruby
 # CORRECT: Use class V1::Auth:: pattern
 class V1::Auth::PasswordsController < Devise::PasswordsController
-  respond_to :json
-
   # ...
 end
 
@@ -151,10 +146,118 @@ module V1
 end
 ```
 
-## Future Patterns
+## Admin Controllers
 
-As the API grows, consider adding:
-- Rate limiting middleware
-- API versioning strategy (already namespaced for V2)
-- Request/response logging
-- Parameter sanitization helpers
+Admin controllers provide administrative access to resources and require admin privileges.
+
+### V1::Admin::BaseController
+
+All admin controllers inherit from `V1::Admin::BaseController`, which adds admin authorization on top of authentication.
+
+**Key Features:**
+- Inherits from `ApplicationController` (gets authentication automatically)
+- Adds `before_action :ensure_admin!` for authorization
+- Returns 403 Forbidden if user is not an admin
+
+**Implementation:**
+```ruby
+class V1::Admin::BaseController < ApplicationController
+  before_action :ensure_admin!
+
+  private
+  def ensure_admin!
+    return if current_user.admin?
+
+    render json: {
+      error: {
+        type: "forbidden",
+        message: "Admin access required"
+      }
+    }, status: :forbidden
+  end
+end
+```
+
+### Authentication vs Authorization
+
+**Authentication** (ApplicationController):
+- Verifies the user is logged in
+- Returns 401 Unauthorized if not authenticated
+- Handled by Devise's `authenticate_user!`
+
+**Authorization** (Admin::BaseController):
+- Verifies the authenticated user has admin privileges
+- Returns 403 Forbidden if not an admin
+- Handled by custom `ensure_admin!` method
+
+### Admin Controller Example
+
+```ruby
+class V1::Admin::EmailTemplatesController < V1::Admin::BaseController
+  before_action :set_email_template, only: %i[show update destroy]
+
+  def index
+    email_templates = EmailTemplate.all
+    render json: {
+      email_templates: SerializeEmailTemplates.(email_templates)
+    }
+  end
+
+  def update
+    email_template = EmailTemplate::Update.(@email_template, email_template_params)
+    render json: {
+      email_template: SerializeEmailTemplate.(email_template)
+    }
+  end
+
+  private
+  def set_email_template
+    @email_template = EmailTemplate.find(params[:id])
+  rescue ActiveRecord::RecordNotFound
+    render_not_found("Email template not found")
+  end
+
+  def email_template_params
+    params.require(:email_template).permit(:subject, :body_mjml, :body_text)
+  end
+end
+```
+
+### Testing Admin Controllers
+
+Admin controller tests should verify both authentication and authorization:
+
+```ruby
+class EmailTemplatesControllerTest < ApplicationControllerTest
+  setup do
+    @admin = create(:user, :admin)
+    @headers = auth_headers_for(@admin)
+  end
+
+  # Test authentication (401)
+  guard_incorrect_token! :v1_admin_email_templates_path, method: :get
+
+  # Test authorization (403)
+  test "GET index returns 403 for non-admin users" do
+    user = create(:user, admin: false)
+    headers = auth_headers_for(user)
+
+    get v1_admin_email_templates_path, headers:, as: :json
+
+    assert_response :forbidden
+    assert_json_response({
+      error: {
+        type: "forbidden",
+        message: "Admin access required"
+      }
+    })
+  end
+
+  # Test successful admin access (200)
+  test "GET index returns templates for admin users" do
+    get v1_admin_email_templates_path, headers: @headers, as: :json
+
+    assert_response :success
+  end
+end
+```

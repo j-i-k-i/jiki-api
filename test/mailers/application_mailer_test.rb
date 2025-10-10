@@ -11,7 +11,7 @@ class ApplicationMailerTest < ActionMailer::TestCase
   test "renders email with Liquid variables in subject and body" do
     user = create(:user, name: "Alice Smith", email: "alice@example.com", locale: "en")
     level = create(:level, title: "Ruby Basics", slug: "ruby-basics")
-    create(:email_template, template_type: :level_completion, key: "ruby-basics", locale: "en")
+    create(:email_template, type: :level_completion, slug: "ruby-basics", locale: "en")
 
     mail = TestMailer.test_template_email(
       user,
@@ -29,7 +29,7 @@ class ApplicationMailerTest < ActionMailer::TestCase
   test "automatically injects user into Liquid context" do
     user = create(:user, name: "Bob Jones", email: "bob@example.com", locale: "en")
     level = create(:level, title: "Python Intro", slug: "python-intro")
-    create(:email_template, template_type: :level_completion, key: "python-intro", locale: "en")
+    create(:email_template, type: :level_completion, slug: "python-intro", locale: "en")
 
     mail = TestMailer.test_template_email(
       user,
@@ -47,7 +47,7 @@ class ApplicationMailerTest < ActionMailer::TestCase
   test "passes custom context variables to Liquid" do
     user = create(:user, name: "Carol", locale: "en")
     level = create(:level, title: "JavaScript Fundamentals", slug: "js-fundamentals")
-    create(:email_template, template_type: :level_completion, key: "js-fundamentals", locale: "en")
+    create(:email_template, type: :level_completion, slug: "js-fundamentals", locale: "en")
 
     mail = TestMailer.test_template_email(
       user,
@@ -64,7 +64,7 @@ class ApplicationMailerTest < ActionMailer::TestCase
   test "respects user locale for email rendering" do
     user = create(:user, :hungarian, name: "János", locale: "hu")
     level = create(:level, title: "Ruby Alapok", slug: "ruby-basics")
-    create(:email_template, :hungarian, template_type: :level_completion, key: "ruby-basics", locale: "hu")
+    create(:email_template, :hungarian, type: :level_completion, slug: "ruby-basics", locale: "hu")
 
     mail = TestMailer.test_template_email(
       user,
@@ -81,7 +81,7 @@ class ApplicationMailerTest < ActionMailer::TestCase
   test "compiles MJML to HTML using MRML" do
     user = create(:user, locale: "en")
     level = create(:level, slug: "level-1")
-    create(:email_template, key: "level-1", locale: "en")
+    create(:email_template, slug: "level-1", locale: "en")
 
     mail = TestMailer.test_template_email(
       user,
@@ -106,7 +106,7 @@ class ApplicationMailerTest < ActionMailer::TestCase
     level = create(:level, title: "CSS Basics", slug: "css-basics")
 
     # Templates in database use MJML syntax (e.g., <mj-section>)
-    create(:email_template, key: "css-basics", locale: "en")
+    create(:email_template, slug: "css-basics", locale: "en")
 
     mail = TestMailer.test_template_email(
       user,
@@ -126,7 +126,7 @@ class ApplicationMailerTest < ActionMailer::TestCase
   test "sends multipart email with HTML and text parts" do
     user = create(:user, locale: "en")
     level = create(:level, slug: "level-1")
-    create(:email_template, key: "level-1", locale: "en")
+    create(:email_template, slug: "level-1", locale: "en")
 
     mail = TestMailer.test_template_email(
       user,
@@ -158,7 +158,7 @@ class ApplicationMailerTest < ActionMailer::TestCase
   test "sets correct email metadata" do
     user = create(:user, name: "Eve", email: "eve@example.com", locale: "en")
     level = create(:level, slug: "level-1")
-    create(:email_template, key: "level-1", locale: "en")
+    create(:email_template, slug: "level-1", locale: "en")
 
     mail = TestMailer.test_template_email(
       user,
@@ -177,7 +177,7 @@ class ApplicationMailerTest < ActionMailer::TestCase
 
     # Create template without level variable
     create(:email_template,
-      key: "simple",
+      slug: "simple",
       locale: "en",
       subject: "Hello {{ user.name }}",
       body_mjml: "<mj-section><mj-column><mj-text>Hi {{ user.name }}</mj-text></mj-column></mj-section>",
@@ -197,7 +197,7 @@ class ApplicationMailerTest < ActionMailer::TestCase
   test "converts symbol keys to strings for Liquid context" do
     user = create(:user, locale: "en")
     level = create(:level, title: "Test Level", slug: "test")
-    create(:email_template, key: "test", locale: "en")
+    create(:email_template, slug: "test", locale: "en")
 
     # Context passed with symbol key
     mail = TestMailer.test_template_email(

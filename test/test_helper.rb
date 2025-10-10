@@ -129,6 +129,29 @@ class ApplicationControllerTest < ActionDispatch::IntegrationTest
       assert_equal "unauthorized", response.parsed_body["error"]["type"]
     end
   end
+
+  # Macro for testing admin-only endpoints (includes authentication + admin checks)
+  def self.guard_admin!(path_helper, args: [], method: :get)
+    # First, guard against incorrect tokens (401 errors)
+    guard_incorrect_token!(path_helper, args:, method:)
+
+    # Then, guard against non-admin users (403 error)
+    test "#{method} #{path_helper} returns 403 for non-admin users" do
+      user = create(:user, admin: false)
+      headers = auth_headers_for(user)
+      path = send(path_helper, *args)
+
+      send(method, path, headers:, as: :json)
+
+      assert_response :forbidden
+      assert_json_response({
+        error: {
+          type: "forbidden",
+          message: "Admin access required"
+        }
+      })
+    end
+  end
 end
 
 # Include helpers in integration tests

@@ -36,6 +36,9 @@ class DeviseCreateUsers < ActiveRecord::Migration[8.0]
       t.string :name, null: false
       t.string :locale, null: false, default: "en"
 
+      ## Admin access
+      t.boolean :admin, null: false, default: false
+
       ## JWT revocation
       t.string :jti, null: false
 
