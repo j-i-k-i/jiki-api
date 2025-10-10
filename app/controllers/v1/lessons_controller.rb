@@ -1,11 +1,9 @@
-module V1
-  class LessonsController < ApplicationController
-    before_action :use_lesson!
+class V1::LessonsController < ApplicationController
+  before_action :use_lesson!
 
-    def show
-      render json: {
-        lesson: SerializeLesson.(@lesson)
-      }
-    end
+  def show
+    render json: {
+      lesson: SerializeLesson.(@lesson)
+    }
   end
 end

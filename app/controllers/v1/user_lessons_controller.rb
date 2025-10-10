@@ -1,27 +1,25 @@
-module V1
-  class UserLessonsController < ApplicationController
-    before_action :use_lesson!
+class V1::UserLessonsController < ApplicationController
+  before_action :use_lesson!
 
-    def show
-      user_lesson = UserLesson.find_by(user: current_user, lesson: @lesson)
+  def show
+    user_lesson = UserLesson.find_by(user: current_user, lesson: @lesson)
 
-      return render_not_found("User lesson not found") unless user_lesson
+    return render_not_found("User lesson not found") unless user_lesson
 
-      render json: {
-        user_lesson: SerializeUserLesson.(user_lesson)
-      }
-    end
+    render json: {
+      user_lesson: SerializeUserLesson.(user_lesson)
+    }
+  end
 
-    def start
-      UserLesson::FindOrCreate.(current_user, @lesson)
+  def start
+    UserLesson::FindOrCreate.(current_user, @lesson)
 
-      render json: {}
-    end
+    render json: {}
+  end
 
-    def complete
-      UserLesson::Complete.(current_user, @lesson)
+  def complete
+    UserLesson::Complete.(current_user, @lesson)
 
-      render json: {}
-    end
+    render json: {}
   end
 end

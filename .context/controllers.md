@@ -101,17 +101,51 @@ All controller actions should have tests covering:
 
 See `.context/testing.md` for detailed testing patterns.
 
-## Example Controller
+## Controller Namespacing Pattern
+
+**IMPORTANT:** Always use `class V1::ControllerName` format instead of module wrapping:
 
 ```ruby
+# CORRECT: Use class V1:: pattern
+class V1::LessonsController < ApplicationController
+  before_action :use_lesson!
+
+  def show
+    render json: {
+      lesson: SerializeLesson.(@lesson)
+    }
+  end
+end
+
+# INCORRECT: Don't use module wrapping
 module V1
   class LessonsController < ApplicationController
-    before_action :use_lesson!
+    # ...
+  end
+end
+```
 
-    def show
-      render json: {
-        lesson: SerializeLesson.(@lesson)
-      }
+**Why this pattern:**
+- More concise and readable
+- Standard Ruby namespacing convention
+- Consistent with Rails best practices
+- Easier to refactor and maintain
+
+**For nested namespaces (e.g., auth controllers):**
+
+```ruby
+# CORRECT: Use class V1::Auth:: pattern
+class V1::Auth::PasswordsController < Devise::PasswordsController
+  respond_to :json
+
+  # ...
+end
+
+# INCORRECT: Don't use nested modules
+module V1
+  module Auth
+    class PasswordsController < Devise::PasswordsController
+      # ...
     end
   end
 end
