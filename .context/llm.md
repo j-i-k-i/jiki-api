@@ -35,9 +35,11 @@ Gemini::Translate.(
 **Configuration**:
 - Uses `Jiki.secrets.google_api_key` from jiki-config gem
 - API endpoint: `https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent`
+- Authentication: API key sent via `x-goog-api-key` header (not URL parameter)
 - Models supported:
   - `:flash` → `gemini-2.5-flash` (default)
   - `:pro` → `gemini-2.5-pro`
+- JSON Mode: Uses `responseMimeType: "application/json"` with `responseSchema` for structured output
 - Sets `thinkingBudget: 0` in request for faster responses
 - 60 second timeout for LLM response
 - Uses HTTParty for HTTP requests
@@ -55,6 +57,16 @@ Gemini::Translate.(
     parts: [{ text: prompt }]
   }],
   generationConfig: {
+    responseMimeType: "application/json",
+    responseSchema: {
+      type: "object",
+      properties: {
+        subject: { type: "string" },
+        body_mjml: { type: "string" },
+        body_text: { type: "string" }
+      },
+      required: %w[subject body_mjml body_text]
+    },
     thinkingConfig: {
       thinkingBudget: 0  # Disable thinking mode for faster responses
     }
@@ -62,8 +74,13 @@ Gemini::Translate.(
 }
 ```
 
+**Authentication**:
+- API key sent via `x-goog-api-key` HTTP header
+- This prevents key exposure in server logs and URLs
+
 **Response Parsing**:
 - Extracts text from: `response.candidates[0].content.parts[0].text`
+- With `responseMimeType: "application/json"`, Gemini returns raw JSON (no markdown fences)
 - Parses the text as JSON to get translation fields
 - Returns hash with `:subject`, `:body_mjml`, `:body_text` keys
 
@@ -281,6 +298,8 @@ For other errors (500, network issues, etc.):
 **Gemini::Translate Tests** (`test/commands/gemini/translate_test.rb`):
 - Successful translation with mocked HTTP response
 - Model selection (:flash vs :pro)
+- x-goog-api-key header authentication
+- JSON mode configuration (responseMimeType + responseSchema)
 - thinkingBudget: 0 in request
 - Error handling (429, 400, 500)
 - Invalid JSON response

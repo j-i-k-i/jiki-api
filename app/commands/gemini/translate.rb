@@ -12,7 +12,10 @@ class Gemini::Translate
     response = self.class.post(
       api_endpoint,
       body: request_payload.to_json,
-      headers: { 'Content-Type' => 'application/json' },
+      headers: {
+        'Content-Type' => 'application/json',
+        'x-goog-api-key' => api_key
+      },
       timeout: 60 # 60 seconds for LLM response
     )
 
@@ -41,7 +44,7 @@ class Gemini::Translate
 
   memoize
   def api_endpoint
-    "/v1beta/models/#{model_name}:generateContent?key=#{api_key}"
+    "/v1beta/models/#{model_name}:generateContent"
   end
 
   memoize
@@ -51,6 +54,16 @@ class Gemini::Translate
         parts: [{ text: prompt }]
       }],
       generationConfig: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: "object",
+          properties: {
+            subject: { type: "string" },
+            body_mjml: { type: "string" },
+            body_text: { type: "string" }
+          },
+          required: %w[subject body_mjml body_text]
+        },
         thinkingConfig: {
           thinkingBudget: 0 # Disable thinking for faster responses
         }

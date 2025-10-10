@@ -70,11 +70,11 @@ class Gemini::TranslateTest < ActiveSupport::TestCase
   test "includes thinkingBudget: 0 in request payload" do
     stub_request(:post, %r{https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent}).
       with(body: hash_including({
-        generationConfig: {
+        generationConfig: hash_including({
           thinkingConfig: {
             thinkingBudget: 0
           }
-        }
+        })
       })).
       to_return(
         status: 200,
@@ -89,11 +89,73 @@ class Gemini::TranslateTest < ActiveSupport::TestCase
 
     assert_requested :post, %r{https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent},
       body: hash_including({
-        generationConfig: {
+        generationConfig: hash_including({
           thinkingConfig: {
             thinkingBudget: 0
           }
-        }
+        })
+      })
+  end
+
+  test "includes x-goog-api-key header" do
+    stub_request(:post, %r{https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent}).
+      with(headers: { 'x-goog-api-key' => Jiki.secrets.google_api_key }).
+      to_return(
+        status: 200,
+        body: {
+          candidates: [{
+            content: { parts: [{ text: '{"subject":"test","body_mjml":"test","body_text":"test"}' }] }
+          }]
+        }.to_json
+      )
+
+    Gemini::Translate.(@prompt, model: :flash)
+
+    assert_requested :post, %r{https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent},
+      headers: { 'x-goog-api-key' => Jiki.secrets.google_api_key }
+  end
+
+  test "includes responseMimeType and responseSchema for JSON mode" do
+    stub_request(:post, %r{https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent}).
+      with(body: hash_including({
+        generationConfig: hash_including({
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: "object",
+            properties: {
+              subject: { type: "string" },
+              body_mjml: { type: "string" },
+              body_text: { type: "string" }
+            },
+            required: %w[subject body_mjml body_text]
+          }
+        })
+      })).
+      to_return(
+        status: 200,
+        body: {
+          candidates: [{
+            content: { parts: [{ text: '{"subject":"test","body_mjml":"test","body_text":"test"}' }] }
+          }]
+        }.to_json
+      )
+
+    Gemini::Translate.(@prompt, model: :flash)
+
+    assert_requested :post, %r{https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent},
+      body: hash_including({
+        generationConfig: hash_including({
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: "object",
+            properties: {
+              subject: { type: "string" },
+              body_mjml: { type: "string" },
+              body_text: { type: "string" }
+            },
+            required: %w[subject body_mjml body_text]
+          }
+        })
       })
   end
 
