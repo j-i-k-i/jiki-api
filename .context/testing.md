@@ -364,6 +364,7 @@ end
 
 ```ruby
 # CORRECT: Use guard_incorrect_token! macro at the top of your test class
+# IMPORTANT: Always use `class V1::ControllerTest` format, not module wrapping
 class V1::LessonsControllerTest < ApplicationControllerTest
   setup do
     setup_user
