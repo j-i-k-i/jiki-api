@@ -56,6 +56,15 @@ Rails.application.routes.draw do
     end
   end
 
+  # SPI (Service Provider Interface) routes for external service callbacks
+  namespace :spi do
+    namespace :llm do
+      post 'email_translation', to: 'llm_responses#email_translation'
+      post 'rate_limited', to: 'llm_responses#rate_limited'
+      post 'errored', to: 'llm_responses#errored'
+    end
+  end
+
   # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.
   # Can be used by load balancers and uptime monitors to verify that the app is live.
   get "up" => "rails/health#show", as: :rails_health_check
