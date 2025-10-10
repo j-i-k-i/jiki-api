@@ -1,11 +1,10 @@
-class EmailTemplate::Update
+class EmailTemplate::Create
   include Mandate
 
-  initialize_with :email_template, :params
+  initialize_with :params
 
   def call
-    email_template.update!(filtered_params)
-    email_template
+    EmailTemplate.create!(filtered_params)
   end
 
   private

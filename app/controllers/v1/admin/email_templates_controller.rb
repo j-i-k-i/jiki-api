@@ -10,6 +10,26 @@ module V1
         }
       end
 
+      def types
+        render json: {
+          types: EmailTemplate.types.keys
+        }
+      end
+
+      def create
+        email_template = EmailTemplate::Create.(email_template_params)
+        render json: {
+          email_template: SerializeEmailTemplate.(email_template)
+        }, status: :created
+      rescue ActiveRecord::RecordInvalid => e
+        render json: {
+          error: {
+            type: "validation_error",
+            message: e.message
+          }
+        }, status: :unprocessable_entity
+      end
+
       def show
         render json: {
           email_template: SerializeEmailTemplate.(@email_template)
@@ -21,6 +41,13 @@ module V1
         render json: {
           email_template: SerializeEmailTemplate.(email_template)
         }
+      rescue ActiveRecord::RecordInvalid => e
+        render json: {
+          error: {
+            type: "validation_error",
+            message: e.message
+          }
+        }, status: :unprocessable_entity
       end
 
       def destroy
@@ -41,7 +68,7 @@ module V1
       end
 
       def email_template_params
-        params.require(:email_template).permit(:subject, :body_mjml, :body_text)
+        params.require(:email_template).permit(:type, :slug, :locale, :subject, :body_mjml, :body_text)
       end
     end
   end

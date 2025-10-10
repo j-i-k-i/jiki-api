@@ -86,13 +86,13 @@ class EmailTemplate::UpdateTest < ActiveSupport::TestCase
     assert_match(/Body text/, error.message)
   end
 
-  test "filters out type parameter" do
+  test "updates type parameter" do
     email_template = create(:email_template, type: :level_completion)
 
     EmailTemplate::Update.(
       email_template,
       {
-        type: :some_other_type,
+        type: :level_completion,
         subject: "New Subject"
       }
     )
@@ -101,7 +101,7 @@ class EmailTemplate::UpdateTest < ActiveSupport::TestCase
     assert_equal "New Subject", email_template.subject
   end
 
-  test "filters out slug parameter" do
+  test "updates slug parameter" do
     email_template = create(:email_template, slug: "original-slug")
 
     EmailTemplate::Update.(
@@ -112,11 +112,11 @@ class EmailTemplate::UpdateTest < ActiveSupport::TestCase
       }
     )
 
-    assert_equal "original-slug", email_template.reload.slug
+    assert_equal "new-slug", email_template.reload.slug
     assert_equal "New Subject", email_template.subject
   end
 
-  test "filters out locale parameter" do
+  test "updates locale parameter" do
     email_template = create(:email_template, locale: "en")
 
     EmailTemplate::Update.(
@@ -127,7 +127,36 @@ class EmailTemplate::UpdateTest < ActiveSupport::TestCase
       }
     )
 
-    assert_equal "en", email_template.reload.locale
+    assert_equal "hu", email_template.reload.locale
     assert_equal "New Subject", email_template.subject
+  end
+
+  test "raises error for duplicate type, slug, and locale combination on update" do
+    create(:email_template, type: :level_completion, slug: "level-1", locale: "en")
+    email_template = create(:email_template, type: :level_completion, slug: "level-2", locale: "en")
+
+    assert_raises ActiveRecord::RecordInvalid do
+      EmailTemplate::Update.(
+        email_template,
+        {
+          slug: "level-1"
+        }
+      )
+    end
+  end
+
+  test "allows updating to same type, slug with different locale" do
+    create(:email_template, type: :level_completion, slug: "level-1", locale: "en")
+    email_template = create(:email_template, type: :level_completion, slug: "level-1", locale: "hu")
+
+    EmailTemplate::Update.(
+      email_template,
+      {
+        subject: "Updated Subject"
+      }
+    )
+
+    assert_equal "Updated Subject", email_template.reload.subject
+    assert_equal "hu", email_template.locale
   end
 end

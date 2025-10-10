@@ -10,6 +10,8 @@ module V1
 
       # Authentication guards
       guard_incorrect_token! :v1_admin_email_templates_path, method: :get
+      guard_incorrect_token! :v1_admin_email_templates_path, method: :post
+      guard_incorrect_token! :types_v1_admin_email_templates_path, method: :get
       guard_incorrect_token! :v1_admin_email_template_path, args: [1], method: :get
       guard_incorrect_token! :v1_admin_email_template_path, args: [1], method: :patch
       guard_incorrect_token! :v1_admin_email_template_path, args: [1], method: :delete
@@ -54,6 +56,138 @@ module V1
 
         assert_response :success
         assert_json_response({ email_templates: [] })
+      end
+
+      # TYPES tests
+      test "GET types returns 403 for non-admin users" do
+        user = create(:user, admin: false)
+        headers = auth_headers_for(user)
+
+        get types_v1_admin_email_templates_path, headers:, as: :json
+
+        assert_response :forbidden
+      end
+
+      test "GET types returns all available template types" do
+        get types_v1_admin_email_templates_path, headers: @headers, as: :json
+
+        assert_response :success
+        assert_json_response({
+          types: ["level_completion"]
+        })
+      end
+
+      # CREATE tests
+      test "POST create returns 403 for non-admin users" do
+        user = create(:user, admin: false)
+        headers = auth_headers_for(user)
+
+        post v1_admin_email_templates_path,
+          params: {
+            email_template: {
+              type: :level_completion,
+              slug: "new-level",
+              locale: "en",
+              subject: "Test Subject",
+              body_mjml: "<mj-section><mj-column><mj-text>Test</mj-text></mj-column></mj-section>",
+              body_text: "Test text"
+            }
+          },
+          headers:,
+          as: :json
+
+        assert_response :forbidden
+      end
+
+      test "POST create successfully creates template with all fields" do
+        assert_difference -> { EmailTemplate.count }, 1 do
+          post v1_admin_email_templates_path,
+            params: {
+              email_template: {
+                type: :level_completion,
+                slug: "new-level",
+                locale: "en",
+                subject: "Test Subject",
+                body_mjml: "<mj-section><mj-column><mj-text>Test</mj-text></mj-column></mj-section>",
+                body_text: "Test text"
+              }
+            },
+            headers: @headers,
+            as: :json
+        end
+
+        assert_response :created
+
+        json = response.parsed_body
+        assert_equal "level_completion", json["email_template"]["type"]
+        assert_equal "new-level", json["email_template"]["slug"]
+        assert_equal "en", json["email_template"]["locale"]
+        assert_equal "Test Subject", json["email_template"]["subject"]
+        assert_equal "<mj-section><mj-column><mj-text>Test</mj-text></mj-column></mj-section>", json["email_template"]["body_mjml"]
+        assert_equal "Test text", json["email_template"]["body_text"]
+      end
+
+      test "POST create returns 422 for missing required fields" do
+        post v1_admin_email_templates_path,
+          params: {
+            email_template: {
+              slug: "new-level",
+              locale: "en"
+            }
+          },
+          headers: @headers,
+          as: :json
+
+        assert_response :unprocessable_entity
+        json = response.parsed_body
+        assert_equal "validation_error", json["error"]["type"]
+        assert_match(/Validation failed/, json["error"]["message"])
+      end
+
+      test "POST create returns 422 for duplicate type, slug, and locale" do
+        create(:email_template, type: :level_completion, slug: "level-1", locale: "en")
+
+        post v1_admin_email_templates_path,
+          params: {
+            email_template: {
+              type: :level_completion,
+              slug: "level-1",
+              locale: "en",
+              subject: "Duplicate Subject",
+              body_mjml: "<mj-section><mj-column><mj-text>Duplicate</mj-text></mj-column></mj-section>",
+              body_text: "Duplicate text"
+            }
+          },
+          headers: @headers,
+          as: :json
+
+        assert_response :unprocessable_entity
+        json = response.parsed_body
+        assert_equal "validation_error", json["error"]["type"]
+        assert_match(/has already been taken/, json["error"]["message"])
+      end
+
+      test "POST create calls EmailTemplate::Create command" do
+        EmailTemplate::Create.expects(:call).with(
+          { "type" => "level_completion", "slug" => "new-level", "locale" => "en",
+            "subject" => "Test", "body_mjml" => "<mj-text>Test</mj-text>", "body_text" => "Test" }
+        ).returns(create(:email_template))
+
+        post v1_admin_email_templates_path,
+          params: {
+            email_template: {
+              type: :level_completion,
+              slug: "new-level",
+              locale: "en",
+              subject: "Test",
+              body_mjml: "<mj-text>Test</mj-text>",
+              body_text: "Test"
+            }
+          },
+          headers: @headers,
+          as: :json
+
+        assert_response :created
       end
 
       # SHOW tests
@@ -170,6 +304,64 @@ module V1
             message: "Email template not found"
           }
         })
+      end
+
+      test "PATCH update can update type, slug, and locale fields" do
+        email_template = create(:email_template, type: :level_completion, slug: "old-slug", locale: "en")
+
+        patch v1_admin_email_template_path(email_template),
+          params: {
+            email_template: {
+              type: :level_completion,
+              slug: "new-slug",
+              locale: "hu"
+            }
+          },
+          headers: @headers,
+          as: :json
+
+        assert_response :success
+        json = response.parsed_body
+        assert_equal "level_completion", json["email_template"]["type"]
+        assert_equal "new-slug", json["email_template"]["slug"]
+        assert_equal "hu", json["email_template"]["locale"]
+      end
+
+      test "PATCH update returns 422 for duplicate type, slug, and locale" do
+        create(:email_template, type: :level_completion, slug: "level-1", locale: "en")
+        email_template = create(:email_template, type: :level_completion, slug: "level-2", locale: "en")
+
+        patch v1_admin_email_template_path(email_template),
+          params: {
+            email_template: {
+              slug: "level-1"
+            }
+          },
+          headers: @headers,
+          as: :json
+
+        assert_response :unprocessable_entity
+        json = response.parsed_body
+        assert_equal "validation_error", json["error"]["type"]
+        assert_match(/has already been taken/, json["error"]["message"])
+      end
+
+      test "PATCH update returns 422 for validation errors" do
+        email_template = create(:email_template)
+
+        patch v1_admin_email_template_path(email_template),
+          params: {
+            email_template: {
+              subject: ""
+            }
+          },
+          headers: @headers,
+          as: :json
+
+        assert_response :unprocessable_entity
+        json = response.parsed_body
+        assert_equal "validation_error", json["error"]["type"]
+        assert_match(/Validation failed/, json["error"]["message"])
       end
 
       # DELETE tests

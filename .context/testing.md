@@ -93,6 +93,32 @@ end
 - **Isolation**: Each test runs in a database transaction (rolled back after)
 - **Cleanup**: Automatic cleanup between tests via Rails transactional fixtures
 - **Performance**: Fast test execution through transaction-based isolation
+- **Schema Management**: Rails automatically manages test database schema
+
+### Important: Never Manually Reset Test Database
+
+**IMPORTANT**: Do NOT manually reset the test database using `RAILS_ENV=test bin/rails db:reset`. This is bad practice.
+
+**Why:**
+- Rails automatically handles test database schema and cleanup
+- Each test runs in a transaction that is rolled back automatically
+- Manual resets can cause race conditions in parallel tests
+- It bypasses Rails' built-in test database management
+
+**What Rails Does Automatically:**
+- Loads the schema before running tests (if needed)
+- Wraps each test in a transaction that is rolled back
+- Maintains a clean database state between test runs
+- Handles parallel test database preparation
+
+**If you need to update the test database schema:**
+```bash
+# Simply run your tests - Rails will handle schema updates
+bin/rails test
+
+# Or explicitly load the schema (rarely needed)
+bin/rails db:test:prepare
+```
 
 ### Data Creation
 ```ruby
