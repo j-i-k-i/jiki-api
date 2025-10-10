@@ -43,15 +43,15 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_09_124423) do
   end
 
   create_table "email_templates", force: :cascade do |t|
-    t.integer "template_type", null: false
-    t.string "key"
+    t.integer "type", null: false
+    t.string "slug"
     t.string "locale", null: false
     t.text "subject", null: false
     t.text "body_mjml", null: false
     t.text "body_text", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index ["template_type", "key", "locale"], name: "index_email_templates_on_template_type_and_key_and_locale", unique: true
+    t.index ["type", "slug", "locale"], name: "index_email_templates_on_type_and_slug_and_locale", unique: true
   end
 
   create_table "exercise_submission_files", force: :cascade do |t|
@@ -134,6 +134,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_09_124423) do
     t.datetime "remember_created_at"
     t.string "name"
     t.string "locale", default: "en", null: false
+    t.boolean "admin", default: false, null: false
     t.string "jti", null: false
     t.bigint "current_user_level_id"
     t.datetime "created_at", null: false

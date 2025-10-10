@@ -60,8 +60,8 @@ puts "\nCreating email templates for level 1 completion..."
 
 # English template
 EmailTemplate.find_or_create_by!(
-  template_type: :level_completion,
-  key: Level.first.slug,
+  type: :level_completion,
+  slug: Level.first.slug,
   locale: "en"
 ) do |template|
   template.subject = "Congratulations {{ user.name }}! You've completed {{ level.title }}!"
@@ -119,8 +119,8 @@ end
 
 # Hungarian template
 EmailTemplate.find_or_create_by!(
-  template_type: :level_completion,
-  key: Level.first.slug,
+  type: :level_completion,
+  slug: Level.first.slug,
   locale: "hu"
 ) do |template|
   template.subject = "Gratulálunk {{ user.name }}! Teljesítetted a(z) {{ level.title }} szintet!"

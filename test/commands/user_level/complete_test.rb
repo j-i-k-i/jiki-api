@@ -129,7 +129,7 @@ class UserLevel::CompleteTest < ActiveSupport::TestCase
   test "sends completion email when template exists" do
     user = create(:user, locale: "en")
     level = create(:level, slug: "level-1")
-    create(:email_template, key: "level-1", locale: "en")
+    create(:email_template, slug: "level-1", locale: "en")
 
     assert_enqueued_jobs 1, only: ActionMailer::MailDeliveryJob do
       UserLevel::Complete.(user, level)

@@ -21,8 +21,8 @@ class UserLevel < ApplicationRecord
   # Check if an email template exists for this level completion
   def email_should_send?
     EmailTemplate.exists?(
-      template_type: :level_completion,
-      key: level.slug,
+      type: :level_completion,
+      slug: level.slug,
       locale: user.locale
     )
   end

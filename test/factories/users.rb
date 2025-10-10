@@ -9,5 +9,9 @@ FactoryBot.define do
     trait :hungarian do
       locale { "hu" }
     end
+
+    trait :admin do
+      admin { true }
+    end
   end
 end

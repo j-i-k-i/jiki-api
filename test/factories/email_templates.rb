@@ -1,7 +1,7 @@
 FactoryBot.define do
   factory :email_template do
-    template_type { :level_completion }
-    key { "level-1" }
+    type { :level_completion }
+    slug { "level-1" }
     locale { "en" }
     subject { "Congratulations {{ user.name }}!" }
     body_mjml do
