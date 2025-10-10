@@ -161,23 +161,19 @@ All admin controllers inherit from `V1::Admin::BaseController`, which adds admin
 
 **Implementation:**
 ```ruby
-module V1
-  module Admin
-    class BaseController < ApplicationController
-      before_action :ensure_admin!
+class V1::Admin::BaseController < ApplicationController
+  before_action :ensure_admin!
 
-      private
-      def ensure_admin!
-        return if current_user.admin?
+  private
+  def ensure_admin!
+    return if current_user.admin?
 
-        render json: {
-          error: {
-            type: "forbidden",
-            message: "Admin access required"
-          }
-        }, status: :forbidden
-      end
-    end
+    render json: {
+      error: {
+        type: "forbidden",
+        message: "Admin access required"
+      }
+    }, status: :forbidden
   end
 end
 ```
@@ -197,36 +193,32 @@ end
 ### Admin Controller Example
 
 ```ruby
-module V1
-  module Admin
-    class EmailTemplatesController < BaseController
-      before_action :set_email_template, only: %i[show update destroy]
+class V1::Admin::EmailTemplatesController < V1::Admin::BaseController
+  before_action :set_email_template, only: %i[show update destroy]
 
-      def index
-        email_templates = EmailTemplate.all
-        render json: {
-          email_templates: SerializeEmailTemplates.(email_templates)
-        }
-      end
+  def index
+    email_templates = EmailTemplate.all
+    render json: {
+      email_templates: SerializeEmailTemplates.(email_templates)
+    }
+  end
 
-      def update
-        email_template = EmailTemplate::Update.(@email_template, email_template_params)
-        render json: {
-          email_template: SerializeEmailTemplate.(email_template)
-        }
-      end
+  def update
+    email_template = EmailTemplate::Update.(@email_template, email_template_params)
+    render json: {
+      email_template: SerializeEmailTemplate.(email_template)
+    }
+  end
 
-      private
-      def set_email_template
-        @email_template = EmailTemplate.find(params[:id])
-      rescue ActiveRecord::RecordNotFound
-        render_not_found("Email template not found")
-      end
+  private
+  def set_email_template
+    @email_template = EmailTemplate.find(params[:id])
+  rescue ActiveRecord::RecordNotFound
+    render_not_found("Email template not found")
+  end
 
-      def email_template_params
-        params.require(:email_template).permit(:subject, :body_mjml, :body_text)
-      end
-    end
+  def email_template_params
+    params.require(:email_template).permit(:subject, :body_mjml, :body_text)
   end
 end
 ```
