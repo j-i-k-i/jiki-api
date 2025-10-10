@@ -1,10 +1,15 @@
 require "test_helper"
 
 class EmailTemplate::TranslateToLocaleTest < ActiveSupport::TestCase
-  test "creates placeholder template with correct attributes" do
+  test "creates translated template with correct attributes" do
     source = create(:email_template, type: :level_completion, slug: "level-1", locale: "en")
 
-    LLM::Exec.stubs(:call).returns(true)
+    translation = {
+      subject: "Translated Subject",
+      body_mjml: "<mj-text>Translated MJML</mj-text>",
+      body_text: "Translated plain text"
+    }
+    Gemini::Translate.stubs(:call).returns(translation)
 
     target = EmailTemplate::TranslateToLocale.(source, "hu")
 
@@ -12,39 +17,29 @@ class EmailTemplate::TranslateToLocaleTest < ActiveSupport::TestCase
     assert_equal "level_completion", target.type
     assert_equal "level-1", target.slug
     assert_equal "hu", target.locale
-    assert_equal "", target.subject
-    assert_equal "", target.body_mjml
-    assert_equal "", target.body_text
+    assert_equal "Translated Subject", target.subject
+    assert_equal "<mj-text>Translated MJML</mj-text>", target.body_mjml
+    assert_equal "Translated plain text", target.body_text
   end
 
-  test "calls LLM::Exec with correct parameters" do
+  test "calls Gemini::Translate with correct parameters" do
     source = create(:email_template, type: :level_completion, slug: "level-1", locale: "en")
 
-    # Mock the template creation to return a template with known ID
-    target_template = EmailTemplate.new(
-      id: 123,
-      type: :level_completion,
-      slug: "level-1",
-      locale: "hu",
-      subject: '',
-      body_mjml: '',
-      body_text: ''
-    )
-    target_template.stubs(:save!).returns(true)
-    EmailTemplate.stubs(:new).returns(target_template)
+    translation = {
+      subject: "Test",
+      body_mjml: "Test",
+      body_text: "Test"
+    }
 
-    # Verify LLM::Exec is called with correct params
-    LLM::Exec.expects(:call).with(
-      :gemini,
-      :flash,
+    # Verify Gemini::Translate is called with correct params
+    Gemini::Translate.expects(:call).with(
       instance_of(String), # The full prompt
-      'email_translation',
-      additional_params: { email_template_id: 123 }
-    ).returns(true)
+      model: :flash
+    ).returns(translation)
 
     result = EmailTemplate::TranslateToLocale.(source, "hu")
 
-    assert_equal target_template, result
+    assert result.persisted?
   end
 
   test "raises error if source template is not English" do
@@ -81,13 +76,18 @@ class EmailTemplate::TranslateToLocaleTest < ActiveSupport::TestCase
     source = create(:email_template, type: :level_completion, slug: "level-1", locale: "en")
     existing = create(:email_template, type: :level_completion, slug: "level-1", locale: "hu", subject: "Old")
 
-    LLM::Exec.stubs(:call).returns(true)
+    translation = {
+      subject: "New Subject",
+      body_mjml: "New MJML",
+      body_text: "New Text"
+    }
+    Gemini::Translate.stubs(:call).returns(translation)
 
     target = EmailTemplate::TranslateToLocale.(source, "hu")
 
     refute EmailTemplate.exists?(existing.id)
     assert target.persisted?
-    assert_equal "", target.subject # New placeholder, not old subject
+    assert_equal "New Subject", target.subject # New translated subject, not old subject
   end
 
   test "translation prompt includes all required context" do
@@ -97,7 +97,12 @@ class EmailTemplate::TranslateToLocaleTest < ActiveSupport::TestCase
       locale: "en",
       subject: "Test Subject")
 
-    LLM::Exec.stubs(:call).returns(true)
+    translation = {
+      subject: "Test",
+      body_mjml: "Test",
+      body_text: "Test"
+    }
+    Gemini::Translate.stubs(:call).returns(translation)
 
     EmailTemplate::TranslateToLocale.(source, "hu")
 
@@ -137,5 +142,17 @@ class EmailTemplate::TranslateToLocaleTest < ActiveSupport::TestCase
     assert_includes prompt, "DO NOT translate MJML tags"
     assert_includes prompt, "Preserve variable placeholders"
     assert_includes prompt, "Return ONLY a valid JSON object"
+  end
+
+  test "raises Gemini::RateLimitError when rate limited" do
+    source = create(:email_template, locale: "en")
+
+    Gemini::Translate.stubs(:call).raises(Gemini::RateLimitError, "Rate limit exceeded")
+
+    error = assert_raises Gemini::RateLimitError do
+      EmailTemplate::TranslateToLocale.(source, "hu")
+    end
+
+    assert_includes error.message, "Rate limit exceeded"
   end
 end

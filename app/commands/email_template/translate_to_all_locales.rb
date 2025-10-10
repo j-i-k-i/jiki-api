@@ -1,6 +1,8 @@
 class EmailTemplate::TranslateToAllLocales
   include Mandate
 
+  queue_as :translations
+
   initialize_with :source_template
 
   def call

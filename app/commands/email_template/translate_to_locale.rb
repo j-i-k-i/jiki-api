@@ -1,35 +1,35 @@
 class EmailTemplate::TranslateToLocale
   include Mandate
 
+  queue_as :translations
+
   initialize_with :source_template, :target_locale
 
   def call
     validate!
 
+    # Call Gemini API directly for translation
+    translated = Gemini::Translate.(translation_prompt, model: :flash)
+
     # Delete existing template if present (upsert pattern)
     EmailTemplate.find_for(source_template.type, source_template.slug, target_locale)&.destroy
 
-    # Create placeholder template (skip validations since LLM will fill it)
-    target_template = EmailTemplate.new(
+    # Create new template with translated content
+    target_template = EmailTemplate.create!(
       type: source_template.type,
       slug: source_template.slug,
       locale: target_locale,
-      subject: '', # Will be filled by LLM callback
-      body_mjml: '',
-      body_text: ''
+      subject: translated[:subject],
+      body_mjml: translated[:body_mjml],
+      body_text: translated[:body_text]
     )
-    target_template.save!(validate: false)
 
-    # Send to LLM proxy for translation
-    LLM::Exec.(
-      :gemini,
-      :flash,
-      translation_prompt,
-      'email_translation',
-      additional_params: { email_template_id: target_template.id }
-    )
+    Rails.logger.info "Translated #{source_template.type}/#{source_template.slug} → #{target_locale}"
 
     target_template
+  rescue Gemini::RateLimitError => e
+    # Let Sidekiq handle retry with backoff
+    raise e
   end
 
   private

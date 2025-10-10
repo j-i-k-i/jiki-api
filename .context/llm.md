@@ -2,82 +2,93 @@
 
 ## Overview
 
-Jiki uses an LLM proxy service to handle AI-powered translations via Google Gemini. The system follows an async callback pattern for non-blocking operations.
+Jiki uses direct Gemini API integration for AI-powered email translations. The system uses a synchronous approach where Sidekiq background jobs call the Gemini API directly and update templates immediately upon completion.
 
 ## Architecture
 
 ```
 Rails API (EmailTemplate::TranslateToLocale)
-  → LLM::Exec command
-    → HTTP POST to LLM Proxy (Node.js on port 3064)
-      → Returns 202 Accepted immediately
-      → Gemini API (async)
-        → Response streamed back
-        → Callback POST to Rails SPI endpoint
-          → Updates EmailTemplate record
+  → Gemini::Translate command (HTTParty)
+    → HTTP POST to Gemini API (synchronous)
+      → Returns JSON response
+      → Creates/Updates EmailTemplate directly
 ```
 
 ## Components
 
-### LLM Proxy Service
+### Gemini::Translate Command
 
-**Location**: `/Users/iHiD/Code/jiki/llm-proxy`
+**File**: `app/commands/gemini/translate.rb`
 
-**Purpose**: Separate Node.js service that handles LLM API calls and callbacks
-
-**Key Features**:
-- Express server on port 3064
-- Google Gemini API integration
-- Redis streaming support (future real-time updates)
-- Async callback mechanism
-- Error handling for rate limits and safety triggers
-
-**Starting the proxy**:
-```bash
-cd ../llm-proxy
-./bin/dev
-```
-
-### Rails API Components
-
-#### LLM::Exec Command
-
-**File**: `app/commands/llm/exec.rb`
-
-**Purpose**: HTTP client to call the LLM proxy service
+**Purpose**: Direct HTTP client to call Google's Gemini API
 
 **Usage**:
 ```ruby
-LLM::Exec.(
-  :gemini,                    # service
-  :flash,                     # model (flash or pro)
-  prompt,                     # prompt text
-  'email_translation',        # SPI endpoint for callback
-  email_template_id: 123      # additional params passed to callback
+Gemini::Translate.(
+  prompt,          # Translation prompt
+  model: :flash    # :flash or :pro
 )
+
+# Returns: { subject: "...", body_mjml: "...", body_text: "..." }
 ```
 
 **Configuration**:
-- Uses `Jiki.config.llm_proxy_url` (default: `http://localhost:3064/exec`)
-- 10 second timeout for initial 202 response
-- Raises error if proxy is unavailable
+- Uses `Jiki.secrets.google_api_key` from jiki-config gem
+- API endpoint: `https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent`
+- Models supported:
+  - `:flash` → `gemini-2.5-flash` (default)
+  - `:pro` → `gemini-2.5-pro`
+- Sets `thinkingBudget: 0` in request for faster responses
+- 60 second timeout for LLM response
+- Uses HTTParty for HTTP requests
 
-#### EmailTemplate::TranslateToLocale
+**Error Handling**:
+- 429 (Rate Limit) → raises `Gemini::RateLimitError`
+- 400 (Bad Request) → raises `Gemini::InvalidRequestError`
+- Other errors → raises `Gemini::APIError`
+- Invalid JSON response → raises `Gemini::InvalidRequestError`
+
+**Request Structure**:
+```ruby
+{
+  contents: [{
+    parts: [{ text: prompt }]
+  }],
+  generationConfig: {
+    thinkingConfig: {
+      thinkingBudget: 0  # Disable thinking mode for faster responses
+    }
+  }
+}
+```
+
+**Response Parsing**:
+- Extracts text from: `response.candidates[0].content.parts[0].text`
+- Parses the text as JSON to get translation fields
+- Returns hash with `:subject`, `:body_mjml`, `:body_text` keys
+
+### EmailTemplate::TranslateToLocale
 
 **File**: `app/commands/email_template/translate_to_locale.rb`
 
 **Purpose**: Translate a single email template to a target locale
 
 **Features**:
-- Creates placeholder template immediately
-- Sends translation prompt to LLM proxy
+- Calls Gemini API directly via `Gemini::Translate`
+- Creates template with translated content immediately (no placeholder)
 - Validates source is English, target is supported locale
 - Builds comprehensive translation prompt with context
+- Re-raises `Gemini::RateLimitError` to allow Sidekiq retry
 
 **Usage**:
 ```ruby
 source_template = EmailTemplate.find_for(:level_completion, "basics-1", "en")
+
+# Synchronous execution
 EmailTemplate::TranslateToLocale.(source_template, "hu")
+
+# Asynchronous execution via Sidekiq
+EmailTemplate::TranslateToLocale.defer(source_template, "hu")
 ```
 
 **Translation Prompt**:
@@ -85,9 +96,14 @@ EmailTemplate::TranslateToLocale.(source_template, "hu")
 - Clear rules (preserve MJML, maintain tone, keep length)
 - Context about template type and slug
 - Shows all three fields (subject, body_mjml, body_text)
-- Requests JSON response
+- Requests JSON response with specific fields
 
-#### EmailTemplate::TranslateToAllLocales
+**Error Handling**:
+- `Gemini::RateLimitError` → re-raised for Sidekiq retry with backoff
+- Other Gemini errors → propagate up (will fail the job)
+- Validation errors → raised before calling Gemini
+
+### EmailTemplate::TranslateToAllLocales
 
 **File**: `app/commands/email_template/translate_to_all_locales.rb`
 
@@ -96,6 +112,7 @@ EmailTemplate::TranslateToLocale.(source_template, "hu")
 **Features**:
 - Queues background jobs for each locale
 - Uses Sidekiq via Mandate's `.defer()` method
+- Jobs run in `:translations` queue
 - Validates source template is English
 
 **Usage**:
@@ -104,86 +121,89 @@ source_template = EmailTemplate.find_for(:level_completion, "basics-1", "en")
 EmailTemplate::TranslateToAllLocales.(source_template)
 ```
 
-### SPI (Service Provider Interface)
+## Exception Definitions
 
-**Purpose**: Endpoints for external services to send callbacks
+**File**: `config/initializers/exceptions.rb`
 
-#### SPI::BaseController
-
-**File**: `app/controllers/spi/base_controller.rb`
-
-**Features**:
-- Skips CSRF verification for JSON requests
-- TODO: Add authentication for production
-- Base class for all SPI controllers
-
-#### SPI::LLMResponsesController
-
-**File**: `app/controllers/spi/llm_responses_controller.rb`
-
-**Actions**:
-
-1. **email_translation**: Receives translated content from LLM proxy
-   - Parses JSON response
-   - Updates EmailTemplate with subject, body_mjml, body_text
-   - Error handling for not found, invalid JSON, etc.
-
-2. **rate_limited**: Handles rate limit errors from Gemini
-   - Logs error and retry_after time
-   - TODO: Implement retry logic
-
-3. **errored**: Handles general errors from LLM proxy
-   - Logs error type and original params
-   - TODO: Store errors in database, notify admins
-
-**Routes**:
 ```ruby
-namespace :spi do
-  namespace :llm do
-    post 'email_translation', to: 'llm_responses#email_translation'
-    post 'rate_limited', to: 'llm_responses#rate_limited'
-    post 'errored', to: 'llm_responses#errored'
-  end
+module Gemini
+  class Error < RuntimeError; end
+  class RateLimitError < Error; end
+  class InvalidRequestError < Error; end
+  class APIError < Error; end
 end
 ```
 
 ## Configuration
 
-### Config Gem Settings
+### Secrets Configuration
 
-**File**: `../config/settings/local.yml`
+**Required**:
+- `google_api_key` - Gemini API key from Google AI Studio
+
+**Setup**:
+1. Base secrets are in `../config/settings/secrets.yml` (fake value for development)
+2. Override with your real key in `~/.config/jiki/secrets.yml`:
+   ```yaml
+   google_api_key: "your-real-api-key-here"
+   ```
+3. The personal secrets file is NOT checked into git
+
+Access via `Jiki.secrets.google_api_key`
+
+### Sidekiq Configuration
+
+**File**: `config/sidekiq.yml`
+
+The `:translations` queue is configured for LLM translation jobs:
 
 ```yaml
-# SPI base URL for callbacks from LLM proxy
-spi_base_url: http://localhost:3000/spi/
-
-# LLM Proxy URL
-llm_proxy_url: http://localhost:3064/exec
+:queues:
+  - critical
+  - default
+  - mailers
+  - translations  # LLM translation jobs
+  - background
+  - low
 ```
 
-### Environment Variables
+### Mandate Queue Configuration
 
-**Rails API**: None required (uses Jiki.config)
+Translation commands explicitly set their queue using `queue_as`:
 
-**LLM Proxy**:
-- `GOOGLE_API_KEY` (required) - Gemini API key
-- `REDIS_URL` (optional) - Redis for streaming (default: redis://127.0.0.1:6379/1)
-- `PORT` (optional) - Server port (default: 3064)
+**File**: `app/commands/email_template/translate_to_locale.rb`
+```ruby
+class EmailTemplate::TranslateToLocale
+  include Mandate
+
+  queue_as :translations
+  # ...
+end
+```
+
+**File**: `app/commands/email_template/translate_to_all_locales.rb`
+```ruby
+class EmailTemplate::TranslateToAllLocales
+  include Mandate
+
+  queue_as :translations
+  # ...
+end
+```
 
 ## Development Workflow
 
-### Starting Services
+### Setting Up
 
 ```bash
-# Terminal 1: Redis (for future streaming)
-redis-server
+# Configure your real Gemini API key
+mkdir -p ~/.config/jiki
+echo "google_api_key: \"your-real-api-key-here\"" > ~/.config/jiki/secrets.yml
 
-# Terminal 2: LLM Proxy
-cd ../llm-proxy
-./bin/dev
+# Start Sidekiq (for background jobs)
+bundle exec sidekiq
 
-# Terminal 3: Rails API
-cd ../api
+# Start Rails
 bin/rails server
 ```
 
@@ -193,14 +213,17 @@ bin/rails server
 # In Rails console
 template = EmailTemplate.find_for(:level_completion, "basics-1", "en")
 
-# Translate to single locale
-EmailTemplate::TranslateToLocale.(template, "hu")
+# Synchronous execution (for testing)
+translated = EmailTemplate::TranslateToLocale.(template, "hu")
+puts translated.subject  # Shows translated subject immediately
 
-# Check placeholder was created
-EmailTemplate.find_for(:level_completion, "basics-1", "hu")
+# Asynchronous execution via Sidekiq (production mode)
+EmailTemplate::TranslateToLocale.defer(template, "hu")
 
-# Wait a few seconds for LLM response
-# Check again - should have translated content
+# Check Sidekiq Web UI at http://localhost:3000/sidekiq
+# to monitor job progress
+
+# Wait for job to complete, then check result
 EmailTemplate.find_for(:level_completion, "basics-1", "hu")
 
 # Translate to all locales
@@ -209,54 +232,127 @@ EmailTemplate::TranslateToAllLocales.(template)
 
 ### Monitoring
 
-Check Rails logs for:
-- LLM proxy requests
-- SPI callback responses
-- Translation errors
+**Sidekiq Web UI**: `http://localhost:3000/sidekiq`
+- View queued, processing, and failed jobs
+- Retry failed jobs
+- Monitor `:translations` queue
 
-Check LLM proxy logs for:
-- Gemini API calls
-- Streaming responses
-- Callback attempts
+**Rails Logs**:
+```
+Translated level_completion/basics-1 → hu
+```
+
+**Sidekiq Logs**:
+- Job enqueued
+- Job started
+- Job completed/failed
+- Retry attempts
 
 ## Error Handling
 
 ### Rate Limiting
 
 When Gemini returns 429:
-1. LLM proxy calls `/spi/llm/rate_limited`
-2. Rails logs error with retry_after time
-3. TODO: Implement exponential backoff retry
+1. `Gemini::Translate` raises `Gemini::RateLimitError`
+2. `EmailTemplate::TranslateToLocale` re-raises it
+3. Sidekiq automatically retries with exponential backoff
+4. Check Sidekiq Web UI for retry schedule
 
-### Safety Filters
+### Invalid Requests
 
-When content is blocked by Gemini:
-1. LLM proxy calls `/spi/llm/errored`
-2. Rails logs error_type: invalid_request
-3. TODO: Notify admins, store in database
+When Gemini returns 400 or invalid JSON:
+1. `Gemini::Translate` raises `Gemini::InvalidRequestError`
+2. Job fails
+3. Review error message in Sidekiq Web UI
+4. Fix prompt/request and retry manually
 
-### Connection Errors
+### API Errors
 
-If LLM proxy is unavailable:
-1. `LLM::Exec` raises error immediately
-2. Background job will retry via Sidekiq
-3. Check LLM proxy is running
+For other errors (500, network issues, etc.):
+1. `Gemini::Translate` raises `Gemini::APIError`
+2. Sidekiq retries automatically
+3. After max retries, job moves to Dead queue
+4. Manually retry from Sidekiq Web UI
+
+## Testing
+
+### Unit Tests
+
+**Gemini::Translate Tests** (`test/commands/gemini/translate_test.rb`):
+- Successful translation with mocked HTTP response
+- Model selection (:flash vs :pro)
+- thinkingBudget: 0 in request
+- Error handling (429, 400, 500)
+- Invalid JSON response
+- Validation (missing API key, invalid model)
+
+**EmailTemplate::TranslateToLocale Tests** (`test/commands/email_template/translate_to_locale_test.rb`):
+- Creates translated template (not placeholder)
+- Calls Gemini::Translate with correct params
+- Upsert behavior (deletes existing)
+- Validation tests
+- Prompt generation tests
+- Rate limit error handling
+
+**EmailTemplate::TranslateToAllLocales Tests** (`test/commands/email_template/translate_to_all_locales_test.rb`):
+- Enqueues jobs for all locales
+- Uses .defer() for background execution
+- Validates source is English
+
+### Integration Testing
+
+```bash
+# Run all tests
+bin/rails test
+
+# Run LLM-related tests only
+bin/rails test test/commands/gemini/
+bin/rails test test/commands/email_template/
+```
+
+## Benefits of Synchronous Approach
+
+1. **Simpler Architecture**: No separate Node.js LLM proxy needed
+2. **Easier Deployment**: One less service to manage
+3. **Better Error Handling**: Sidekiq's built-in retry logic with exponential backoff
+4. **Easier Testing**: No need to mock HTTP callbacks
+5. **Atomic Operations**: Translation completes or fails as one unit
+6. **Better Observability**: Sidekiq Web UI shows real-time job status
+7. **Code Reuse**: Same command works sync (`.()`) and async (`.defer()`)
+8. **Faster Responses**: `thinkingBudget: 0` disables thinking mode
+
+## Tradeoffs
+
+1. **No Real-time Streaming**: Can't stream partial responses to UI
+2. **Longer API Calls**: Sidekiq worker holds connection during translation (~10-30s)
+3. **Worker Utilization**: Workers tied up during LLM API calls
+
+Note: These tradeoffs are acceptable for batch translation workflows where immediate feedback is not required.
 
 ## Future Enhancements
 
-- Real-time streaming via ActionCable + Redis
-- Retry logic with exponential backoff
-- Error tracking and admin notifications
+- Translation caching (don't retranslate unchanged content)
+- Quality metrics (translation time, success rate)
 - Support for other LLM providers (OpenAI, Claude)
 - Translation glossary/terminology management
 - Human review workflow
-- Translation metrics and quality tracking
-- Batch processing optimization
-- Rate limit aware job scheduling
+- Batch processing optimization (multiple templates in one request)
+- Dynamic model selection based on content complexity
 
 ## Related Documentation
 
 - `.context/commands.md` - Mandate command pattern
 - `.context/jobs.md` - Background job processing with Sidekiq
 - `.context/configuration.md` - Jiki.config pattern
-- `../llm-proxy/README.md` - LLM proxy service documentation
+
+## Deprecated Components
+
+### LLM::Exec (Unused)
+
+**File**: `app/commands/llm/exec.rb`
+
+**Status**: Kept for potential future use but currently unused
+
+**Purpose**: Was used to call external LLM proxy service with async callbacks
+
+**Rationale for keeping**: May want async callback pattern later for real-time streaming or other use cases that require decoupled processing.
