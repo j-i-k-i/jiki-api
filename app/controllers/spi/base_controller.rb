@@ -1,8 +1,5 @@
 module SPI
   class BaseController < ActionController::API
-    # Skip CSRF verification for JSON API requests
-    skip_forgery_protection
-
     # TODO: Add authentication for production
     # For production deployment, implement API key or token-based authentication
     # to ensure only the LLM proxy service can call these endpoints.

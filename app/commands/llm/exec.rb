@@ -2,7 +2,7 @@ class LLM::Exec
   include Mandate
   include HTTParty
 
-  initialize_with :service, :model, :prompt, :spi_endpoint, stream_channel: nil, **additional_params
+  initialize_with :service, :model, :prompt, :spi_endpoint, additional_params: {}, stream_channel: nil
 
   def call
     validate!
@@ -40,6 +40,6 @@ class LLM::Exec
       prompt:,
       spi_endpoint: "llm/#{spi_endpoint}",
       stream_channel:
-    }.merge(additional_params).compact
+    }.merge(additional_params || {}).compact
   end
 end

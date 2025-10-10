@@ -9,8 +9,8 @@ class EmailTemplate::TranslateToLocale
     # Delete existing template if present (upsert pattern)
     EmailTemplate.find_for(source_template.type, source_template.slug, target_locale)&.destroy
 
-    # Create placeholder template
-    target_template = EmailTemplate.create!(
+    # Create placeholder template (skip validations since LLM will fill it)
+    target_template = EmailTemplate.new(
       type: source_template.type,
       slug: source_template.slug,
       locale: target_locale,
@@ -18,6 +18,7 @@ class EmailTemplate::TranslateToLocale
       body_mjml: '',
       body_text: ''
     )
+    target_template.save!(validate: false)
 
     # Send to LLM proxy for translation
     LLM::Exec.(
@@ -25,7 +26,7 @@ class EmailTemplate::TranslateToLocale
       :flash,
       translation_prompt,
       'email_translation',
-      email_template_id: target_template.id
+      additional_params: { email_template_id: target_template.id }
     )
 
     target_template
