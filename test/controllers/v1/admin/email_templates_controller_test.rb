@@ -8,29 +8,15 @@ module V1
         @headers = auth_headers_for(@admin)
       end
 
-      # Authentication guards
-      guard_incorrect_token! :v1_admin_email_templates_path, method: :get
-      guard_incorrect_token! :v1_admin_email_templates_path, method: :post
-      guard_incorrect_token! :types_v1_admin_email_templates_path, method: :get
-      guard_incorrect_token! :v1_admin_email_template_path, args: [1], method: :get
-      guard_incorrect_token! :v1_admin_email_template_path, args: [1], method: :patch
-      guard_incorrect_token! :v1_admin_email_template_path, args: [1], method: :delete
+      # Authentication and authorization guards
+      guard_admin! :v1_admin_email_templates_path, method: :get
+      guard_admin! :v1_admin_email_templates_path, method: :post
+      guard_admin! :types_v1_admin_email_templates_path, method: :get
+      guard_admin! :v1_admin_email_template_path, args: [1], method: :get
+      guard_admin! :v1_admin_email_template_path, args: [1], method: :patch
+      guard_admin! :v1_admin_email_template_path, args: [1], method: :delete
 
       # INDEX tests
-      test "GET index returns 403 for non-admin users" do
-        user = create(:user, admin: false)
-        headers = auth_headers_for(user)
-
-        get v1_admin_email_templates_path, headers:, as: :json
-
-        assert_response :forbidden
-        assert_json_response({
-          error: {
-            type: "forbidden",
-            message: "Admin access required"
-          }
-        })
-      end
 
       test "GET index returns all templates using SerializeEmailTemplates" do
         Prosopite.finish # Stop scan before creating test data
@@ -59,15 +45,6 @@ module V1
       end
 
       # TYPES tests
-      test "GET types returns 403 for non-admin users" do
-        user = create(:user, admin: false)
-        headers = auth_headers_for(user)
-
-        get types_v1_admin_email_templates_path, headers:, as: :json
-
-        assert_response :forbidden
-      end
-
       test "GET types returns all available template types" do
         get types_v1_admin_email_templates_path, headers: @headers, as: :json
 
@@ -78,27 +55,6 @@ module V1
       end
 
       # CREATE tests
-      test "POST create returns 403 for non-admin users" do
-        user = create(:user, admin: false)
-        headers = auth_headers_for(user)
-
-        post v1_admin_email_templates_path,
-          params: {
-            email_template: {
-              type: :level_completion,
-              slug: "new-level",
-              locale: "en",
-              subject: "Test Subject",
-              body_mjml: "<mj-section><mj-column><mj-text>Test</mj-text></mj-column></mj-section>",
-              body_text: "Test text"
-            }
-          },
-          headers:,
-          as: :json
-
-        assert_response :forbidden
-      end
-
       test "POST create successfully creates template with all fields" do
         assert_difference -> { EmailTemplate.count }, 1 do
           post v1_admin_email_templates_path,
@@ -191,16 +147,6 @@ module V1
       end
 
       # SHOW tests
-      test "GET show returns 403 for non-admin users" do
-        user = create(:user, admin: false)
-        headers = auth_headers_for(user)
-        email_template = create(:email_template)
-
-        get v1_admin_email_template_path(email_template), headers:, as: :json
-
-        assert_response :forbidden
-      end
-
       test "GET show returns single template with full data using SerializeEmailTemplate" do
         email_template = create(:email_template)
 
@@ -233,19 +179,6 @@ module V1
       end
 
       # UPDATE tests
-      test "PATCH update returns 403 for non-admin users" do
-        user = create(:user, admin: false)
-        headers = auth_headers_for(user)
-        email_template = create(:email_template)
-
-        patch v1_admin_email_template_path(email_template),
-          params: { email_template: { subject: "New Subject" } },
-          headers:,
-          as: :json
-
-        assert_response :forbidden
-      end
-
       test "PATCH update calls EmailTemplate::Update command with correct params" do
         email_template = create(:email_template)
         EmailTemplate::Update.expects(:call).with(
@@ -365,16 +298,6 @@ module V1
       end
 
       # DELETE tests
-      test "DELETE destroy returns 403 for non-admin users" do
-        user = create(:user, admin: false)
-        headers = auth_headers_for(user)
-        email_template = create(:email_template)
-
-        delete v1_admin_email_template_path(email_template), headers:, as: :json
-
-        assert_response :forbidden
-      end
-
       test "DELETE destroy deletes template successfully" do
         email_template = create(:email_template)
         template_id = email_template.id

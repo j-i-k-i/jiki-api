@@ -108,6 +108,87 @@ These should have equivelent fe types.
     - UTF-8 encoding is automatically sanitized
     - Creates or updates the UserLesson for the current user
 
+### Admin
+
+All admin endpoints require authentication and admin privileges (403 Forbidden for non-admin users).
+
+#### Email Templates
+
+- **GET** `/v1/admin/email_templates` - List all email templates
+  - **Response:**
+    ```json
+    {
+      "email_templates": [
+        {
+          "id": 1,
+          "type": "level_completion",
+          "slug": "level-1",
+          "locale": "en"
+        }
+      ]
+    }
+    ```
+
+- **GET** `/v1/admin/email_templates/types` - Get available email template types
+  - **Response:**
+    ```json
+    {
+      "types": ["level_completion"]
+    }
+    ```
+
+- **GET** `/v1/admin/email_templates/:id` - Get a single email template with full data
+  - **Params (required):** `id` (in URL)
+  - **Response:**
+    ```json
+    {
+      "email_template": {
+        "id": 1,
+        "type": "level_completion",
+        "slug": "level-1",
+        "locale": "en",
+        "subject": "Congratulations!",
+        "body_mjml": "<mjml>...</mjml>",
+        "body_text": "Congratulations on completing level 1!"
+      }
+    }
+    ```
+
+- **POST** `/v1/admin/email_templates` - Create a new email template
+  - **Params (required):** `email_template` object
+  - **Request Body:**
+    ```json
+    {
+      "email_template": {
+        "type": "level_completion",
+        "slug": "level-1",
+        "locale": "en",
+        "subject": "Congratulations!",
+        "body_mjml": "<mjml>...</mjml>",
+        "body_text": "Congratulations!"
+      }
+    }
+    ```
+  - **Response:** Created template (same format as GET single)
+  - **Status:** 201 Created
+
+- **PATCH** `/v1/admin/email_templates/:id` - Update an email template
+  - **Params (required):** `id` (in URL), `email_template` object with fields to update
+  - **Request Body:**
+    ```json
+    {
+      "email_template": {
+        "subject": "New Subject",
+        "body_mjml": "<mjml>...</mjml>"
+      }
+    }
+    ```
+  - **Response:** Updated template (same format as GET single)
+
+- **DELETE** `/v1/admin/email_templates/:id` - Delete an email template
+  - **Params (required):** `id` (in URL)
+  - **Response:** 204 No Content
+
 ---
 
 ## Serializers
@@ -207,6 +288,37 @@ The UserLevel serializer inlines lesson data for optimal query performance:
 ```
 
 **Note:** UserLevel only includes basic lesson progress (slug and status). Use `GET /v1/user_lessons/:lesson_slug` to fetch detailed progress including submission data.
+
+### EmailTemplate (Admin only)
+
+**List View (SerializeEmailTemplates):**
+```json
+{
+  "id": 1,
+  "type": "level_completion",
+  "slug": "level-1",
+  "locale": "en"
+}
+```
+
+**Detail View (SerializeEmailTemplate):**
+```json
+{
+  "id": 1,
+  "type": "level_completion",
+  "slug": "level-1",
+  "locale": "en",
+  "subject": "Congratulations on completing Level 1!",
+  "body_mjml": "<mjml><mj-body>...</mj-body></mjml>",
+  "body_text": "Congratulations on completing Level 1!\n\nYou've made great progress..."
+}
+```
+
+**Notes:**
+- The list view (used by `GET /v1/admin/email_templates`) returns basic info only
+- The detail view (used by `GET /show`, `POST /create`, `PATCH /update`) includes full email content
+- `type` must be one of the available types (see `GET /types` endpoint)
+- `slug` + `locale` + `type` combination must be unique
 
 ---
 

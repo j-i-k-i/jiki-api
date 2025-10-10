@@ -355,7 +355,9 @@ end
 
 #### Testing Authentication Guards
 
-**IMPORTANT**: Use the `guard_incorrect_token!` macro instead of writing manual authentication tests.
+**IMPORTANT**: Use the `guard_incorrect_token!` or `guard_admin!` macros instead of writing manual authentication tests.
+
+##### guard_incorrect_token! - For Regular Authenticated Endpoints
 
 The `guard_incorrect_token!` macro automatically generates two tests:
 1. Test that the endpoint returns 401 with an invalid token
@@ -419,28 +421,109 @@ class V1::LessonsControllerTest < ApplicationControllerTest
 end
 ```
 
-**INCORRECT: Don't write manual authentication tests**
+##### guard_admin! - For Admin-Only Endpoints
+
+**IMPORTANT**: For admin-only endpoints, use `guard_admin!` instead of `guard_incorrect_token!`.
+
+The `guard_admin!` macro automatically generates THREE tests:
+1. Test that the endpoint returns 401 with an invalid token (via `guard_incorrect_token!`)
+2. Test that the endpoint returns 401 without any token (via `guard_incorrect_token!`)
+3. Test that the endpoint returns 403 for authenticated non-admin users
+
+This macro internally calls `guard_incorrect_token!`, so you only need to use `guard_admin!` for admin endpoints.
 
 ```ruby
-# DON'T DO THIS - the guard macro handles these automatically
-test "POST start requires authentication" do
-  post start_v1_lesson_path(@lesson.slug), as: :json
+# Base test class with guard macro (defined in test_helper.rb)
+class ApplicationControllerTest < ActionDispatch::IntegrationTest
+  def self.guard_admin!(path_helper, args: [], method: :get)
+    # First, guard against incorrect tokens (401 errors)
+    guard_incorrect_token!(path_helper, args:, method:)
+
+    # Then, guard against non-admin users (403 error)
+    test "#{method} #{path_helper} returns 403 for non-admin users" do
+      user = create(:user, admin: false)
+      headers = auth_headers_for(user)
+      path = send(path_helper, *args)
+
+      send(method, path, headers:, as: :json)
+
+      assert_response :forbidden
+      assert_json_response({
+        error: {
+          type: "forbidden",
+          message: "Admin access required"
+        }
+      })
+    end
+  end
+end
+```
+
+**Usage Pattern:**
+
+```ruby
+# CORRECT: Use guard_admin! for admin endpoints
+module V1
+  module Admin
+    class EmailTemplatesControllerTest < ApplicationControllerTest
+      setup do
+        @admin = create(:user, :admin)
+        @headers = auth_headers_for(@admin)
+      end
+
+      # Place admin guards at the top - handles both auth and admin checks
+      guard_admin! :v1_admin_email_templates_path, method: :get
+      guard_admin! :v1_admin_email_templates_path, method: :post
+      guard_admin! :v1_admin_email_template_path, args: [1], method: :patch
+
+      # Then write your functional tests (skip manual auth/admin tests)
+      test "GET index returns all templates" do
+        template = create(:email_template)
+
+        get v1_admin_email_templates_path, headers: @headers, as: :json
+
+        assert_response :success
+        assert_json_response({
+          email_templates: [
+            { id: template.id, slug: template.slug, locale: template.locale }
+          ]
+        })
+      end
+    end
+  end
+end
+```
+
+**INCORRECT: Don't write manual authentication or admin tests**
+
+```ruby
+# DON'T DO THIS - the guard_admin! macro handles these automatically
+test "GET index requires authentication" do
+  get v1_admin_email_templates_path, as: :json
   assert_response :unauthorized
 end
 
-test "POST start returns 401 with invalid token" do
-  post start_v1_lesson_path(@lesson.slug),
+test "GET index returns 401 with invalid token" do
+  get v1_admin_email_templates_path,
     headers: { "Authorization" => "Bearer invalid" },
     as: :json
   assert_response :unauthorized
 end
+
+test "GET index returns 403 for non-admin users" do
+  user = create(:user, admin: false)
+  headers = auth_headers_for(user)
+  get v1_admin_email_templates_path, headers:, as: :json
+  assert_response :forbidden
+end
 ```
 
-**Why Use guard_incorrect_token!:**
-- **DRY**: Eliminates repetitive authentication tests across all controller tests
-- **Consistency**: Ensures all endpoints have the same authentication behavior
+**Why Use guard_incorrect_token! and guard_admin!:**
+- **DRY**: Eliminates repetitive authentication/authorization tests across all controller tests
+- **Consistency**: Ensures all endpoints have the same authentication/authorization behavior
 - **Maintainability**: Changes to auth logic only require updating the macro once
-- **Coverage**: Automatically tests both invalid token and missing token scenarios
+- **Coverage**: Automatically tests invalid token, missing token, and (for admin) non-admin scenarios
+- **Clarity**: Makes it immediately obvious which endpoints require admin access
 
 ### Serializer Testing Patterns
 
