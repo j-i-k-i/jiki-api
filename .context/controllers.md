@@ -104,6 +104,48 @@ All controller actions should have tests covering:
 
 See `.context/testing.md` for detailed testing patterns.
 
+### Controller Namespacing Pattern
+
+**IMPORTANT:** Always use `class V1::ControllerName` format instead of module wrapping:
+
+```ruby
+# CORRECT: Use class V1:: pattern
+class V1::LessonsController < ApplicationController
+  # ...
+end
+
+# INCORRECT: Don't use module wrapping
+module V1
+  class LessonsController < ApplicationController
+    # ...
+  end
+end
+```
+
+**Why this pattern:**
+- More concise and readable
+- Standard Ruby namespacing convention
+- Consistent with Rails best practices
+- Easier to refactor and maintain
+
+**For nested namespaces (e.g., auth controllers):**
+
+```ruby
+# CORRECT: Use class V1::Auth:: pattern
+class V1::Auth::PasswordsController < Devise::PasswordsController
+  # ...
+end
+
+# INCORRECT: Don't use nested modules
+module V1
+  module Auth
+    class PasswordsController < Devise::PasswordsController
+      # ...
+    end
+  end
+end
+```
+
 ## Admin Controllers
 
 Admin controllers provide administrative access to resources and require admin privileges.
@@ -227,28 +269,3 @@ class EmailTemplatesControllerTest < ApplicationControllerTest
   end
 end
 ```
-
-## Example Public Controller
-
-```ruby
-module V1
-  class LessonsController < ApplicationController
-    before_action :use_lesson!
-
-    def show
-      render json: {
-        lesson: SerializeLesson.(@lesson)
-      }
-    end
-  end
-end
-```
-
-## Future Patterns
-
-As the API grows, consider adding:
-- Rate limiting middleware
-- API versioning strategy (already namespaced for V2)
-- Request/response logging
-- Parameter sanitization helpers
-- Role-based access control beyond admin (e.g., moderator, editor)
