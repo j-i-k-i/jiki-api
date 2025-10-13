@@ -30,12 +30,12 @@ class Level::Search
   def filter_title!
     return if title.blank?
 
-    @levels = @levels.where("title LIKE ?", "%#{title}%")
+    @levels = @levels.where("title LIKE ?", "%#{Level.sanitize_sql_like(title)}%")
   end
 
   def filter_slug!
     return if slug.blank?
 
-    @levels = @levels.where("slug LIKE ?", "%#{slug}%")
+    @levels = @levels.where("slug LIKE ?", "%#{Level.sanitize_sql_like(slug)}%")
   end
 end

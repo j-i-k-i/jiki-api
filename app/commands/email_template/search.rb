@@ -38,7 +38,7 @@ class EmailTemplate::Search
   def filter_slug!
     return if slug.blank?
 
-    @email_templates = @email_templates.where("slug LIKE ?", "%#{slug}%")
+    @email_templates = @email_templates.where("slug LIKE ?", "%#{EmailTemplate.sanitize_sql_like(slug)}%")
   end
 
   def filter_locale!
