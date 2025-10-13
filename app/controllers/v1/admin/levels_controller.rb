@@ -1,0 +1,47 @@
+class V1::Admin::LevelsController < V1::Admin::BaseController
+  before_action :set_level, only: [:update]
+
+  def index
+    levels = Level::Search.(
+      title: params[:title],
+      slug: params[:slug],
+      page: params[:page],
+      per: params[:per]
+    )
+
+    render json: SerializePaginatedCollection.(
+      levels,
+      serializer: SerializeAdminLevels
+    )
+  end
+
+  def update
+    level = Level::Update.(@level, level_params)
+    render json: {
+      level: SerializeAdminLevel.(level)
+    }
+  rescue ActiveRecord::RecordInvalid => e
+    render json: {
+      error: {
+        type: "validation_error",
+        message: e.message
+      }
+    }, status: :unprocessable_entity
+  end
+
+  private
+  def set_level
+    @level = Level.find(params[:id])
+  rescue ActiveRecord::RecordNotFound
+    render json: {
+      error: {
+        type: "not_found",
+        message: "Level not found"
+      }
+    }, status: :not_found
+  end
+
+  def level_params
+    params.require(:level).permit(:title, :description, :position, :slug)
+  end
+end

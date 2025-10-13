@@ -1,4 +1,4 @@
-class SerializeEmailTemplate
+class SerializeAdminEmailTemplate
   include Mandate
 
   initialize_with :email_template

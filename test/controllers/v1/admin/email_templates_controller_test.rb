@@ -16,7 +16,7 @@ class V1::Admin::EmailTemplatesControllerTest < ApplicationControllerTest
 
   # INDEX tests
 
-  test "GET index returns all templates using SerializeEmailTemplates" do
+  test "GET index returns all templates with pagination" do
     Prosopite.finish # Stop scan before creating test data
     template1 = create(:email_template, slug: "template-1", locale: "en")
     template2 = create(:email_template, slug: "template-2", locale: "hu")
@@ -31,15 +31,27 @@ class V1::Admin::EmailTemplatesControllerTest < ApplicationControllerTest
 
     assert_response :success
     assert_json_response({
-      email_templates: expected_templates
+      results: expected_templates,
+      meta: {
+        current_page: 1,
+        total_pages: 1,
+        total_count: 2
+      }
     })
   end
 
-  test "GET index returns empty array when no templates exist" do
+  test "GET index returns empty results when no templates exist" do
     get v1_admin_email_templates_path, headers: @headers, as: :json
 
     assert_response :success
-    assert_json_response({ email_templates: [] })
+    assert_json_response({
+      results: [],
+      meta: {
+        current_page: 1,
+        total_pages: 0,
+        total_count: 0
+      }
+    })
   end
 
   # TYPES tests

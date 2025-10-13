@@ -2,10 +2,18 @@ class V1::Admin::EmailTemplatesController < V1::Admin::BaseController
   before_action :set_email_template, only: %i[show update destroy]
 
   def index
-    email_templates = EmailTemplate.all
-    render json: {
-      email_templates: SerializeEmailTemplates.(email_templates)
-    }
+    email_templates = EmailTemplate::Search.(
+      type: params[:type],
+      slug: params[:slug],
+      locale: params[:locale],
+      page: params[:page],
+      per: params[:per]
+    )
+
+    render json: SerializePaginatedCollection.(
+      email_templates,
+      serializer: SerializeAdminEmailTemplates
+    )
   end
 
   def types
@@ -17,7 +25,7 @@ class V1::Admin::EmailTemplatesController < V1::Admin::BaseController
   def create
     email_template = EmailTemplate::Create.(email_template_params)
     render json: {
-      email_template: SerializeEmailTemplate.(email_template)
+      email_template: SerializeAdminEmailTemplate.(email_template)
     }, status: :created
   rescue ActiveRecord::RecordInvalid => e
     render json: {
@@ -30,14 +38,14 @@ class V1::Admin::EmailTemplatesController < V1::Admin::BaseController
 
   def show
     render json: {
-      email_template: SerializeEmailTemplate.(@email_template)
+      email_template: SerializeAdminEmailTemplate.(@email_template)
     }
   end
 
   def update
     email_template = EmailTemplate::Update.(@email_template, email_template_params)
     render json: {
-      email_template: SerializeEmailTemplate.(email_template)
+      email_template: SerializeAdminEmailTemplate.(email_template)
     }
   rescue ActiveRecord::RecordInvalid => e
     render json: {

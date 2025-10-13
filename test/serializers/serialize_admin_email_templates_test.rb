@@ -1,6 +1,6 @@
 require "test_helper"
 
-class SerializeEmailTemplatesTest < ActiveSupport::TestCase
+class SerializeAdminEmailTemplatesTest < ActiveSupport::TestCase
   test "serializes collection with limited fields" do
     template1 = create(:email_template, slug: "template-1", locale: "en")
     template2 = create(:email_template, slug: "template-2", locale: "hu")
@@ -20,11 +20,11 @@ class SerializeEmailTemplatesTest < ActiveSupport::TestCase
       }
     ]
 
-    assert_equal expected, SerializeEmailTemplates.([template1, template2])
+    assert_equal expected, SerializeAdminEmailTemplates.([template1, template2])
   end
 
   test "returns empty array for empty collection" do
-    assert_empty SerializeEmailTemplates.([])
+    assert_empty SerializeAdminEmailTemplates.([])
   end
 
   test "does not include full body content in collection view" do
@@ -33,7 +33,7 @@ class SerializeEmailTemplatesTest < ActiveSupport::TestCase
       body_mjml: "<mj-section>Long MJML content</mj-section>",
       body_text: "Long text content")
 
-    result = SerializeEmailTemplates.([template]).first
+    result = SerializeAdminEmailTemplates.([template]).first
 
     refute result.key?(:subject), "Should not include subject in collection view"
     refute result.key?(:body_mjml), "Should not include body_mjml in collection view"
@@ -46,7 +46,7 @@ class SerializeEmailTemplatesTest < ActiveSupport::TestCase
     template3 = create(:email_template, slug: "test-3", locale: "en")
     templates = [template1, template2, template3]
 
-    result = SerializeEmailTemplates.(templates)
+    result = SerializeAdminEmailTemplates.(templates)
 
     assert_equal 3, result.length
     result.each_with_index do |serialized, index|

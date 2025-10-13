@@ -1,6 +1,6 @@
 require "test_helper"
 
-class SerializeEmailTemplateTest < ActiveSupport::TestCase
+class SerializeAdminEmailTemplateTest < ActiveSupport::TestCase
   test "serializes all fields correctly" do
     email_template = create(:email_template,
       slug: "test-template",
@@ -19,13 +19,13 @@ class SerializeEmailTemplateTest < ActiveSupport::TestCase
       body_text: "Test text body"
     }
 
-    assert_equal expected, SerializeEmailTemplate.(email_template)
+    assert_equal expected, SerializeAdminEmailTemplate.(email_template)
   end
 
   test "serializes Hungarian template" do
     email_template = create(:email_template, :hungarian, slug: "hungarian-test")
 
-    result = SerializeEmailTemplate.(email_template)
+    result = SerializeAdminEmailTemplate.(email_template)
 
     assert_equal "hu", result[:locale]
     assert_equal "hungarian-test", result[:slug]
@@ -35,7 +35,7 @@ class SerializeEmailTemplateTest < ActiveSupport::TestCase
   test "includes type as string" do
     email_template = create(:email_template, type: :level_completion)
 
-    result = SerializeEmailTemplate.(email_template)
+    result = SerializeAdminEmailTemplate.(email_template)
 
     assert_equal "level_completion", result[:type]
     assert_kind_of String, result[:type]

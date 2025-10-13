@@ -1,6 +1,6 @@
 require "test_helper"
 
-class SerializeUserTest < ActiveSupport::TestCase
+class SerializeAdminUserTest < ActiveSupport::TestCase
   test "serializes user with all attributes" do
     user = create(:user, name: "Test User", email: "test@example.com", locale: "en", admin: false)
 
@@ -12,13 +12,13 @@ class SerializeUserTest < ActiveSupport::TestCase
       admin: false
     }
 
-    assert_equal expected, SerializeUser.(user)
+    assert_equal expected, SerializeAdminUser.(user)
   end
 
   test "serializes admin user" do
     user = create(:user, :admin, name: "Admin User", email: "admin@example.com")
 
-    result = SerializeUser.(user)
+    result = SerializeAdminUser.(user)
 
     assert result[:admin]
     assert_equal "Admin User", result[:name]
@@ -27,7 +27,7 @@ class SerializeUserTest < ActiveSupport::TestCase
   test "serializes hungarian locale user" do
     user = create(:user, :hungarian, locale: "hu")
 
-    result = SerializeUser.(user)
+    result = SerializeAdminUser.(user)
 
     assert_equal "hu", result[:locale]
   end
