@@ -1,6 +1,6 @@
 GIT
   remote: https://github.com/jiki-education/config.git
-  revision: ddb9540218bf6a3321d8a448501afa23717d0159
+  revision: 50b6d197c6c7f4fdd5364464c45123b00b478d67
   branch: main
   specs:
     jiki-config (0.1.0)
@@ -88,7 +88,7 @@ GEM
       public_suffix (>= 2.0.2, < 7.0)
     ast (2.4.3)
     aws-eventstream (1.4.0)
-    aws-partitions (1.1171.0)
+    aws-partitions (1.1172.0)
     aws-sdk-core (3.233.0)
       aws-eventstream (~> 1, >= 1.3.0)
       aws-partitions (~> 1, >= 1.992.0)
