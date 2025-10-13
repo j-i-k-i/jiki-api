@@ -2,6 +2,60 @@
 
 Serializers in this application transform model objects into JSON-ready hash structures. All serializers use the Mandate gem for a consistent, callable interface.
 
+## Pagination Serializers
+
+### SerializePaginatedCollection
+
+For endpoints that return paginated results, use `SerializePaginatedCollection` to wrap the data with pagination metadata.
+
+**Purpose**: Provides consistent pagination response format across all paginated endpoints.
+
+**Usage Pattern**:
+```ruby
+# In controller
+users = User::Search.(name: params[:name], page: params[:page])
+
+render json: SerializePaginatedCollection.(
+  users,
+  serializer: SerializeUsers
+)
+```
+
+**Response Format**:
+```json
+{
+  "results": [...serialized data...],
+  "meta": {
+    "current_page": 1,
+    "total_pages": 3,
+    "total_count": 42
+  }
+}
+```
+
+**Parameters**:
+- `collection` (required) - Kaminari-paginated collection
+- `serializer` (optional) - Serializer class to use for the collection
+- `data` (optional) - Pre-serialized data (overrides serializer)
+- `serializer_args` (optional) - Additional positional arguments for serializer
+- `serializer_kwargs` (optional) - Additional keyword arguments for serializer
+- `meta` (optional) - Additional metadata to merge with pagination info
+
+**Example with pre-serialized data**:
+```ruby
+serialized_users = SerializeUsers.(users)
+SerializePaginatedCollection.(users, data: serialized_users)
+```
+
+**Example with additional metadata**:
+```ruby
+SerializePaginatedCollection.(
+  users,
+  serializer: SerializeUsers,
+  meta: { filter_applied: true }
+)
+```
+
 ## Pattern
 
 ### Using Mandate

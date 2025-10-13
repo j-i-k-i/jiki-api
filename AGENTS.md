@@ -85,6 +85,7 @@ For detailed information, see the context files:
 - **Controllers**: `.context/controllers.md` - Controller patterns and helper methods
 - **Configuration**: `.context/configuration.md` - Environment variables, CORS, storage setup
 - **Testing**: `.context/testing.md` - Testing framework and patterns
+- **Serializers**: `.context/serializers.md` - JSON serialization patterns using Mandate
 
 ## Next Implementation Priorities
 
