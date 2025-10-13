@@ -53,6 +53,7 @@ Rails.application.routes.draw do
           get :types
         end
       end
+      resources :users, only: [:index]
     end
   end
 

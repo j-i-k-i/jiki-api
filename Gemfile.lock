@@ -1,6 +1,6 @@
 GIT
   remote: https://github.com/jiki-education/config.git
-  revision: ddb9540218bf6a3321d8a448501afa23717d0159
+  revision: 50b6d197c6c7f4fdd5364464c45123b00b478d67
   branch: main
   specs:
     jiki-config (0.1.0)
@@ -199,6 +199,18 @@ GEM
     json (2.15.1)
     jwt (3.1.2)
       base64
+    kaminari (1.2.2)
+      activesupport (>= 4.1.0)
+      kaminari-actionview (= 1.2.2)
+      kaminari-activerecord (= 1.2.2)
+      kaminari-core (= 1.2.2)
+    kaminari-actionview (1.2.2)
+      actionview
+      kaminari-core (= 1.2.2)
+    kaminari-activerecord (1.2.2)
+      activerecord
+      kaminari-core (= 1.2.2)
+    kaminari-core (1.2.2)
     language_server-protocol (3.17.0.5)
     launchy (3.1.1)
       addressable (~> 2.8)
@@ -448,6 +460,7 @@ DEPENDENCIES
   faker
   haml-rails
   jiki-config!
+  kaminari
   letter_opener
   liquid
   mandate (~> 2.0)
