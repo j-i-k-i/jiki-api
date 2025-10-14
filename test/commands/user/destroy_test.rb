@@ -23,4 +23,21 @@ class User::DestroyTest < ActiveSupport::TestCase
       end
     end
   end
+
+  test "handles circular foreign key constraint with current_user_level" do
+    user = create(:user)
+    user_level = create(:user_level, user: user)
+
+    # Set the circular reference
+    user.update_column(:current_user_level_id, user_level.id)
+
+    # This should not raise a foreign key constraint error
+    assert_nothing_raised do
+      User::Destroy.(user)
+    end
+
+    # Verify user and associated records are deleted
+    assert_nil User.find_by(id: user.id)
+    assert_nil UserLevel.find_by(id: user_level.id)
+  end
 end
