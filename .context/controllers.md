@@ -146,6 +146,37 @@ module V1
 end
 ```
 
+## Paginated Collection Endpoints
+
+For endpoints that return paginated collections, follow this pattern:
+
+**Controller Pattern**:
+```ruby
+class V1::Admin::ResourcesController < V1::Admin::BaseController
+  def index
+    resources = Resource::Search.(
+      filter1: params[:filter1],
+      filter2: params[:filter2],
+      page: params[:page],
+      per: params[:per]
+    )
+
+    render json: SerializePaginatedCollection.(
+      resources,
+      serializer: SerializeResources
+    )
+  end
+end
+```
+
+**Key Points**:
+- Use a `Resource::Search` command for filtering and pagination
+- Pass all filter and pagination params to the command
+- Use `SerializePaginatedCollection` to wrap results with metadata
+- Always specify the collection serializer explicitly
+
+**Example**: `V1::Admin::UsersController` (app/controllers/v1/admin/users_controller.rb:1)
+
 ## Admin Controllers
 
 Admin controllers provide administrative access to resources and require admin privileges.

@@ -288,6 +288,85 @@ test "GET index uses SerializeLevels" do
 end
 ```
 
+#### Testing Paginated Controllers
+
+For controllers that return paginated collections:
+
+```ruby
+test "GET index calls Command with correct params" do
+  records = create_list(:model, 2)
+  paginated = Kaminari.paginate_array(records, total_count: 2).page(1).per(24)
+
+  Model::Search.expects(:call).with(
+    filter1: "value",
+    filter2: nil,
+    page: "2",
+    per: nil
+  ).returns(paginated)
+
+  get v1_admin_models_path(filter1: "value", page: 2),
+    headers: @headers,
+    as: :json
+
+  assert_response :success
+end
+
+test "GET index uses SerializePaginatedCollection" do
+  Prosopite.finish
+  records = create_list(:model, 2)
+  paginated = Kaminari.paginate_array(records, total_count: 2).page(1).per(24)
+
+  Model::Search.expects(:call).returns(paginated)
+  SerializePaginatedCollection.expects(:call).with(
+    paginated,
+    serializer: SerializeModels
+  ).returns({ results: [], meta: {} })
+
+  Prosopite.scan
+  get v1_admin_models_path, headers: @headers, as: :json
+
+  assert_response :success
+end
+
+test "GET index filters by parameter" do
+  create(:model, name: "Alice")
+  bob = create(:model, name: "Bob")
+
+  get v1_admin_models_path(name: "Bob"),
+    headers: @headers,
+    as: :json
+
+  assert_response :success
+  json = response.parsed_body
+  assert_equal 1, json["results"].length
+  assert_equal bob.id, json["results"][0]["id"]
+end
+
+test "GET index paginates results" do
+  Prosopite.finish
+  3.times { create(:model) }
+
+  Prosopite.scan
+  get v1_admin_models_path(page: 1, per: 2),
+    headers: @headers,
+    as: :json
+
+  assert_response :success
+  json = response.parsed_body
+  assert_equal 2, json["results"].length
+  assert_equal 1, json["meta"]["current_page"]
+  assert_equal 2, json["meta"]["total_pages"]
+end
+```
+
+**Key Patterns**:
+- Pass query params via path helper: `path(param: value)`
+- Mock command with Kaminari-paginated array
+- Verify SerializePaginatedCollection is called
+- Test actual filtering (don't just mock)
+- Test pagination metadata is correct
+- Use `Prosopite.finish/scan` around data creation for N+1 detection
+
 #### Testing Commands in Controllers
 ```ruby
 class LessonsControllerTest < ActionDispatch::IntegrationTest
@@ -584,6 +663,68 @@ end
 - **Use traits wisely** to avoid complex factory hierarchies
 - **Prefer `build` over `create`** when database persistence isn't required
 - **Use `create_list` efficiently** for bulk data creation
+
+## Search Command Testing
+
+Search commands should test filtering, pagination, and combinations:
+
+```ruby
+class Model::SearchTest < ActiveSupport::TestCase
+  test "no options returns all records paginated" do
+    record_1 = create :model
+    record_2 = create :model
+
+    result = Model::Search.()
+
+    assert_equal [record_1, record_2], result.to_a
+  end
+
+  test "filter: search with partial match" do
+    match = create :model, name: "Amy Smith"
+    create :model, name: "Bob Jones"
+
+    assert_equal [match], Model::Search.(name: "Amy").to_a
+    assert_empty Model::Search.(name: "xyz").to_a
+  end
+
+  test "pagination" do
+    record_1 = create :model
+    record_2 = create :model
+
+    assert_equal [record_1], Model::Search.(page: 1, per: 1).to_a
+    assert_equal [record_2], Model::Search.(page: 2, per: 1).to_a
+  end
+
+  test "returns paginated collection with correct metadata" do
+    5.times { create :model }
+
+    result = Model::Search.(page: 2, per: 2)
+
+    assert_equal 2, result.current_page
+    assert_equal 5, result.total_count
+    assert_equal 3, result.total_pages
+    assert_equal 2, result.size
+  end
+
+  test "combines multiple filters" do
+    match = create :model, name: "Amy", email: "amy@example.com"
+    create :model, name: "Amy", email: "amy@test.org"
+
+    result = Model::Search.(name: "Amy", email: "example")
+
+    assert_equal [match], result.to_a
+  end
+end
+```
+
+**Test Coverage Checklist**:
+- No options returns all (default pagination)
+- Each filter works independently
+- Each filter handles empty strings
+- Each filter handles no matches (use `assert_empty`)
+- Pagination works correctly (page/per)
+- Metadata is correct (current_page, total_count, total_pages, size)
+- Multiple filters combine correctly (AND logic)
 
 ## Command Testing
 
