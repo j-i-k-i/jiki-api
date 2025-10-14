@@ -30,12 +30,12 @@ class User::Search
   def filter_name!
     return if name.blank?
 
-    @users = @users.where("name LIKE ?", "%#{name}%")
+    @users = @users.where("name LIKE ?", "%#{User.sanitize_sql_like(name)}%")
   end
 
   def filter_email!
     return if email.blank?
 
-    @users = @users.where("email LIKE ?", "%#{email}%")
+    @users = @users.where("email LIKE ?", "%#{User.sanitize_sql_like(email)}%")
   end
 end

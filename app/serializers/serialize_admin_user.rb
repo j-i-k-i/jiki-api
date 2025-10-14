@@ -1,4 +1,4 @@
-class SerializeUser
+class SerializeAdminUser
   include Mandate
 
   initialize_with :user

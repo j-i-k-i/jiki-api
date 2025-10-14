@@ -109,7 +109,7 @@ class V1::Admin::UsersControllerTest < ApplicationControllerTest
     assert_equal 4, json["meta"]["total_count"] # 3 users + admin
   end
 
-  test "GET index uses SerializePaginatedCollection with SerializeUsers" do
+  test "GET index uses SerializePaginatedCollection with SerializeAdminUsers" do
     Prosopite.finish
     users = create_list(:user, 2)
     paginated_users = Kaminari.paginate_array(users, total_count: 2).page(1).per(24)
@@ -117,7 +117,7 @@ class V1::Admin::UsersControllerTest < ApplicationControllerTest
     User::Search.expects(:call).returns(paginated_users)
     SerializePaginatedCollection.expects(:call).with(
       paginated_users,
-      serializer: SerializeUsers
+      serializer: SerializeAdminUsers
     ).returns({ results: [], meta: {} })
 
     Prosopite.scan

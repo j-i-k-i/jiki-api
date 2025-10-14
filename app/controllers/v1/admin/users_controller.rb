@@ -9,7 +9,7 @@ class V1::Admin::UsersController < V1::Admin::BaseController
 
     render json: SerializePaginatedCollection.(
       users,
-      serializer: SerializeUsers
+      serializer: SerializeAdminUsers
     )
   end
 end

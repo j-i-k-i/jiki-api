@@ -1,6 +1,6 @@
 require "test_helper"
 
-class SerializeUsersTest < ActiveSupport::TestCase
+class SerializeAdminUsersTest < ActiveSupport::TestCase
   test "serializes multiple users" do
     user_1 = create(:user, name: "User 1", email: "user1@example.com")
     user_2 = create(:user, name: "User 2", email: "user2@example.com")
@@ -22,20 +22,20 @@ class SerializeUsersTest < ActiveSupport::TestCase
       }
     ]
 
-    assert_equal expected, SerializeUsers.([user_1, user_2])
+    assert_equal expected, SerializeAdminUsers.([user_1, user_2])
   end
 
   test "serializes empty array" do
-    assert_empty SerializeUsers.([])
+    assert_empty SerializeAdminUsers.([])
   end
 
   test "calls SerializeUser for each user" do
     user_1 = create(:user)
     user_2 = create(:user)
 
-    SerializeUser.expects(:call).with(user_1).returns({ id: user_1.id })
-    SerializeUser.expects(:call).with(user_2).returns({ id: user_2.id })
+    SerializeAdminUser.expects(:call).with(user_1).returns({ id: user_1.id })
+    SerializeAdminUser.expects(:call).with(user_2).returns({ id: user_2.id })
 
-    SerializeUsers.([user_1, user_2])
+    SerializeAdminUsers.([user_1, user_2])
   end
 end

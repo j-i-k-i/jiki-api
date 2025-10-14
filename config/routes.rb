@@ -54,6 +54,9 @@ Rails.application.routes.draw do
         end
       end
       resources :users, only: [:index]
+      resources :levels, only: %i[index update] do
+        resources :lessons, only: %i[index update], controller: "levels/lessons"
+      end
     end
   end
 
