@@ -1,5 +1,5 @@
 class V1::Admin::EmailTemplatesController < V1::Admin::BaseController
-  before_action :set_email_template, only: %i[show update destroy]
+  before_action :use_email_template, only: %i[show update destroy]
 
   def index
     email_templates = EmailTemplate::Search.(
@@ -72,7 +72,7 @@ class V1::Admin::EmailTemplatesController < V1::Admin::BaseController
   end
 
   private
-  def set_email_template
+  def use_email_template
     @email_template = EmailTemplate.find(params[:id])
   rescue ActiveRecord::RecordNotFound
     render json: {
