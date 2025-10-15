@@ -1,0 +1,46 @@
+{
+  "id": "test-merge",
+  "title": "Test Video Merge Pipeline",
+  "version": "1.0",
+  "config": {
+    "storage": {
+      "bucket": "jiki-videos",
+      "prefix": "test-merge/"
+    }
+  },
+  "nodes": [
+    {
+      "id": "video-1",
+      "title": "First Video Segment",
+      "type": "asset",
+      "inputs": {},
+      "config": {},
+      "asset": {
+        "source": "s3://jiki-video-production/test-assets/video1.mp4",
+        "type": "video"
+      }
+    },
+    {
+      "id": "video-2",
+      "title": "Second Video Segment",
+      "type": "asset",
+      "inputs": {},
+      "config": {},
+      "asset": {
+        "source": "s3://jiki-video-production/test-assets/video2.mp4",
+        "type": "video"
+      }
+    },
+    {
+      "id": "merged",
+      "title": "Merged Video",
+      "type": "merge-videos",
+      "inputs": {
+        "segments": ["video-1", "video-2"]
+      },
+      "config": {
+        "provider": "ffmpeg"
+      }
+    }
+  ]
+}
