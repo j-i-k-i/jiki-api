@@ -184,3 +184,71 @@ EmailTemplate.find_or_create_by!(
 end
 
 puts "✓ Created email templates for level-1 in English and Hungarian"
+
+# Load video production pipelines
+puts "\nLoading video production pipelines..."
+
+video_production_seeds_dir = File.join(Rails.root, "db", "seeds", "video_production")
+
+if Dir.exist?(video_production_seeds_dir)
+  Dir.glob(File.join(video_production_seeds_dir, "*.json")).each do |file|
+    puts "  Loading #{File.basename(file)}..."
+
+    pipeline_data = JSON.parse(File.read(file), symbolize_names: true)
+
+    # Create or update pipeline
+    pipeline = VideoProduction::Pipeline.find_or_initialize_by(uuid: pipeline_data[:id])
+    pipeline.title = pipeline_data[:title]
+    pipeline.version = pipeline_data[:version] || "1.0"
+    pipeline.config = pipeline_data[:config] || {}
+    pipeline.metadata = {
+      'totalCost' => 0,
+      'estimatedTotalCost' => 0,
+      'progress' => {
+        'completed' => 0,
+        'in_progress' => 0,
+        'pending' => pipeline_data[:nodes].length,
+        'failed' => 0,
+        'total' => pipeline_data[:nodes].length
+      }
+    }
+    pipeline.save!
+
+    # Delete existing nodes for clean slate
+    pipeline.nodes.destroy_all
+
+    # Create nodes
+    pipeline_data[:nodes].each do |node_data|
+      # Assets are immediately available, other nodes need execution
+      status = node_data[:type] == 'asset' ? 'completed' : 'pending'
+
+      # For asset nodes with S3 URLs, populate output field
+      output = nil
+      if node_data[:type] == 'asset' && node_data[:asset] && node_data[:asset][:source]&.start_with?('s3://')
+        # Parse S3 URL to extract key (remove s3://bucket/)
+        s3_key = node_data[:asset][:source].sub(%r{^s3://[^/]+/}, '')
+        output = {
+          'type' => node_data[:asset][:type],
+          's3Key' => s3_key
+        }
+      end
+
+      node = pipeline.nodes.create!(
+        uuid: node_data[:id],
+        title: node_data[:title],
+        type: node_data[:type],
+        inputs: node_data[:inputs] || {},
+        config: node_data[:config] || {},
+        asset: node_data[:asset],
+        status: status,
+        output: output
+      )
+    end
+
+    puts "    ✓ Created pipeline '#{pipeline.title}' with #{pipeline.nodes.count} nodes"
+  end
+
+  puts "✓ Successfully loaded video production pipelines!"
+else
+  puts "⚠ No video production seeds directory found at #{video_production_seeds_dir}"
+end

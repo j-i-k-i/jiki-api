@@ -1,0 +1,203 @@
+{
+  "id": "example-pipeline",
+  "title": "Example Video Production Pipeline",
+  "version": "1.0",
+  "config": {
+    "storage": {
+      "bucket": "jiki-videos",
+      "prefix": "lessons/example-pipeline/"
+    },
+    "workingDirectory": "./output"
+  },
+  "nodes": [
+    {
+      "id": "thumbnail_image",
+      "title": "Thumbnail: Money Focus",
+      "type": "asset",
+      "inputs": {},
+      "config": {},
+      "asset": {
+        "source": "https://attic.sh/15x21zzhvy23368md3vsvx8arot7",
+        "type": "image"
+      }
+    },
+    {
+      "id": "yeti_character_image",
+      "title": "Yeti Wearing Merch",
+      "type": "generate-animation",
+      "inputs": {},
+      "config": {
+        "provider": "veo3",
+        "duration": 5,
+        "aspectRatio": "16:9"
+      }
+    },
+    {
+      "id": "scene1_script",
+      "title": "Scene 1 Script",
+      "type": "asset",
+      "inputs": {},
+      "config": {},
+      "asset": {
+        "source": "./scripts/scene1.md",
+        "type": "text"
+      }
+    },
+    {
+      "id": "scene1_video",
+      "title": "Scene 1: Oh Hey There",
+      "type": "talking-head",
+      "inputs": {
+        "script": ["scene1_script"]
+      },
+      "config": {
+        "provider": "heygen",
+        "avatarId": "instructor-1"
+      }
+    },
+    {
+      "id": "scene2_script",
+      "title": "Scene 2 Script",
+      "type": "asset",
+      "inputs": {},
+      "config": {},
+      "asset": {
+        "source": "./scripts/scene2.md",
+        "type": "text"
+      }
+    },
+    {
+      "id": "scene2_video",
+      "title": "Scene 2: Introduction",
+      "type": "talking-head",
+      "inputs": {
+        "script": ["scene2_script"]
+      },
+      "config": {
+        "provider": "heygen",
+        "avatarId": "instructor-1"
+      }
+    },
+    {
+      "id": "code_example1_config",
+      "title": "Code Example 1 Config",
+      "type": "asset",
+      "inputs": {},
+      "config": {},
+      "asset": {
+        "source": "./code/example1.json",
+        "type": "json"
+      }
+    },
+    {
+      "id": "code_screen1",
+      "title": "Code Screen: Variables",
+      "type": "render-code",
+      "inputs": {
+        "config": ["code_example1_config"]
+      },
+      "config": {
+        "provider": "remotion",
+        "compositionId": "code-scene"
+      }
+    },
+    {
+      "id": "code_example2_config",
+      "title": "Code Example 2 Config",
+      "type": "asset",
+      "inputs": {},
+      "config": {},
+      "asset": {
+        "source": "./code/example2.json",
+        "type": "json"
+      }
+    },
+    {
+      "id": "code_screen2",
+      "title": "Code Screen: Functions",
+      "type": "render-code",
+      "inputs": {
+        "config": ["code_example2_config"]
+      },
+      "config": {
+        "provider": "remotion",
+        "compositionId": "code-scene"
+      }
+    },
+    {
+      "id": "background_music",
+      "title": "Background Music Track",
+      "type": "asset",
+      "inputs": {},
+      "config": {},
+      "asset": {
+        "source": "./audio/background.mp3",
+        "type": "audio"
+      }
+    },
+    {
+      "id": "voiceover_script",
+      "title": "Voiceover Narration Script",
+      "type": "asset",
+      "inputs": {},
+      "config": {},
+      "asset": {
+        "source": "./scripts/voiceover.md",
+        "type": "text"
+      }
+    },
+    {
+      "id": "voiceover_audio",
+      "title": "Narration Voiceover",
+      "type": "generate-voiceover",
+      "inputs": {
+        "script": ["voiceover_script"]
+      },
+      "config": {
+        "provider": "elevenlabs",
+        "voice": "professional-male",
+        "speed": 1.0
+      }
+    },
+    {
+      "id": "merged_scenes",
+      "title": "Merged Scene Segments",
+      "type": "merge-videos",
+      "inputs": {
+        "segments": ["scene1_video", "code_screen1", "scene2_video", "code_screen2"]
+      },
+      "config": {
+        "provider": "ffmpeg",
+        "transitions": "fade"
+      }
+    },
+    {
+      "id": "video_with_voiceover",
+      "title": "Video with Voiceover",
+      "type": "mix-audio",
+      "inputs": {
+        "video": ["merged_scenes"],
+        "audio": ["voiceover_audio"]
+      },
+      "config": {
+        "provider": "ffmpeg",
+        "mode": "overlay",
+        "volume": 0.8
+      }
+    },
+    {
+      "id": "final_video",
+      "title": "Final Composed Video",
+      "type": "compose-video",
+      "inputs": {
+        "background": ["video_with_voiceover"],
+        "overlay": ["yeti_character_image"]
+      },
+      "config": {
+        "provider": "ffmpeg",
+        "position": "bottom-right",
+        "scale": 0.25
+      }
+    }
+  ]
+}
