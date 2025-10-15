@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_10_09_124423) do
+ActiveRecord::Schema[8.0].define(version: 2025_10_15_150350) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -145,6 +145,38 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_09_124423) do
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
   end
 
+  create_table "video_production_nodes", force: :cascade do |t|
+    t.string "uuid", null: false
+    t.bigint "pipeline_id", null: false
+    t.string "title", null: false
+    t.string "type", null: false
+    t.jsonb "inputs", default: {}, null: false
+    t.jsonb "config", default: {}, null: false
+    t.jsonb "asset"
+    t.string "status", default: "pending", null: false
+    t.jsonb "metadata"
+    t.jsonb "output"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["pipeline_id", "status"], name: "index_video_production_nodes_on_pipeline_id_and_status"
+    t.index ["pipeline_id"], name: "index_video_production_nodes_on_pipeline_id"
+    t.index ["status"], name: "index_video_production_nodes_on_status"
+    t.index ["type"], name: "index_video_production_nodes_on_type"
+    t.index ["uuid"], name: "index_video_production_nodes_on_uuid", unique: true
+  end
+
+  create_table "video_production_pipelines", force: :cascade do |t|
+    t.string "uuid", null: false
+    t.string "version", default: "1.0", null: false
+    t.string "title", null: false
+    t.jsonb "config", default: {}, null: false
+    t.jsonb "metadata", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["updated_at"], name: "index_video_production_pipelines_on_updated_at"
+    t.index ["uuid"], name: "index_video_production_pipelines_on_uuid", unique: true
+  end
+
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "exercise_submission_files", "exercise_submissions"
@@ -156,4 +188,5 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_09_124423) do
   add_foreign_key "user_levels", "user_lessons", column: "current_user_lesson_id"
   add_foreign_key "user_levels", "users"
   add_foreign_key "users", "user_levels", column: "current_user_level_id"
+  add_foreign_key "video_production_nodes", "video_production_pipelines", column: "pipeline_id", on_delete: :cascade
 end
