@@ -23,6 +23,7 @@ Context files help AI assistants:
 - **[serializers.md](./serializers.md)** - Serializer patterns using Mandate and JSON transformation
 - **[mailers.md](./mailers.md)** - Email system with MJML, HAML, and i18n patterns
 - **[jobs.md](./jobs.md)** - Background jobs with Sidekiq, Mandate integration, and queue management
+- **[video_production.md](./video_production.md)** - Video production pipeline system for AI-generated content
 
 ## How to Use These Files
 
@@ -37,6 +38,7 @@ Context files help AI assistants:
 7. **Serializers** - Reference `serializers.md` for JSON serialization patterns using Mandate
 8. **Mailers** - Reference `mailers.md` for email templates, MJML/HAML patterns, and i18n
 9. **Jobs** - Reference `jobs.md` for background job patterns, Sidekiq configuration, and queue management
+10. **Video Production** - Reference `video_production.md` for video pipeline system implementation
 
 ### When to Update
 

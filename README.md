@@ -212,6 +212,84 @@ All admin endpoints require authentication and admin privileges (403 Forbidden f
   - **Params (required):** `id` (in URL)
   - **Response:** 204 No Content
 
+#### Video Production
+
+Admin endpoints for managing video production pipelines and nodes. See `.context/video_production.md` for detailed implementation guide.
+
+**Pipelines:**
+
+- **GET** `/v1/admin/video_production/pipelines` - List all pipelines with pagination
+  - **Query Params (optional):** `page`, `per` (default: 25)
+  - **Response:**
+    ```json
+    {
+      "results": [Pipeline, Pipeline, ...],
+      "meta": {
+        "current_page": 1,
+        "total_pages": 5,
+        "total_count": 120
+      }
+    }
+    ```
+
+- **GET** `/v1/admin/video_production/pipelines/:uuid` - Get a single pipeline with all nodes
+  - **Params (required):** `uuid` (in URL)
+  - **Response:**
+    ```json
+    {
+      "pipeline": Pipeline (with nodes array)
+    }
+    ```
+
+- **POST** `/v1/admin/video_production/pipelines` - Create a new pipeline
+  - **Params (required):** `pipeline` object with `title`, `version`, `config`, `metadata`
+  - **Response:** Created pipeline
+  - **Status:** 201 Created
+
+- **PATCH** `/v1/admin/video_production/pipelines/:uuid` - Update a pipeline
+  - **Params (required):** `uuid` (in URL), `pipeline` object with fields to update
+  - **Response:** Updated pipeline
+
+- **DELETE** `/v1/admin/video_production/pipelines/:uuid` - Delete a pipeline (cascades to nodes)
+  - **Params (required):** `uuid` (in URL)
+  - **Response:** 204 No Content
+
+**Nodes:**
+
+- **GET** `/v1/admin/video_production/pipelines/:pipeline_uuid/nodes` - List all nodes in a pipeline
+  - **Params (required):** `pipeline_uuid` (in URL)
+  - **Response:**
+    ```json
+    {
+      "nodes": [Node, Node, ...]
+    }
+    ```
+
+- **GET** `/v1/admin/video_production/pipelines/:pipeline_uuid/nodes/:uuid` - Get a single node
+  - **Params (required):** `pipeline_uuid` and `uuid` (in URL)
+  - **Response:**
+    ```json
+    {
+      "node": Node
+    }
+    ```
+
+- **POST** `/v1/admin/video_production/pipelines/:pipeline_uuid/nodes` - Create a new node
+  - **Params (required):** `pipeline_uuid` (in URL), `node` object with `title`, `type`, `inputs`, `config`, `asset`
+  - **Response:** Created node
+  - **Status:** 201 Created
+  - **Notes:** Validates inputs against node type schema
+
+- **PATCH** `/v1/admin/video_production/pipelines/:pipeline_uuid/nodes/:uuid` - Update a node
+  - **Params (required):** `pipeline_uuid` and `uuid` (in URL), `node` object with fields to update
+  - **Response:** Updated node
+  - **Notes:** Resets status to `pending` if structure fields change; validates inputs
+
+- **DELETE** `/v1/admin/video_production/pipelines/:pipeline_uuid/nodes/:uuid` - Delete a node
+  - **Params (required):** `pipeline_uuid` and `uuid` (in URL)
+  - **Response:** 204 No Content
+  - **Notes:** Removes references from other nodes' inputs
+
 ---
 
 ## Serializers
@@ -343,6 +421,96 @@ The UserLevel serializer inlines lesson data for optimal query performance:
 - `type` must be one of the available types (see `GET /types` endpoint)
 - `slug` + `locale` + `type` combination must be unique
 
+### VideoProduction::Pipeline (Admin only)
+
+**List View (SerializeAdminVideoProductionPipelines):**
+```json
+{
+  "uuid": "123e4567-e89b-12d3-a456-426614174000",
+  "title": "Ruby Basics Course",
+  "version": "1.0",
+  "config": {
+    "storage": {
+      "bucket": "jiki-videos-dev",
+      "prefix": "pipelines/123/"
+    },
+    "workingDirectory": "./output"
+  },
+  "metadata": {
+    "totalCost": 25.50,
+    "estimatedTotalCost": 30.00,
+    "progress": {
+      "completed": 5,
+      "in_progress": 2,
+      "pending": 3,
+      "failed": 0,
+      "total": 10
+    }
+  },
+  "created_at": "2025-10-15T12:00:00Z",
+  "updated_at": "2025-10-15T14:30:00Z"
+}
+```
+
+**Detail View (SerializeAdminVideoProductionPipeline with `include_nodes: true`):**
+Same as list view plus:
+```json
+{
+  ...,
+  "nodes": [Node, Node, ...]
+}
+```
+
+### VideoProduction::Node (Admin only)
+
+**SerializeAdminVideoProductionNode:**
+```json
+{
+  "uuid": "abc-123",
+  "pipeline_uuid": "123e4567-e89b-12d3-a456-426614174000",
+  "title": "Merge Video Segments",
+  "type": "merge-videos",
+  "status": "completed",
+  "inputs": {
+    "segments": ["node-uuid-1", "node-uuid-2"]
+  },
+  "config": {
+    "provider": "ffmpeg"
+  },
+  "asset": null,
+  "metadata": {
+    "startedAt": "2025-10-15T13:00:00Z",
+    "completedAt": "2025-10-15T13:05:00Z",
+    "cost": 0.05,
+    "jobId": "sidekiq-job-123"
+  },
+  "output": {
+    "type": "video",
+    "s3Key": "pipelines/123/nodes/abc/output.mp4",
+    "duration": 120.5,
+    "size": 10485760
+  },
+  "created_at": "2025-10-15T12:00:00Z",
+  "updated_at": "2025-10-15T13:05:00Z"
+}
+```
+
+**Node Types:**
+- `asset` - Static file references (no inputs)
+- `talking-head` - HeyGen talking head videos
+- `generate-animation` - Veo 3 / Runway animations
+- `generate-voiceover` - ElevenLabs text-to-speech
+- `render-code` - Remotion code screen animations
+- `mix-audio` - FFmpeg audio replacement
+- `merge-videos` - FFmpeg video concatenation
+- `compose-video` - FFmpeg picture-in-picture overlays
+
+**Node Status Values:**
+- `pending` - Not yet started
+- `in_progress` - Currently executing
+- `completed` - Successfully finished
+- `failed` - Execution failed (see metadata.error)
+
 ---
 
 ## Ruby Version
@@ -429,6 +597,7 @@ For detailed development guidelines, architecture decisions, and patterns, see t
 - `.context/architecture.md` - Rails API structure and patterns
 - `.context/controllers.md` - Controller patterns and helper methods
 - `.context/testing.md` - Testing guidelines and FactoryBot usage
+- `.context/video_production.md` - Video production pipeline implementation guide
 
 See `CLAUDE.md` for AI assistant guidelines.
 

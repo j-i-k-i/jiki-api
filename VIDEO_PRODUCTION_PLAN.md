@@ -11,12 +11,18 @@
 - [x] Create `VideoProduction` module with `INPUT_SCHEMAS` constant
 - [x] Create `VideoProduction::Node::ValidateInputs` command with tests (20 tests)
 
-### Phase 2: API Endpoints 🔄
-- [ ] Create controllers for pipelines and nodes
-- [ ] Create serializers
-- [ ] Add routes
-- [ ] Write controller tests
-- [ ] Test with Postman/curl
+### Phase 2: API Endpoints ✅
+#### Pipelines
+- [x] Create controllers for pipelines (index with paginated results and show)
+- [x] Create serializers
+- [x] Add routes
+- [x] Write controller tests and serializer tests
+
+#### Nodes
+- [x] Create controllers for nodes (pipeline/xxx/nodes and pipeline/xxx/node/yyy)
+- [x] Create serializers
+- [x] Add routes
+- [x] Write controller tests and serializer tests
 
 ### Phase 3: Execute Command
 - [ ] Create `VideoProduction::Node::Execute` command

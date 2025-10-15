@@ -1,13 +1,11 @@
 class VideoProduction::Node::ValidateInputs
   include Mandate
 
-  initialize_with :node
-
-  class ValidationError < StandardError; end
+  initialize_with :type, :inputs, :pipeline_id
 
   def call
     @errors = []
-    @schema = VideoProduction::INPUT_SCHEMAS[node.type]
+    @schema = VideoProduction::INPUT_SCHEMAS[type]
 
     validate_schema_exists!
     validate_unexpected_slots!
@@ -16,44 +14,43 @@ class VideoProduction::Node::ValidateInputs
     validate_slots!
     validate_node_references!
 
-    { valid: errors.empty?, errors: errors }
-  rescue ValidationError => e
-    # Include any errors collected before the exception (e.g., unexpected slots)
-    { valid: false, errors: errors + [e.message] }
+    raise VideoProductionBadInputsError, errors.join(', ') if errors.any?
+
+    true
   end
 
   private
-  attr_reader :errors, :schema
+  attr_reader :errors, :schema, :type, :inputs, :pipeline_id
 
   # Raise error if node type is unknown
   def validate_schema_exists!
-    raise ValidationError, "Unknown node type: #{node.type}" unless schema
+    raise VideoProductionBadInputsError, "Unknown node type: #{type}" unless schema
   end
 
   # Check for unexpected input slots (applies to all node types)
   def validate_unexpected_slots!
-    return unless node.inputs.present?
+    return unless inputs.present?
 
     expected_slots = schema.keys.map(&:to_s)
-    actual_slots = node.inputs.keys
+    actual_slots = inputs.keys
     unexpected = actual_slots - expected_slots
 
-    errors << "Unexpected input slot(s) for #{node.type} nodes: #{unexpected.join(', ')}" if unexpected.any?
+    errors << "Unexpected input slot(s) for #{type} nodes: #{unexpected.join(', ')}" if unexpected.any?
   end
 
   # For empty schemas (asset nodes), raise if inputs present
   def validate_empty_schema!
     return unless schema.empty?
 
-    return if node.inputs.blank? || node.inputs.empty?
+    return if inputs.blank? || inputs.empty?
 
-    raise ValidationError, "#{node.type} nodes should not have inputs"
+    errors << "#{type} nodes should not have inputs"
   end
 
   # Validate all slots according to schema rules
   def validate_slots!
     schema.each do |slot_name, rules|
-      value = node.inputs&.dig(slot_name)
+      value = inputs&.dig(slot_name)
 
       validate_required!(slot_name, rules, value)
       next if value.nil? || value.empty?
@@ -67,14 +64,14 @@ class VideoProduction::Node::ValidateInputs
   def validate_required!(slot_name, rules, value)
     return unless rules[:required] && (value.nil? || value.empty?)
 
-    errors << "Input '#{slot_name}' is required for #{node.type} nodes"
+    errors << "Input '#{slot_name}' is required for #{type} nodes"
   end
 
   # Check if value is correct type
   def validate_type!(slot_name, rules, value)
     return unless rules[:type] == :array && !value.is_a?(Array)
 
-    errors << "Input '#{slot_name}' must be an array for #{node.type} nodes"
+    errors << "Input '#{slot_name}' must be an array for #{type} nodes"
   end
 
   # Check if array has minimum items
@@ -86,8 +83,6 @@ class VideoProduction::Node::ValidateInputs
 
   # Validate all node UUIDs exist in database (batch query to prevent N+1)
   def validate_node_references!
-    return unless node.persisted?
-
     all_uuids = collect_all_uuids
     return if all_uuids.empty?
 
@@ -100,7 +95,7 @@ class VideoProduction::Node::ValidateInputs
   # Collect all UUIDs from all input slots
   def collect_all_uuids
     schema.each_key.flat_map do |slot_name|
-      value = node.inputs&.dig(slot_name)
+      value = inputs&.dig(slot_name)
       value.is_a?(Array) ? value : []
     end.compact.uniq
   end
@@ -108,7 +103,7 @@ class VideoProduction::Node::ValidateInputs
   # Find UUIDs that don't exist in the database
   def find_invalid_uuids(uuids)
     existing_uuids = VideoProduction::Node.where(
-      pipeline_id: node.pipeline_id,
+      pipeline_id: pipeline_id,
       uuid: uuids
     ).pluck(:uuid)
 
@@ -118,7 +113,7 @@ class VideoProduction::Node::ValidateInputs
   # Add error messages for slots with invalid UUID references
   def add_reference_errors!(invalid_uuids)
     schema.each_key do |slot_name|
-      value = node.inputs&.dig(slot_name)
+      value = inputs&.dig(slot_name)
       next unless value.is_a?(Array)
 
       slot_invalid = value & invalid_uuids
