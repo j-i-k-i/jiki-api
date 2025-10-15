@@ -1,5 +1,61 @@
 # Video Production Pipeline - Rails API Implementation Plan
 
+## Progress
+
+### Phase 1: Foundation ✅
+- [x] Create migrations for `video_production_pipelines` and `video_production_nodes`
+- [x] Create models with validations and associations
+- [x] Set up FactoryBot factories
+- [x] Write model tests (38 tests)
+- [x] Run `bin/rails db:migrate`
+- [x] Create `VideoProduction` module with `INPUT_SCHEMAS` constant
+- [x] Create `VideoProduction::Node::ValidateInputs` command with tests (20 tests)
+
+### Phase 2: API Endpoints 🔄
+- [ ] Create controllers for pipelines and nodes
+- [ ] Create serializers
+- [ ] Add routes
+- [ ] Write controller tests
+- [ ] Test with Postman/curl
+
+### Phase 3: Execute Command
+- [ ] Create `VideoProduction::Node::Execute` command
+- [ ] Write command tests
+- [ ] Test job queueing
+
+### Phase 4: MergeVideos Executor
+- [ ] Create Lambda function for video merging
+- [ ] Deploy Lambda with FFmpeg layer
+- [ ] Create `VideoProduction::Executors::MergeVideos` command
+- [ ] Set up AWS SDK and S3 integration
+- [ ] Write executor tests (mock Lambda)
+- [ ] Test end-to-end with real videos
+
+### Phase 5: Remaining Executors
+- [ ] TalkingHead executor + HeyGen integration
+- [ ] GenerateVoiceover executor + ElevenLabs integration
+- [ ] GenerateAnimation executor + Veo 3 integration
+- [ ] RenderCode executor (Remotion)
+- [ ] MixAudio executor (Lambda + FFmpeg)
+- [ ] ComposeVideo executor (Lambda + FFmpeg)
+
+### Phase 6: Next.js Integration
+- [ ] Update Next.js Server Actions to call Rails API
+- [ ] Replace local execution with API calls
+- [ ] Update status polling to use API endpoint
+- [ ] Configure CORS in Rails
+- [ ] Test full flow from UI to execution
+
+### Phase 7: Production Deployment
+- [ ] Deploy Lambda functions to production
+- [ ] Configure production environment variables
+- [ ] Set up Sidekiq monitoring (Sidekiq Web UI)
+- [ ] Configure error tracking (Sentry, etc.)
+- [ ] Load testing and optimization
+- [ ] Documentation updates
+
+---
+
 ## Overview
 
 This document outlines the implementation plan for integrating video production pipeline execution into the Jiki Rails API. The system will orchestrate video generation workflows using Sidekiq background jobs, Lambda functions for FFmpeg processing, and external APIs for AI-generated content.
