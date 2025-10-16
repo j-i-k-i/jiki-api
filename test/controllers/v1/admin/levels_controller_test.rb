@@ -8,7 +8,213 @@ class V1::Admin::LevelsControllerTest < ApplicationControllerTest
 
   # Authentication and authorization guards
   guard_admin! :v1_admin_levels_path, method: :get
+  guard_admin! :v1_admin_levels_path, method: :post
   guard_admin! :v1_admin_level_path, args: [1], method: :patch
+
+  # CREATE tests
+
+  test "POST create calls Level::Create command with correct params" do
+    Level::Create.expects(:call).with(
+      { "slug" => "ruby-basics", "title" => "Ruby Basics", "description" => "Learn Ruby" }
+    ).returns(create(:level))
+
+    post v1_admin_levels_path,
+      params: {
+        level: {
+          slug: "ruby-basics",
+          title: "Ruby Basics",
+          description: "Learn Ruby"
+        }
+      },
+      headers: @headers,
+      as: :json
+
+    assert_response :created
+  end
+
+  test "POST create returns created level" do
+    post v1_admin_levels_path,
+      params: {
+        level: {
+          slug: "ruby-basics",
+          title: "Ruby Basics",
+          description: "Learn the fundamentals of Ruby"
+        }
+      },
+      headers: @headers,
+      as: :json
+
+    assert_response :created
+
+    json = response.parsed_body
+    assert_equal "ruby-basics", json["level"]["slug"]
+    assert_equal "Ruby Basics", json["level"]["title"]
+    assert_equal "Learn the fundamentals of Ruby", json["level"]["description"]
+    assert json["level"]["position"].present?
+  end
+
+  test "POST create auto-assigns position" do
+    create(:level, position: 1)
+    create(:level, position: 2)
+
+    post v1_admin_levels_path,
+      params: {
+        level: {
+          slug: "new-level",
+          title: "New Level",
+          description: "Description"
+        }
+      },
+      headers: @headers,
+      as: :json
+
+    assert_response :created
+    json = response.parsed_body
+    assert_equal 3, json["level"]["position"]
+  end
+
+  test "POST create accepts explicit position" do
+    post v1_admin_levels_path,
+      params: {
+        level: {
+          slug: "ruby-basics",
+          title: "Ruby Basics",
+          description: "Description",
+          position: 5
+        }
+      },
+      headers: @headers,
+      as: :json
+
+    assert_response :created
+    json = response.parsed_body
+    assert_equal 5, json["level"]["position"]
+  end
+
+  test "POST create returns 422 for missing slug" do
+    post v1_admin_levels_path,
+      params: {
+        level: {
+          title: "Ruby Basics",
+          description: "Description"
+        }
+      },
+      headers: @headers,
+      as: :json
+
+    assert_response :unprocessable_entity
+    json = response.parsed_body
+    assert_equal "validation_error", json["error"]["type"]
+    assert_match(/Validation failed/, json["error"]["message"])
+  end
+
+  test "POST create returns 422 for missing title" do
+    post v1_admin_levels_path,
+      params: {
+        level: {
+          slug: "ruby-basics",
+          description: "Description"
+        }
+      },
+      headers: @headers,
+      as: :json
+
+    assert_response :unprocessable_entity
+    json = response.parsed_body
+    assert_equal "validation_error", json["error"]["type"]
+  end
+
+  test "POST create returns 422 for missing description" do
+    post v1_admin_levels_path,
+      params: {
+        level: {
+          slug: "ruby-basics",
+          title: "Ruby Basics"
+        }
+      },
+      headers: @headers,
+      as: :json
+
+    assert_response :unprocessable_entity
+    json = response.parsed_body
+    assert_equal "validation_error", json["error"]["type"]
+  end
+
+  test "POST create returns 422 for blank title" do
+    post v1_admin_levels_path,
+      params: {
+        level: {
+          slug: "ruby-basics",
+          title: "",
+          description: "Description"
+        }
+      },
+      headers: @headers,
+      as: :json
+
+    assert_response :unprocessable_entity
+    json = response.parsed_body
+    assert_equal "validation_error", json["error"]["type"]
+  end
+
+  test "POST create returns 422 for duplicate slug" do
+    create(:level, slug: "ruby-basics")
+
+    post v1_admin_levels_path,
+      params: {
+        level: {
+          slug: "ruby-basics",
+          title: "Another Level",
+          description: "Description"
+        }
+      },
+      headers: @headers,
+      as: :json
+
+    assert_response :unprocessable_entity
+    json = response.parsed_body
+    assert_equal "validation_error", json["error"]["type"]
+  end
+
+  test "POST create returns 422 for duplicate position" do
+    create(:level, position: 1)
+
+    post v1_admin_levels_path,
+      params: {
+        level: {
+          slug: "new-level",
+          title: "New Level",
+          description: "Description",
+          position: 1
+        }
+      },
+      headers: @headers,
+      as: :json
+
+    assert_response :unprocessable_entity
+    json = response.parsed_body
+    assert_equal "validation_error", json["error"]["type"]
+  end
+
+  test "POST create uses SerializeAdminLevel" do
+    level = create(:level)
+    Level::Create.stubs(:call).returns(level)
+
+    SerializeAdminLevel.expects(:call).with(level).returns({ id: level.id })
+
+    post v1_admin_levels_path,
+      params: {
+        level: {
+          slug: "test",
+          title: "Test",
+          description: "Test"
+        }
+      },
+      headers: @headers,
+      as: :json
+
+    assert_response :created
+  end
 
   # INDEX tests
 

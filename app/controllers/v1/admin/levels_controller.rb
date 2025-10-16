@@ -15,6 +15,20 @@ class V1::Admin::LevelsController < V1::Admin::BaseController
     )
   end
 
+  def create
+    level = Level::Create.(level_params)
+    render json: {
+      level: SerializeAdminLevel.(level)
+    }, status: :created
+  rescue ActiveRecord::RecordInvalid => e
+    render json: {
+      error: {
+        type: "validation_error",
+        message: e.message
+      }
+    }, status: :unprocessable_entity
+  end
+
   def update
     level = Level::Update.(@level, level_params)
     render json: {

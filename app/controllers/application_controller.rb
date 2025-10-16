@@ -5,6 +5,7 @@ class ApplicationController < ActionController::API
   def authenticate_user!
     # Don't interfere with Devise's own controllers
     return super if devise_controller?
+
     # Only allow URL-based authentication in development
     return super unless Rails.env.development?
     return super unless params[:user_id].present?
