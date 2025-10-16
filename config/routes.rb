@@ -55,7 +55,7 @@ Rails.application.routes.draw do
         end
       end
       resources :users, only: %i[index show update destroy]
-      resources :levels, only: %i[index update] do
+      resources :levels, only: %i[index create update] do
         resources :lessons, only: %i[index update], controller: "levels/lessons"
       end
 
