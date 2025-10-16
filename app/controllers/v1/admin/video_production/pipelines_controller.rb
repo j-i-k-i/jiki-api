@@ -25,12 +25,7 @@ class V1::Admin::VideoProduction::PipelinesController < V1::Admin::BaseControlle
       pipeline: SerializeAdminVideoProductionPipeline.(pipeline)
     }, status: :created
   rescue ActiveRecord::RecordInvalid => e
-    render json: {
-      error: {
-        type: "validation_error",
-        message: e.message
-      }
-    }, status: :unprocessable_entity
+    render_validation_error(e)
   end
 
   def update
@@ -39,12 +34,7 @@ class V1::Admin::VideoProduction::PipelinesController < V1::Admin::BaseControlle
       pipeline: SerializeAdminVideoProductionPipeline.(pipeline)
     }
   rescue ActiveRecord::RecordInvalid => e
-    render json: {
-      error: {
-        type: "validation_error",
-        message: e.message
-      }
-    }, status: :unprocessable_entity
+    render_validation_error(e)
   end
 
   def destroy

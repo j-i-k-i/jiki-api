@@ -27,12 +27,7 @@ class V1::Admin::UsersController < V1::Admin::BaseController
       user: SerializeAdminUser.(user)
     }
   rescue ActiveRecord::RecordInvalid => e
-    render json: {
-      error: {
-        type: "validation_error",
-        message: e.message
-      }
-    }, status: :unprocessable_entity
+    render_validation_error(e)
   end
 
   def destroy

@@ -16,12 +16,7 @@ class V1::Admin::Levels::LessonsController < V1::Admin::BaseController
       lesson: SerializeAdminLesson.(lesson)
     }
   rescue ActiveRecord::RecordInvalid => e
-    render json: {
-      error: {
-        type: "validation_error",
-        message: e.message
-      }
-    }, status: :unprocessable_entity
+    render_validation_error(e)
   end
 
   private

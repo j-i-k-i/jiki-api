@@ -25,19 +25,9 @@ class V1::Admin::VideoProduction::NodesController < V1::Admin::BaseController
       node: SerializeAdminVideoProductionNode.(node)
     }, status: :created
   rescue VideoProductionBadInputsError => e
-    render json: {
-      error: {
-        type: "validation_error",
-        message: e.message
-      }
-    }, status: :unprocessable_entity
+    render_validation_error(e)
   rescue ActiveRecord::RecordInvalid => e
-    render json: {
-      error: {
-        type: "validation_error",
-        message: e.message
-      }
-    }, status: :unprocessable_entity
+    render_validation_error(e)
   end
 
   def update
@@ -49,19 +39,9 @@ class V1::Admin::VideoProduction::NodesController < V1::Admin::BaseController
       node: SerializeAdminVideoProductionNode.(node)
     }
   rescue VideoProductionBadInputsError => e
-    render json: {
-      error: {
-        type: "validation_error",
-        message: e.message
-      }
-    }, status: :unprocessable_entity
+    render_validation_error(e)
   rescue ActiveRecord::RecordInvalid => e
-    render json: {
-      error: {
-        type: "validation_error",
-        message: e.message
-      }
-    }, status: :unprocessable_entity
+    render_validation_error(e)
   end
 
   def destroy

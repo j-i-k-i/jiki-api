@@ -37,4 +37,13 @@ class ApplicationController < ActionController::API
       }
     }, status: :not_found
   end
+
+  def render_validation_error(exception)
+    render json: {
+      error: {
+        type: "validation_error",
+        message: exception.message
+      }
+    }, status: :unprocessable_entity
+  end
 end
