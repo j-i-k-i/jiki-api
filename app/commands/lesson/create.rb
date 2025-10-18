@@ -7,9 +7,6 @@ class Lesson::Create
     # Auto-generate slug from title if not provided
     attributes[:slug] ||= attributes[:title]&.parameterize
 
-    # Merge level_id into attributes
-    lesson_attributes = attributes.merge(level_id: level.id)
-
-    Lesson.create!(lesson_attributes)
+    level.lessons.create!(attributes)
   end
 end
