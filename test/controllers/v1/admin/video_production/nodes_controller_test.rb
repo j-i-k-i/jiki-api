@@ -56,12 +56,14 @@ class V1::Admin::VideoProduction::NodesControllerTest < ApplicationControllerTes
 
   test "GET index includes full node data" do
     Prosopite.finish
+    input1 = create(:video_production_node, pipeline: @pipeline)
+    input2 = create(:video_production_node, pipeline: @pipeline)
     node = create(:video_production_node,
       pipeline: @pipeline,
       title: "Test Node",
       type: "merge-videos",
       status: "pending",
-      inputs: { 'segments' => %w[a b] },
+      inputs: { 'segments' => [input1.uuid, input2.uuid] },
       config: { 'provider' => 'ffmpeg' },
       metadata: { 'cost' => 0.05 },
       output: { 's3Key' => 'output.mp4' })
@@ -71,19 +73,25 @@ class V1::Admin::VideoProduction::NodesControllerTest < ApplicationControllerTes
 
     assert_response :success
     json = response.parsed_body
-    node_data = json["nodes"][0]
 
-    assert_equal node.uuid, node_data["uuid"]
-    assert_equal @pipeline.uuid, node_data["pipeline_uuid"]
+    # Find the merge-videos node (nodes ordered by created_at, so it's last)
+    node_data = json["nodes"].find { |n| n["type"] == "merge-videos" }
+    assert node_data.present?, "Should find merge-videos node in response"
+
     assert_equal "Test Node", node_data["title"]
     assert_equal "merge-videos", node_data["type"]
     assert_equal "pending", node_data["status"]
-    assert_equal({ 'segments' => %w[a b] }, node_data["inputs"])
+    assert_equal({ 'segments' => [input1.uuid, input2.uuid] }, node_data["inputs"])
     assert_equal({ 'provider' => 'ffmpeg' }, node_data["config"])
     assert_equal({ 'cost' => 0.05 }, node_data["metadata"])
     assert_equal({ 's3Key' => 'output.mp4' }, node_data["output"])
+    # Validation state fields are present (values depend on Create vs factory)
+    assert node_data.key?("is_valid")
+    assert node_data.key?("validation_errors")
     assert node_data["created_at"].present?
     assert node_data["updated_at"].present?
+    assert_equal node.uuid, node_data["uuid"]
+    assert_equal @pipeline.uuid, node_data["pipeline_uuid"]
   end
 
   test "GET index orders nodes by created_at" do
@@ -298,6 +306,74 @@ class V1::Admin::VideoProduction::NodesControllerTest < ApplicationControllerTes
     assert_equal "merge-videos", json["node"]["type"]
   end
 
+  test "POST create returns validation state for invalid node" do
+    node_params = {
+      title: "Invalid Node",
+      type: "merge-videos",
+      inputs: { 'segments' => ['only-one'] }, # Invalid: requires at least 2 segments
+      config: {}
+    }
+
+    post v1_admin_video_production_pipeline_nodes_path(@pipeline.uuid),
+      params: { node: node_params },
+      headers: @headers,
+      as: :json
+
+    assert_response :created
+    json = response.parsed_body
+
+    # Node created but marked as invalid
+    refute json["node"]["is_valid"]
+    assert json["node"]["validation_errors"].present?
+    assert json["node"]["validation_errors"]["segments"].present?
+    assert_match(/requires at least 2 items/, json["node"]["validation_errors"]["segments"])
+  end
+
+  test "POST create returns validation state for valid node" do
+    input1 = create(:video_production_node, pipeline: @pipeline)
+    input2 = create(:video_production_node, pipeline: @pipeline)
+
+    node_params = {
+      title: "Valid Node",
+      type: "merge-videos",
+      inputs: { 'segments' => [input1.uuid, input2.uuid] },
+      config: {}
+    }
+
+    post v1_admin_video_production_pipeline_nodes_path(@pipeline.uuid),
+      params: { node: node_params },
+      headers: @headers,
+      as: :json
+
+    assert_response :created
+    json = response.parsed_body
+
+    # Node is valid
+    assert json["node"]["is_valid"]
+    assert_empty(json["node"]["validation_errors"])
+  end
+
+  test "POST create returns validation errors for non-existent node references" do
+    node_params = {
+      title: "Invalid References",
+      type: "merge-videos",
+      inputs: { 'segments' => %w[fake-uuid-1 fake-uuid-2] },
+      config: {}
+    }
+
+    post v1_admin_video_production_pipeline_nodes_path(@pipeline.uuid),
+      params: { node: node_params },
+      headers: @headers,
+      as: :json
+
+    assert_response :created
+    json = response.parsed_body
+
+    refute json["node"]["is_valid"]
+    assert json["node"]["validation_errors"]["segments"].present?
+    assert_match(/references non-existent nodes/, json["node"]["validation_errors"]["segments"])
+  end
+
   test "POST create returns 404 for non-existent pipeline" do
     post v1_admin_video_production_pipeline_nodes_path('non-existent-uuid'),
       params: { node: { title: "Node", type: "asset" } },
@@ -408,6 +484,68 @@ class V1::Admin::VideoProduction::NodesControllerTest < ApplicationControllerTes
     assert_response :success
     json = response.parsed_body
     assert_equal %w[non-existent-uuid-1 non-existent-uuid-2], json["node"]["inputs"]["segments"]
+  end
+
+  test "PATCH update returns validation state when making node invalid" do
+    Prosopite.finish
+    input1 = create(:video_production_node, pipeline: @pipeline)
+    input2 = create(:video_production_node, pipeline: @pipeline)
+
+    # Use Create command to ensure validation runs
+    node = VideoProduction::Node::Create.(@pipeline, {
+      type: "merge-videos",
+      title: "Test Node",
+      inputs: { 'segments' => [input1.uuid, input2.uuid] }
+    })
+
+    assert node.is_valid?, "Node should start as valid"
+
+    Prosopite.scan
+    # Update with invalid inputs (only 1 segment)
+    patch v1_admin_video_production_pipeline_node_path(@pipeline.uuid, node.uuid),
+      params: {
+        node: { inputs: { 'segments' => [input1.uuid] } }
+      },
+      headers: @headers,
+      as: :json
+
+    assert_response :success
+    json = response.parsed_body
+
+    # Node now invalid
+    refute json["node"]["is_valid"]
+    assert json["node"]["validation_errors"]["segments"].present?
+    assert_match(/requires at least 2 items/, json["node"]["validation_errors"]["segments"])
+  end
+
+  test "PATCH update returns validation state when fixing invalid node" do
+    Prosopite.finish
+    node = create(:video_production_node,
+      pipeline: @pipeline,
+      type: "merge-videos",
+      inputs: { 'segments' => [] }) # Invalid
+
+    # Node should start as invalid
+    refute node.is_valid?
+
+    input1 = create(:video_production_node, pipeline: @pipeline)
+    input2 = create(:video_production_node, pipeline: @pipeline)
+
+    Prosopite.scan
+    # Fix with valid inputs
+    patch v1_admin_video_production_pipeline_node_path(@pipeline.uuid, node.uuid),
+      params: {
+        node: { inputs: { 'segments' => [input1.uuid, input2.uuid] } }
+      },
+      headers: @headers,
+      as: :json
+
+    assert_response :success
+    json = response.parsed_body
+
+    # Node now valid
+    assert json["node"]["is_valid"]
+    assert_empty(json["node"]["validation_errors"])
   end
 
   test "PATCH update returns 404 for non-existent node" do
