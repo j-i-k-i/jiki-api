@@ -39,6 +39,14 @@ module TypescriptGenerator
       parts << ""
       parts << schemas.map { |node_type, schema_class| generate_node_type(node_type, schema_class) }.join("\n\n")
 
+      # Generate union type of all nodes
+      parts << ""
+      parts << "// ============================================================================"
+      parts << "// Union Type for All Nodes"
+      parts << "// ============================================================================"
+      parts << ""
+      parts << generate_union_type(schemas)
+
       parts.join("\n")
     end
 
@@ -62,7 +70,18 @@ module TypescriptGenerator
         require file
 
         # Get the schema class
-        schema_class = "VideoProduction::Node::Schemas::#{class_name}".constantize
+        begin
+          schema_class = "VideoProduction::Node::Schemas::#{class_name}".constantize
+        rescue NameError => e
+          Rails.logger.warn "Skipping #{filename}: #{e.message}"
+          next
+        end
+
+        # Skip if PROVIDER_CONFIGS is not defined
+        unless schema_class.const_defined?(:PROVIDER_CONFIGS)
+          Rails.logger.warn "Skipping #{filename}: PROVIDER_CONFIGS not defined"
+          next
+        end
 
         schemas[node_type] = schema_class
       end
@@ -73,12 +92,7 @@ module TypescriptGenerator
     def generate_node_type(node_type, schema_class)
       type_name = node_type_to_type_name(node_type)
       inputs = schema_class::INPUTS
-
-      # Check if PROVIDER_CONFIGS exists
-      return nil unless schema_class.const_defined?(:PROVIDER_CONFIGS)
-
       provider_configs = schema_class::PROVIDER_CONFIGS
-      return nil if provider_configs.empty?
 
       parts = []
       parts << "/** #{type_name} node type (inputs + provider-specific config) */"
@@ -167,6 +181,21 @@ module TypescriptGenerator
       else
         base_type
       end
+    end
+
+    def generate_union_type(schemas)
+      type_names = schemas.keys.map { |node_type| "#{node_type_to_type_name(node_type)}Node" }
+
+      lines = ["/** Union type of all video production node types */"]
+      lines << "export type VideoProductionNode ="
+
+      type_names.each_with_index do |type_name, index|
+        separator = index.zero? ? '  ' : '| '
+        lines << "  #{separator}#{type_name}"
+      end
+
+      lines << ";"
+      lines.join("\n")
     end
 
     def node_type_to_type_name(node_type)

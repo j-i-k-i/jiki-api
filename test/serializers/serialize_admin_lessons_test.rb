@@ -34,8 +34,8 @@ class SerializeAdminLessonsTest < ActiveSupport::TestCase
   end
 
   test "calls SerializeAdminLesson for each lesson" do
-    lesson_1 = create(:lesson)
-    lesson_2 = create(:lesson, slug: "lesson-2")
+    lesson_1 = create(:lesson, slug: "test-lesson-1-#{SecureRandom.hex(4)}")
+    lesson_2 = create(:lesson, slug: "test-lesson-2-#{SecureRandom.hex(4)}")
 
     SerializeAdminLesson.expects(:call).with(lesson_1).returns({ id: lesson_1.id })
     SerializeAdminLesson.expects(:call).with(lesson_2).returns({ id: lesson_2.id })

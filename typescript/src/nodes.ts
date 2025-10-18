@@ -3,7 +3,7 @@
  * Auto-generated from Rails schemas
  * DO NOT EDIT MANUALLY
  *
- * Generated at: 2025-10-18T14:50:16Z
+ * Generated at: 2025-10-18T15:47:43Z
  * Source: app/commands/video_production/node/schemas/
  */
 
@@ -109,3 +109,19 @@ export type RenderCodeNode = {
       fps?: number;
       quality?: number;
     } });
+
+// ============================================================================
+// Union Type for All Nodes
+// ============================================================================
+
+/** Union type of all video production node types */
+export type VideoProductionNode =
+    AssetNode
+  | ComposeVideoNode
+  | GenerateAnimationNode
+  | GenerateTalkingHeadNode
+  | GenerateVoiceoverNode
+  | MergeVideosNode
+  | MixAudioNode
+  | RenderCodeNode
+;
