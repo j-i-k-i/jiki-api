@@ -21,12 +21,7 @@ class V1::Admin::LevelsController < V1::Admin::BaseController
       level: SerializeAdminLevel.(level)
     }, status: :created
   rescue ActiveRecord::RecordInvalid => e
-    render json: {
-      error: {
-        type: "validation_error",
-        message: e.message
-      }
-    }, status: :unprocessable_entity
+    render_validation_error(e)
   end
 
   def update
@@ -35,24 +30,14 @@ class V1::Admin::LevelsController < V1::Admin::BaseController
       level: SerializeAdminLevel.(level)
     }
   rescue ActiveRecord::RecordInvalid => e
-    render json: {
-      error: {
-        type: "validation_error",
-        message: e.message
-      }
-    }, status: :unprocessable_entity
+    render_validation_error(e)
   end
 
   private
   def set_level
     @level = Level.find(params[:id])
   rescue ActiveRecord::RecordNotFound
-    render json: {
-      error: {
-        type: "not_found",
-        message: "Level not found"
-      }
-    }, status: :not_found
+    render_not_found("Level not found")
   end
 
   def level_params

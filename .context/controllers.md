@@ -32,6 +32,61 @@ All controllers require authentication by default via `before_action :authentica
 
 ### Helper Methods
 
+#### Error Rendering Helpers
+
+ApplicationController provides reusable helper methods for consistent error responses. **Always use these helpers instead of writing inline error rendering.**
+
+##### `render_validation_error(exception)`
+
+Renders a validation error response for `ActiveRecord::RecordInvalid` exceptions.
+
+**Usage:**
+```ruby
+def create
+  resource = Resource::Create.(params)
+  render json: { resource: SerializeResource.(resource) }
+rescue ActiveRecord::RecordInvalid => e
+  render_validation_error(e)
+end
+```
+
+**Response:**
+```json
+{
+  "error": {
+    "type": "validation_error",
+    "message": "Validation failed: Field can't be blank"
+  }
+}
+```
+**Status:** 422 Unprocessable Entity
+
+##### `render_not_found(message)`
+
+Renders a not found error response with a custom message.
+
+**Usage:**
+```ruby
+def use_resource
+  @resource = Resource.find(params[:id])
+rescue ActiveRecord::RecordNotFound
+  render_not_found("Resource not found")
+end
+```
+
+**Response:**
+```json
+{
+  "error": {
+    "type": "not_found",
+    "message": "Resource not found"
+  }
+}
+```
+**Status:** 404 Not Found
+
+**Important:** Always check ApplicationController for existing error rendering helpers before writing inline error responses. This ensures consistency and reduces duplication.
+
 #### `use_lesson!`
 
 Finds a lesson by slug from the `params[:slug]` and assigns it to `@lesson`. Returns 404 with error JSON if not found.
@@ -77,7 +132,12 @@ end
 
 ### Error Handling
 
-Use consistent error response format:
+**Always use ApplicationController helper methods for error rendering** (see Helper Methods section above):
+
+- `render_validation_error(exception)` - For ActiveRecord::RecordInvalid exceptions
+- `render_not_found(message)` - For ActiveRecord::RecordNotFound exceptions
+
+**Only write inline error responses for unique error cases** not covered by existing helpers:
 
 ```ruby
 render json: {
