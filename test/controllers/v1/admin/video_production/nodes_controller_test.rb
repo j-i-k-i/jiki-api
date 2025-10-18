@@ -123,7 +123,7 @@ class V1::Admin::VideoProduction::NodesControllerTest < ApplicationControllerTes
     node = create(:video_production_node,
       pipeline: @pipeline,
       title: "Test Node",
-      type: "talking-head",
+      type: "generate-talking-head",
       status: "in_progress",
       inputs: { 'script' => ['script-node-id'] },
       config: { 'provider' => 'heygen', 'avatarId' => 'avatar-1' },
@@ -140,7 +140,7 @@ class V1::Admin::VideoProduction::NodesControllerTest < ApplicationControllerTes
         uuid: node.uuid,
         pipeline_uuid: @pipeline.uuid,
         title: "Test Node",
-        type: "talking-head",
+        type: "generate-talking-head",
         status: "in_progress",
         inputs: { 'script' => ['script-node-id'] },
         config: { 'provider' => 'heygen', 'avatarId' => 'avatar-1' },
@@ -294,7 +294,7 @@ class V1::Admin::VideoProduction::NodesControllerTest < ApplicationControllerTes
     assert_json_response({
       error: {
         type: "validation_error",
-        message: "Input 'segments' requires at least 2 item(s), got 1, Input 'segments' references non-existent nodes: only-one"
+        message: "Input 'segments' requires at least 2 items, got 1"
       }
     })
   end
@@ -344,11 +344,13 @@ class V1::Admin::VideoProduction::NodesControllerTest < ApplicationControllerTes
 
   test "PATCH update resets status to pending when structure changes" do
     Prosopite.finish
+    input1 = create(:video_production_node, pipeline: @pipeline)
+    input2 = create(:video_production_node, pipeline: @pipeline)
     node = create(:video_production_node,
       pipeline: @pipeline,
       type: "merge-videos",
       status: "completed",
-      inputs: { 'segments' => %w[a b] },
+      inputs: { 'segments' => [input1.uuid, input2.uuid] },
       config: { 'provider' => 'ffmpeg' })
 
     Prosopite.scan
@@ -396,10 +398,10 @@ class V1::Admin::VideoProduction::NodesControllerTest < ApplicationControllerTes
       inputs: { 'segments' => [input1.uuid, input1.uuid] })
 
     Prosopite.scan
-    # Try to reference a non-existent node
+    # Try to reference non-existent nodes (need at least 2 to pass min_count validation)
     patch v1_admin_video_production_pipeline_node_path(@pipeline.uuid, node.uuid),
       params: {
-        node: { inputs: { 'segments' => ['non-existent-uuid'] } }
+        node: { inputs: { 'segments' => %w[non-existent-uuid-1 non-existent-uuid-2] } }
       },
       headers: @headers,
       as: :json
@@ -408,7 +410,7 @@ class V1::Admin::VideoProduction::NodesControllerTest < ApplicationControllerTes
     assert_json_response({
       error: {
         type: "validation_error",
-        message: "Input 'segments' requires at least 2 item(s), got 1, Input 'segments' references non-existent nodes: non-existent-uuid"
+        message: "Input 'segments' references non-existent nodes: non-existent-uuid-1, non-existent-uuid-2"
       }
     })
   end
@@ -488,7 +490,7 @@ class V1::Admin::VideoProduction::NodesControllerTest < ApplicationControllerTes
       inputs: { 'segments' => [node_to_delete.uuid, 'keep-me'] })
     node_with_string = create(:video_production_node,
       pipeline: @pipeline,
-      type: "talking-head",
+      type: "generate-talking-head",
       inputs: { 'script' => node_to_delete.uuid })
 
     Prosopite.scan

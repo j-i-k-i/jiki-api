@@ -4,19 +4,17 @@ class VideoProduction::Node::Create
   initialize_with :pipeline, :params
 
   def call
-    validate_inputs!
-    pipeline.nodes.create!(params)
-  end
+    node = pipeline.nodes.new(params)
+    validation_result = VideoProduction::Node::Validate.(node)
+    node.assign_attributes(validation_result)
 
-  private
-  def validate_inputs!
-    return unless params.key?(:inputs)
-    return unless params[:inputs].present?
+    # Raise exception if validation failed
+    unless validation_result[:is_valid]
+      error_messages = validation_result[:validation_errors].map { |key, msg| "Input '#{key}' #{msg}" }.join(', ')
+      raise VideoProductionBadInputsError, error_messages
+    end
 
-    VideoProduction::Node::ValidateInputs.(
-      params[:type],
-      params[:inputs],
-      pipeline.id
-    )
+    node.save!
+    node
   end
 end

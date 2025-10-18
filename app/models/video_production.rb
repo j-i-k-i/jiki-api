@@ -1,81 +1,92 @@
 module VideoProduction
-  # Node type input schemas - single source of truth
-  # These define the expected structure of the `inputs` JSONB field for each node type
+  # Valid node types
+  NODE_TYPES = %w[
+    asset
+    generate-talking-head
+    generate-animation
+    generate-voiceover
+    render-code
+    mix-audio
+    merge-videos
+    compose-video
+  ].freeze
+
+  # REFERENCE: Input schemas to be migrated to individual schema classes
+  # These schemas should be moved to app/commands/video_production/node/schemas/
+  # See Schemas::MergeVideos for the pattern
+  #
+  # Type system:
+  #   - type: :single = expects a single node UUID (string)
+  #   - type: :multiple = expects an array of node UUIDs with min_count/max_count
   INPUT_SCHEMAS = {
     'asset' => {
       # Asset nodes have no inputs - they are source nodes
     },
-    'talking-head' => {
+    'generate-talking-head' => {
       'script' => {
-        type: :array,
+        type: :single,
         required: false,
-        description: 'Reference to asset node(s) with script text'
+        description: 'Reference to asset node with script text'
       }
     },
     'generate-animation' => {
       'prompt' => {
-        type: :array,
+        type: :single,
         required: false,
-        description: 'Reference to asset node(s) with animation prompt'
+        description: 'Reference to asset node with animation prompt'
       },
       'referenceImage' => {
-        type: :array,
+        type: :single,
         required: false,
         description: 'Optional reference image for animation generation'
       }
     },
     'generate-voiceover' => {
       'script' => {
-        type: :array,
+        type: :single,
         required: false,
-        description: 'Reference to asset node(s) with voiceover script'
+        description: 'Reference to asset node with voiceover script'
       }
     },
     'render-code' => {
       'config' => {
-        type: :array,
+        type: :single,
         required: false,
-        description: 'Reference to asset node(s) with Remotion config JSON'
+        description: 'Reference to asset node with Remotion config JSON'
       }
     },
     'mix-audio' => {
       'video' => {
-        type: :array,
+        type: :single,
         required: true,
-        min_items: 1,
         description: 'Reference to video node'
       },
       'audio' => {
-        type: :array,
+        type: :single,
         required: true,
-        min_items: 1,
         description: 'Reference to audio node'
       }
     },
     'merge-videos' => {
       'segments' => {
-        type: :array,
+        type: :multiple,
         required: true,
-        min_items: 2,
+        min_count: 2,
+        max_count: nil,
         description: 'Array of video node references to concatenate'
       }
     },
     'compose-video' => {
       'background' => {
-        type: :array,
+        type: :single,
         required: true,
-        min_items: 1,
         description: 'Background video node reference'
       },
       'overlay' => {
-        type: :array,
+        type: :single,
         required: true,
-        min_items: 1,
         description: 'Overlay video node reference (e.g., talking head)'
       }
     }
   }.freeze
-
-  # Valid node types
-  NODE_TYPES = INPUT_SCHEMAS.keys.freeze
 end

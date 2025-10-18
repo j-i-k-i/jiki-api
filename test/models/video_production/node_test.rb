@@ -34,7 +34,7 @@ module VideoProduction
     end
 
     test "validates type inclusion" do
-      valid_types = %w[asset talking-head generate-animation generate-voiceover
+      valid_types = %w[asset generate-talking-head generate-animation generate-voiceover
                        render-code mix-audio merge-videos compose-video]
 
       valid_types.each do |valid_type|
@@ -167,13 +167,14 @@ module VideoProduction
       refute node.inputs_satisfied?
     end
 
-    test "ready_to_execute? returns true when pending and inputs satisfied" do
+    test "ready_to_execute? returns true when pending and is_valid" do
       pipeline = create(:video_production_pipeline)
       input = create(:video_production_node, pipeline: pipeline, status: 'completed')
 
       node = create(:video_production_node,
         pipeline: pipeline,
         status: 'pending',
+        is_valid: true,
         inputs: { 'config' => [input.uuid] })
 
       assert node.ready_to_execute?

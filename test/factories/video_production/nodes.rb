@@ -14,7 +14,7 @@ FactoryBot.define do
     end
 
     trait :talking_head do
-      type { 'talking-head' }
+      type { 'generate-talking-head' }
       config do
         {
           'provider' => 'heygen',
