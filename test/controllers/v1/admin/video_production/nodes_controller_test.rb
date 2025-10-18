@@ -276,8 +276,8 @@ class V1::Admin::VideoProduction::NodesControllerTest < ApplicationControllerTes
     assert json["node"]["uuid"].present?
   end
 
-  test "POST create validates inputs" do
-    # merge-videos requires at least 2 segments
+  test "POST create allows invalid nodes to be created" do
+    # merge-videos requires at least 2 segments, but node is still created
     node_params = {
       title: "Invalid Node",
       type: "merge-videos",
@@ -290,13 +290,10 @@ class V1::Admin::VideoProduction::NodesControllerTest < ApplicationControllerTes
       headers: @headers,
       as: :json
 
-    assert_response :unprocessable_entity
-    assert_json_response({
-      error: {
-        type: "validation_error",
-        message: "Input 'segments' requires at least 2 items, got 1"
-      }
-    })
+    assert_response :created
+    json = response.parsed_body
+    assert_equal "Invalid Node", json["node"]["title"]
+    assert_equal "merge-videos", json["node"]["type"]
   end
 
   test "POST create returns 404 for non-existent pipeline" do
@@ -389,7 +386,7 @@ class V1::Admin::VideoProduction::NodesControllerTest < ApplicationControllerTes
     assert_equal "Updated Title", json["node"]["title"]
   end
 
-  test "PATCH update validates inputs when updating" do
+  test "PATCH update allows invalid nodes to be updated" do
     Prosopite.finish
     input1 = create(:video_production_node, pipeline: @pipeline, status: "completed")
     node = create(:video_production_node,
@@ -398,7 +395,7 @@ class V1::Admin::VideoProduction::NodesControllerTest < ApplicationControllerTes
       inputs: { 'segments' => [input1.uuid, input1.uuid] })
 
     Prosopite.scan
-    # Try to reference non-existent nodes (need at least 2 to pass min_count validation)
+    # Try to reference non-existent nodes - update succeeds but node is marked invalid
     patch v1_admin_video_production_pipeline_node_path(@pipeline.uuid, node.uuid),
       params: {
         node: { inputs: { 'segments' => %w[non-existent-uuid-1 non-existent-uuid-2] } }
@@ -406,13 +403,9 @@ class V1::Admin::VideoProduction::NodesControllerTest < ApplicationControllerTes
       headers: @headers,
       as: :json
 
-    assert_response :unprocessable_entity
-    assert_json_response({
-      error: {
-        type: "validation_error",
-        message: "Input 'segments' references non-existent nodes: non-existent-uuid-1, non-existent-uuid-2"
-      }
-    })
+    assert_response :success
+    json = response.parsed_body
+    assert_equal %w[non-existent-uuid-1 non-existent-uuid-2], json["node"]["inputs"]["segments"]
   end
 
   test "PATCH update returns 404 for non-existent node" do

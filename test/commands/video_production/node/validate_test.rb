@@ -86,17 +86,16 @@ class VideoProduction::Node::ValidateTest < ActiveSupport::TestCase
     assert_empty node.validation_errors
   end
 
-  test "raises exception when node is invalid via Create command" do
+  test "persists invalid nodes via Create command" do
     pipeline = create(:video_production_pipeline)
 
-    error = assert_raises(VideoProductionBadInputsError) do
-      VideoProduction::Node::Create.(pipeline, {
-        type: 'merge-videos',
-        title: 'Invalid Node',
-        inputs: { 'segments' => [] }
-      })
-    end
+    node = VideoProduction::Node::Create.(pipeline, {
+      type: 'merge-videos',
+      title: 'Invalid Node',
+      inputs: { 'segments' => [] }
+    })
 
-    assert_match(/segments/, error.message)
+    refute node.is_valid?
+    assert node.validation_errors['segments'].present?
   end
 end
