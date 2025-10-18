@@ -56,7 +56,7 @@ Rails.application.routes.draw do
       end
       resources :users, only: %i[index show update destroy]
       resources :levels, only: %i[index create update] do
-        resources :lessons, only: %i[index update], controller: "levels/lessons"
+        resources :lessons, only: %i[index create update], controller: "levels/lessons"
       end
 
       namespace :video_production do
