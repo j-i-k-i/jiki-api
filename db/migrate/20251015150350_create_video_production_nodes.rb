@@ -7,6 +7,7 @@ class CreateVideoProductionNodes < ActiveRecord::Migration[8.0]
 
       # Structure (Next.js writes)
       t.string :type, null: false
+      t.string :provider, null: false
       t.jsonb :inputs, null: false, default: {}
       t.jsonb :config, null: false, default: {}
       t.jsonb :asset
@@ -27,5 +28,6 @@ class CreateVideoProductionNodes < ActiveRecord::Migration[8.0]
     add_index :video_production_nodes, :type
     add_index :video_production_nodes, :status
     add_index :video_production_nodes, %i[pipeline_id status]
+    add_index :video_production_nodes, %i[type provider]
   end
 end

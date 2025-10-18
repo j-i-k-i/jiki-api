@@ -132,9 +132,10 @@ class V1::Admin::VideoProduction::NodesControllerTest < ApplicationControllerTes
       pipeline: @pipeline,
       title: "Test Node",
       type: "generate-talking-head",
+      provider: "heygen",
       status: "in_progress",
       inputs: { 'script' => ['script-node-id'] },
-      config: { 'provider' => 'heygen', 'avatarId' => 'avatar-1' },
+      config: { 'avatar_id' => 'avatar-1', 'voice_id' => 'voice-1' },
       metadata: { 'startedAt' => Time.current.iso8601 },
       output: nil)
 
@@ -149,9 +150,10 @@ class V1::Admin::VideoProduction::NodesControllerTest < ApplicationControllerTes
         pipeline_uuid: @pipeline.uuid,
         title: "Test Node",
         type: "generate-talking-head",
+        provider: "heygen",
         status: "in_progress",
         inputs: { 'script' => ['script-node-id'] },
-        config: { 'provider' => 'heygen', 'avatarId' => 'avatar-1' },
+        config: { 'avatar_id' => 'avatar-1', 'voice_id' => 'voice-1' },
         asset: nil,
         metadata: { 'startedAt' => node.metadata['startedAt'] },
         output: nil,
@@ -263,8 +265,9 @@ class V1::Admin::VideoProduction::NodesControllerTest < ApplicationControllerTes
     node_params = {
       title: "New Node",
       type: "merge-videos",
+      provider: "ffmpeg",
       inputs: { 'segments' => [input1.uuid, input2.uuid] },
-      config: { 'provider' => 'ffmpeg' }
+      config: {}
     }
 
     assert_difference 'VideoProduction::Node.count', 1 do
@@ -280,9 +283,10 @@ class V1::Admin::VideoProduction::NodesControllerTest < ApplicationControllerTes
 
     assert_equal "New Node", json["node"]["title"]
     assert_equal "merge-videos", json["node"]["type"]
+    assert_equal "ffmpeg", json["node"]["provider"]
     assert_equal "pending", json["node"]["status"]
     assert_equal({ 'segments' => [input1.uuid, input2.uuid] }, json["node"]["inputs"])
-    assert_equal({ 'provider' => 'ffmpeg' }, json["node"]["config"])
+    assert_empty(json["node"]["config"])
     assert json["node"]["uuid"].present?
   end
 
@@ -291,6 +295,7 @@ class V1::Admin::VideoProduction::NodesControllerTest < ApplicationControllerTes
     node_params = {
       title: "Invalid Node",
       type: "merge-videos",
+      provider: "ffmpeg",
       inputs: { 'segments' => ['only-one'] },
       config: {}
     }
@@ -310,6 +315,7 @@ class V1::Admin::VideoProduction::NodesControllerTest < ApplicationControllerTes
     node_params = {
       title: "Invalid Node",
       type: "merge-videos",
+      provider: "ffmpeg",
       inputs: { 'segments' => ['only-one'] }, # Invalid: requires at least 2 segments
       config: {}
     }
@@ -336,6 +342,7 @@ class V1::Admin::VideoProduction::NodesControllerTest < ApplicationControllerTes
     node_params = {
       title: "Valid Node",
       type: "merge-videos",
+      provider: "ffmpeg",
       inputs: { 'segments' => [input1.uuid, input2.uuid] },
       config: {}
     }
@@ -357,6 +364,7 @@ class V1::Admin::VideoProduction::NodesControllerTest < ApplicationControllerTes
     node_params = {
       title: "Invalid References",
       type: "merge-videos",
+      provider: "ffmpeg",
       inputs: { 'segments' => %w[fake-uuid-1 fake-uuid-2] },
       config: {}
     }
@@ -494,6 +502,7 @@ class V1::Admin::VideoProduction::NodesControllerTest < ApplicationControllerTes
     # Use Create command to ensure validation runs
     node = VideoProduction::Node::Create.(@pipeline, {
       type: "merge-videos",
+      provider: "ffmpeg",
       title: "Test Node",
       inputs: { 'segments' => [input1.uuid, input2.uuid] }
     })
@@ -523,6 +532,7 @@ class V1::Admin::VideoProduction::NodesControllerTest < ApplicationControllerTes
     node = create(:video_production_node,
       pipeline: @pipeline,
       type: "merge-videos",
+      provider: "ffmpeg",
       inputs: { 'segments' => [] }) # Invalid
 
     # Node should start as invalid

@@ -197,9 +197,9 @@ module VideoProduction
       refute node.ready_to_execute?
     end
 
-    test "config accessor works" do
+    test "provider field works" do
       node = create(:video_production_node, :talking_head)
-      assert_equal 'heygen', node.config['provider']
+      assert_equal 'heygen', node.provider
     end
 
     test "metadata accessor works" do
