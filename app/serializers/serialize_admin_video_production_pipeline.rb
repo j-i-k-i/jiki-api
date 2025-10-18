@@ -9,9 +9,7 @@ class SerializeAdminVideoProductionPipeline
       title: pipeline.title,
       version: pipeline.version,
       config: pipeline.config,
-      metadata: pipeline.metadata,
-      created_at: pipeline.created_at.iso8601,
-      updated_at: pipeline.updated_at.iso8601
+      metadata: pipeline.metadata
     }
   end
 end

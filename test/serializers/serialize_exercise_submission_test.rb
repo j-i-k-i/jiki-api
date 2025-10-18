@@ -19,7 +19,6 @@ class SerializeExerciseSubmissionTest < ActiveSupport::TestCase
     expected = {
       uuid: "abc123",
       lesson_slug: "test-lesson",
-      created_at: submission.created_at.iso8601,
       files: [
         { filename: "helper.rb", digest: "digest2" },
         { filename: "main.rb", digest: "digest1" }

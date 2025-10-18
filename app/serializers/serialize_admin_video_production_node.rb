@@ -17,9 +17,7 @@ class SerializeAdminVideoProductionNode
       metadata: node.metadata,
       output: node.output,
       is_valid: node.is_valid,
-      validation_errors: node.validation_errors,
-      created_at: node.created_at.iso8601,
-      updated_at: node.updated_at.iso8601
+      validation_errors: node.validation_errors
     }
   end
 end

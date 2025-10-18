@@ -88,8 +88,6 @@ class V1::Admin::VideoProduction::NodesControllerTest < ApplicationControllerTes
     # Validation state fields are present (values depend on Create vs factory)
     assert node_data.key?("is_valid")
     assert node_data.key?("validation_errors")
-    assert node_data["created_at"].present?
-    assert node_data["updated_at"].present?
     assert_equal node.uuid, node_data["uuid"]
     assert_equal @pipeline.uuid, node_data["pipeline_uuid"]
   end
@@ -158,9 +156,7 @@ class V1::Admin::VideoProduction::NodesControllerTest < ApplicationControllerTes
         metadata: { 'startedAt' => node.metadata['startedAt'] },
         output: nil,
         is_valid: node.is_valid,
-        validation_errors: node.validation_errors,
-        created_at: node.created_at.iso8601,
-        updated_at: node.updated_at.iso8601
+        validation_errors: node.validation_errors
       }
     })
   end

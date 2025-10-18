@@ -95,8 +95,6 @@ class V1::Admin::VideoProduction::PipelinesControllerTest < ApplicationControlle
     assert_equal "2.0", result["version"]
     assert_equal({ 'storage' => { 'bucket' => 'test-bucket' } }, result["config"])
     assert_equal({ 'totalCost' => 10.5 }, result["metadata"])
-    assert result["created_at"].present?
-    assert result["updated_at"].present?
   end
 
   test "GET index uses SerializePaginatedCollection with SerializeAdminVideoProductionPipelines" do
@@ -132,9 +130,7 @@ class V1::Admin::VideoProduction::PipelinesControllerTest < ApplicationControlle
         title: "Full Data Pipeline",
         version: "1.5",
         config: { 'storage' => { 'bucket' => 'my-bucket' } },
-        metadata: { 'totalCost' => 25.75 },
-        created_at: pipeline.created_at.iso8601,
-        updated_at: pipeline.updated_at.iso8601
+        metadata: { 'totalCost' => 25.75 }
       }
     })
   end
