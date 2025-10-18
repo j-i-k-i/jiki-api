@@ -1,5 +1,5 @@
 class VideoProduction::Node::Schemas::RenderCode
-  INPUT_SCHEMA = {
+  INPUTS = {
     'config' => {
       type: :single,
       required: false,
@@ -7,5 +7,5 @@ class VideoProduction::Node::Schemas::RenderCode
     }
   }.freeze
 
-  CONFIG_SCHEMA = {}.freeze
+  CONFIG = {}.freeze
 end

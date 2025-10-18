@@ -1,5 +1,5 @@
 class VideoProduction::Node::Schemas::MixAudio
-  INPUT_SCHEMA = {
+  INPUTS = {
     'video' => {
       type: :single,
       required: true,
@@ -12,5 +12,5 @@ class VideoProduction::Node::Schemas::MixAudio
     }
   }.freeze
 
-  CONFIG_SCHEMA = {}.freeze
+  CONFIG = {}.freeze
 end

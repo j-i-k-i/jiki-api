@@ -1,5 +1,5 @@
 class VideoProduction::Node::Schemas::GenerateTalkingHead
-  INPUT_SCHEMA = {
+  INPUTS = {
     'script' => {
       type: :single,
       required: false,
@@ -7,5 +7,5 @@ class VideoProduction::Node::Schemas::GenerateTalkingHead
     }
   }.freeze
 
-  CONFIG_SCHEMA = {}.freeze
+  CONFIG = {}.freeze
 end

@@ -12,8 +12,8 @@ class VideoProduction::Node::Validate
       }
     end
 
-    input_errors = VideoProduction::Node::ValidateInputs.(node, schema::INPUT_SCHEMA)
-    config_errors = VideoProduction::Node::ValidateConfig.(node, schema::CONFIG_SCHEMA)
+    input_errors = VideoProduction::Node::ValidateInputs.(node, schema::INPUTS)
+    config_errors = VideoProduction::Node::ValidateConfig.(node, schema::CONFIG)
 
     errors = input_errors.merge(config_errors)
 

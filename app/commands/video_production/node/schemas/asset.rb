@@ -1,7 +1,7 @@
 class VideoProduction::Node::Schemas::Asset
-  INPUT_SCHEMA = {
+  INPUTS = {
     # Asset nodes have no inputs - they are source nodes
   }.freeze
 
-  CONFIG_SCHEMA = {}.freeze
+  CONFIG = {}.freeze
 end

@@ -1,5 +1,5 @@
 class VideoProduction::Node::Schemas::GenerateAnimation
-  INPUT_SCHEMA = {
+  INPUTS = {
     'prompt' => {
       type: :single,
       required: false,
@@ -12,5 +12,5 @@ class VideoProduction::Node::Schemas::GenerateAnimation
     }
   }.freeze
 
-  CONFIG_SCHEMA = {}.freeze
+  CONFIG = {}.freeze
 end

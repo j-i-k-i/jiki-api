@@ -1,5 +1,5 @@
 class VideoProduction::Node::Schemas::MergeVideos
-  INPUT_SCHEMA = {
+  INPUTS = {
     'segments' => {
       type: :multiple,
       required: true,
@@ -9,7 +9,7 @@ class VideoProduction::Node::Schemas::MergeVideos
     }
   }.freeze
 
-  CONFIG_SCHEMA = {
+  CONFIG = {
     # For merge-videos, config is typically minimal (FFmpeg provider is default)
     # Add provider-specific validation here if needed in the future
   }.freeze

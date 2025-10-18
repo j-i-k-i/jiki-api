@@ -1,5 +1,5 @@
 class VideoProduction::Node::Schemas::ComposeVideo
-  INPUT_SCHEMA = {
+  INPUTS = {
     'background' => {
       type: :single,
       required: true,
@@ -12,5 +12,5 @@ class VideoProduction::Node::Schemas::ComposeVideo
     }
   }.freeze
 
-  CONFIG_SCHEMA = {}.freeze
+  CONFIG = {}.freeze
 end

@@ -157,7 +157,7 @@ class VideoProduction::Node::ValidateInputsTest < ActiveSupport::TestCase
     pipeline = create(:video_production_pipeline)
     node = build(:video_production_node, pipeline:, type: 'asset', inputs: {})
 
-    schema = VideoProduction::Node::Schemas::Asset::INPUT_SCHEMA
+    schema = VideoProduction::Node::Schemas::Asset::INPUTS
     result = VideoProduction::Node::ValidateInputs.(node, schema)
 
     assert_empty result
@@ -167,7 +167,7 @@ class VideoProduction::Node::ValidateInputsTest < ActiveSupport::TestCase
     pipeline = create(:video_production_pipeline)
     node = build(:video_production_node, pipeline:, type: 'asset', inputs: { 'foo' => 'bar' })
 
-    schema = VideoProduction::Node::Schemas::Asset::INPUT_SCHEMA
+    schema = VideoProduction::Node::Schemas::Asset::INPUTS
     result = VideoProduction::Node::ValidateInputs.(node, schema)
 
     assert_equal "asset nodes should not have inputs", result[:unexpected_inputs]
@@ -181,7 +181,7 @@ class VideoProduction::Node::ValidateInputsTest < ActiveSupport::TestCase
       type: 'generate-talking-head',
       inputs: { 'script' => script_node.uuid })
 
-    schema = VideoProduction::Node::Schemas::GenerateTalkingHead::INPUT_SCHEMA
+    schema = VideoProduction::Node::Schemas::GenerateTalkingHead::INPUTS
     result = VideoProduction::Node::ValidateInputs.(node, schema)
 
     assert_empty result
@@ -191,7 +191,7 @@ class VideoProduction::Node::ValidateInputsTest < ActiveSupport::TestCase
     pipeline = create(:video_production_pipeline)
     node = build(:video_production_node, pipeline:, type: 'generate-talking-head', inputs: {})
 
-    schema = VideoProduction::Node::Schemas::GenerateTalkingHead::INPUT_SCHEMA
+    schema = VideoProduction::Node::Schemas::GenerateTalkingHead::INPUTS
     result = VideoProduction::Node::ValidateInputs.(node, schema)
 
     assert_empty result
@@ -209,7 +209,7 @@ class VideoProduction::Node::ValidateInputsTest < ActiveSupport::TestCase
         'audio' => audio_node.uuid
       })
 
-    schema = VideoProduction::Node::Schemas::MixAudio::INPUT_SCHEMA
+    schema = VideoProduction::Node::Schemas::MixAudio::INPUTS
     result = VideoProduction::Node::ValidateInputs.(node, schema)
 
     assert_empty result
@@ -223,7 +223,7 @@ class VideoProduction::Node::ValidateInputsTest < ActiveSupport::TestCase
       type: 'mix-audio',
       inputs: { 'audio' => audio_node.uuid })
 
-    schema = VideoProduction::Node::Schemas::MixAudio::INPUT_SCHEMA
+    schema = VideoProduction::Node::Schemas::MixAudio::INPUTS
     result = VideoProduction::Node::ValidateInputs.(node, schema)
 
     assert_match(/is required/, result[:video])
@@ -241,7 +241,7 @@ class VideoProduction::Node::ValidateInputsTest < ActiveSupport::TestCase
         'overlay' => overlay_node.uuid
       })
 
-    schema = VideoProduction::Node::Schemas::ComposeVideo::INPUT_SCHEMA
+    schema = VideoProduction::Node::Schemas::ComposeVideo::INPUTS
     result = VideoProduction::Node::ValidateInputs.(node, schema)
 
     assert_empty result
