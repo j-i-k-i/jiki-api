@@ -25,19 +25,9 @@ class V1::Admin::VideoProduction::NodesController < V1::Admin::BaseController
       node: SerializeAdminVideoProductionNode.(node)
     }, status: :created
   rescue VideoProductionBadInputsError => e
-    render json: {
-      error: {
-        type: "validation_error",
-        message: e.message
-      }
-    }, status: :unprocessable_entity
+    render_validation_error(e)
   rescue ActiveRecord::RecordInvalid => e
-    render json: {
-      error: {
-        type: "validation_error",
-        message: e.message
-      }
-    }, status: :unprocessable_entity
+    render_validation_error(e)
   end
 
   def update
@@ -49,19 +39,9 @@ class V1::Admin::VideoProduction::NodesController < V1::Admin::BaseController
       node: SerializeAdminVideoProductionNode.(node)
     }
   rescue VideoProductionBadInputsError => e
-    render json: {
-      error: {
-        type: "validation_error",
-        message: e.message
-      }
-    }, status: :unprocessable_entity
+    render_validation_error(e)
   rescue ActiveRecord::RecordInvalid => e
-    render json: {
-      error: {
-        type: "validation_error",
-        message: e.message
-      }
-    }, status: :unprocessable_entity
+    render_validation_error(e)
   end
 
   def destroy
@@ -73,22 +53,12 @@ class V1::Admin::VideoProduction::NodesController < V1::Admin::BaseController
   def use_pipeline
     @pipeline = VideoProduction::Pipeline.find_by!(uuid: params[:pipeline_uuid])
   rescue ActiveRecord::RecordNotFound
-    render json: {
-      error: {
-        type: "not_found",
-        message: "Pipeline not found"
-      }
-    }, status: :not_found
+    render_not_found("Pipeline not found")
   end
 
   def use_node
     @node = @pipeline.nodes.find_by!(uuid: params[:uuid])
   rescue ActiveRecord::RecordNotFound
-    render json: {
-      error: {
-        type: "not_found",
-        message: "Node not found"
-      }
-    }, status: :not_found
+    render_not_found("Node not found")
   end
 end

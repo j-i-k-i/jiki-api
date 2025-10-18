@@ -38,12 +38,7 @@ class V1::Admin::EmailTemplatesController < V1::Admin::BaseController
       email_template: SerializeAdminEmailTemplate.(email_template)
     }, status: :created
   rescue ActiveRecord::RecordInvalid => e
-    render json: {
-      error: {
-        type: "validation_error",
-        message: e.message
-      }
-    }, status: :unprocessable_entity
+    render_validation_error(e)
   end
 
   def show
@@ -58,12 +53,7 @@ class V1::Admin::EmailTemplatesController < V1::Admin::BaseController
       email_template: SerializeAdminEmailTemplate.(email_template)
     }
   rescue ActiveRecord::RecordInvalid => e
-    render json: {
-      error: {
-        type: "validation_error",
-        message: e.message
-      }
-    }, status: :unprocessable_entity
+    render_validation_error(e)
   end
 
   def destroy
@@ -75,12 +65,7 @@ class V1::Admin::EmailTemplatesController < V1::Admin::BaseController
   def use_email_template
     @email_template = EmailTemplate.find(params[:id])
   rescue ActiveRecord::RecordNotFound
-    render json: {
-      error: {
-        type: "not_found",
-        message: "Email template not found"
-      }
-    }, status: :not_found
+    render_not_found("Email template not found")
   end
 
   def email_template_params
