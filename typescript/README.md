@@ -20,10 +20,21 @@ import type { TalkingHeadInputs, MergeVideosInputs } from '@jiki/api-types';
 import type { User, Course, Lesson } from '@jiki/api-types';
 ```
 
-## Regenerating Types
+## Setup
+
+After cloning this repo, generate the TypeScript types:
 
 ```bash
-cd api
+bundle exec rake typescript:generate
+```
+
+This will install dependencies and build the types in `typescript/dist/`.
+
+## Regenerating Types
+
+Whenever Rails schemas change:
+
+```bash
 bundle exec rake typescript:generate
 ```
 

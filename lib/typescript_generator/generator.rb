@@ -2,7 +2,7 @@
 
 require_relative 'input_schema_generator'
 
-# rubocop:disable Rails/Output, Rails/Exit
+# rubocop:disable Rails/Output
 module TypescriptGenerator
   class Generator
     def self.generate_all
@@ -55,7 +55,7 @@ module TypescriptGenerator
           puts "✅ TypeScript build successful"
         else
           puts "❌ TypeScript build failed"
-          exit 1
+          abort
         end
       end
     end
@@ -65,4 +65,4 @@ module TypescriptGenerator
     end
   end
 end
-# rubocop:enable Rails/Output, Rails/Exit
+# rubocop:enable Rails/Output
