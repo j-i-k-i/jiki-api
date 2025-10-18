@@ -154,6 +154,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_10_15_150350) do
     t.jsonb "metadata"
     t.jsonb "output"
     t.bigint "pipeline_id", null: false
+    t.string "provider", null: false
     t.string "status", default: "pending", null: false
     t.string "title", null: false
     t.string "type", null: false
@@ -163,6 +164,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_10_15_150350) do
     t.index ["pipeline_id", "status"], name: "index_video_production_nodes_on_pipeline_id_and_status"
     t.index ["pipeline_id"], name: "index_video_production_nodes_on_pipeline_id"
     t.index ["status"], name: "index_video_production_nodes_on_status"
+    t.index ["type", "provider"], name: "index_video_production_nodes_on_type_and_provider"
     t.index ["type"], name: "index_video_production_nodes_on_type"
     t.index ["uuid"], name: "index_video_production_nodes_on_uuid", unique: true
   end

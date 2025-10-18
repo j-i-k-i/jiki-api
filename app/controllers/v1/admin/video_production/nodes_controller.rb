@@ -19,7 +19,7 @@ class V1::Admin::VideoProduction::NodesController < V1::Admin::BaseController
   def create
     node = VideoProduction::Node::Create.(
       @pipeline,
-      params.require(:node).permit(:title, :type, inputs: {}, config: {}, asset: {})
+      params.require(:node).permit(:title, :type, :provider, inputs: {}, config: {}, asset: {})
     )
     render json: {
       node: SerializeAdminVideoProductionNode.(node)
@@ -31,7 +31,7 @@ class V1::Admin::VideoProduction::NodesController < V1::Admin::BaseController
   def update
     node = VideoProduction::Node::Update.(
       @node,
-      params.require(:node).permit(:title, inputs: {}, config: {}, asset: {})
+      params.require(:node).permit(:title, :provider, inputs: {}, config: {}, asset: {})
     )
     render json: {
       node: SerializeAdminVideoProductionNode.(node)

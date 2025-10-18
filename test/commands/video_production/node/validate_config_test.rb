@@ -1,38 +1,81 @@
 require "test_helper"
 
 class VideoProduction::Node::ValidateConfigTest < ActiveSupport::TestCase
+  # Test schema class for custom validation tests
+  class TestSchema
+    INPUTS = {}.freeze
+    PROVIDER_CONFIGS = {
+      'test-provider' => {
+        'provider' => {
+          type: :string,
+          required: true
+        },
+        'apiKey' => {
+          type: :string,
+          required: true
+        },
+        'width' => {
+          type: :integer,
+          required: true
+        },
+        'volume' => {
+          type: :integer,
+          required: false
+        },
+        'transparentBackground' => {
+          type: :boolean,
+          required: true
+        },
+        'layers' => {
+          type: :array,
+          required: true
+        },
+        'inputProps' => {
+          type: :hash,
+          required: true
+        }
+      },
+      'simple-provider' => {
+        'provider' => {
+          type: :string,
+          required: true,
+          allowed_values: %w[heygen remotion ffmpeg]
+        }
+      }
+    }.freeze
+  end
   test "returns empty hash when config schema is nil" do
     pipeline = create(:video_production_pipeline)
-    node = build(:video_production_node, pipeline:, type: 'asset', config: {})
+    node = build(:video_production_node, pipeline:, type: 'asset', provider: 'direct', config: {})
 
-    result = VideoProduction::Node::ValidateConfig.(node, nil)
+    result = VideoProduction::Node::ValidateConfig.(node, nil, 'direct')
 
     assert_empty result
   end
 
-  test "returns empty hash when config schema is empty" do
+  test "returns empty hash when provider has no config" do
     pipeline = create(:video_production_pipeline)
-    node = build(:video_production_node, pipeline:, type: 'asset', config: {})
+    node = build(:video_production_node, pipeline:, type: 'asset', provider: 'direct', config: {})
 
-    result = VideoProduction::Node::ValidateConfig.(node, {})
+    schema = VideoProduction::Node::Schemas::Asset
+    result = VideoProduction::Node::ValidateConfig.(node, schema, 'direct')
 
     assert_empty result
   end
 
-  test "returns empty hash when config schema is empty (actual schema)" do
+  test "validates provider-specific config correctly" do
     pipeline = create(:video_production_pipeline)
     node = build(:video_production_node,
       pipeline:,
       type: 'generate-talking-head',
+      provider: 'heygen',
       config: {
-        'provider' => 'heygen',
-        'avatarId' => 'avatar-1',
-        'voiceId' => 'voice-1'
+        'avatar_id' => 'avatar-1',
+        'voice_id' => 'voice-1'
       })
 
-    # Current schemas have empty CONFIG - this is expected behavior
-    schema = VideoProduction::Node::Schemas::GenerateTalkingHead::CONFIG
-    result = VideoProduction::Node::ValidateConfig.(node, schema)
+    schema = VideoProduction::Node::Schemas::GenerateTalkingHead
+    result = VideoProduction::Node::ValidateConfig.(node, schema, 'heygen')
 
     assert_empty result
   end
@@ -42,16 +85,10 @@ class VideoProduction::Node::ValidateConfigTest < ActiveSupport::TestCase
     node = build(:video_production_node,
       pipeline:,
       type: 'test-node',
-      config: {}) # missing required key
+      provider: 'test-provider',
+      config: {}) # missing required keys
 
-    # Custom schema for testing
-    schema = {
-      'provider' => {
-        type: :string,
-        required: true
-      }
-    }
-    result = VideoProduction::Node::ValidateConfig.(node, schema)
+    result = VideoProduction::Node::ValidateConfig.(node, TestSchema, 'test-provider')
 
     assert result.key?(:provider)
     assert_equal "is required for test-node nodes", result[:provider]
@@ -62,17 +99,12 @@ class VideoProduction::Node::ValidateConfigTest < ActiveSupport::TestCase
     node = build(:video_production_node,
       pipeline:,
       type: 'test-node',
+      provider: 'test-provider',
       config: {
         'provider' => 123 # should be string
       })
 
-    schema = {
-      'provider' => {
-        type: :string,
-        required: true
-      }
-    }
-    result = VideoProduction::Node::ValidateConfig.(node, schema)
+    result = VideoProduction::Node::ValidateConfig.(node, TestSchema, 'test-provider')
 
     assert result.key?(:provider)
     assert_equal "must be a string", result[:provider]
@@ -83,17 +115,12 @@ class VideoProduction::Node::ValidateConfigTest < ActiveSupport::TestCase
     node = build(:video_production_node,
       pipeline:,
       type: 'test-node',
+      provider: 'test-provider',
       config: {
         'layers' => 'not-an-array' # should be array
       })
 
-    schema = {
-      'layers' => {
-        type: :array,
-        required: true
-      }
-    }
-    result = VideoProduction::Node::ValidateConfig.(node, schema)
+    result = VideoProduction::Node::ValidateConfig.(node, TestSchema, 'test-provider')
 
     assert result.key?(:layers)
     assert_equal "must be a array", result[:layers]
@@ -104,17 +131,12 @@ class VideoProduction::Node::ValidateConfigTest < ActiveSupport::TestCase
     node = build(:video_production_node,
       pipeline:,
       type: 'test-node',
+      provider: 'test-provider',
       config: {
         'inputProps' => 'not-a-hash' # should be hash
       })
 
-    schema = {
-      'inputProps' => {
-        type: :hash,
-        required: true
-      }
-    }
-    result = VideoProduction::Node::ValidateConfig.(node, schema)
+    result = VideoProduction::Node::ValidateConfig.(node, TestSchema, 'test-provider')
 
     assert result.key?(:inputProps)
     assert_equal "must be a hash", result[:inputProps]
@@ -125,21 +147,12 @@ class VideoProduction::Node::ValidateConfigTest < ActiveSupport::TestCase
     node = build(:video_production_node,
       pipeline:,
       type: 'test-node',
+      provider: 'test-provider',
       config: {
         'provider' => 123 # invalid type
       })
 
-    schema = {
-      'provider' => {
-        type: :string,
-        required: true
-      },
-      'apiKey' => {
-        type: :string,
-        required: true
-      }
-    }
-    result = VideoProduction::Node::ValidateConfig.(node, schema)
+    result = VideoProduction::Node::ValidateConfig.(node, TestSchema, 'test-provider')
 
     # Should return first error (provider type)
     assert result.key?(:provider)
@@ -151,22 +164,18 @@ class VideoProduction::Node::ValidateConfigTest < ActiveSupport::TestCase
     node = build(:video_production_node,
       pipeline:,
       type: 'test-node',
+      provider: 'test-provider',
       config: {
-        'provider' => 'ffmpeg'
+        'provider' => 'ffmpeg',
+        'apiKey' => 'test-key',
+        'width' => 1920,
+        'transparentBackground' => true,
+        'layers' => [],
+        'inputProps' => {}
         # volume is optional, not included
       })
 
-    schema = {
-      'provider' => {
-        type: :string,
-        required: true
-      },
-      'volume' => {
-        type: :integer,
-        required: false
-      }
-    }
-    result = VideoProduction::Node::ValidateConfig.(node, schema)
+    result = VideoProduction::Node::ValidateConfig.(node, TestSchema, 'test-provider')
 
     assert_empty result
   end
@@ -176,17 +185,12 @@ class VideoProduction::Node::ValidateConfigTest < ActiveSupport::TestCase
     node = build(:video_production_node,
       pipeline:,
       type: 'test-node',
+      provider: 'test-provider',
       config: {
         'transparentBackground' => 'yes' # should be boolean
       })
 
-    schema = {
-      'transparentBackground' => {
-        type: :boolean,
-        required: true
-      }
-    }
-    result = VideoProduction::Node::ValidateConfig.(node, schema)
+    result = VideoProduction::Node::ValidateConfig.(node, TestSchema, 'test-provider')
 
     assert result.key?(:transparentBackground)
     assert_equal "must be a boolean", result[:transparentBackground]
@@ -197,17 +201,12 @@ class VideoProduction::Node::ValidateConfigTest < ActiveSupport::TestCase
     node = build(:video_production_node,
       pipeline:,
       type: 'test-node',
+      provider: 'test-provider',
       config: {
         'width' => '1920' # should be integer
       })
 
-    schema = {
-      'width' => {
-        type: :integer,
-        required: true
-      }
-    }
-    result = VideoProduction::Node::ValidateConfig.(node, schema)
+    result = VideoProduction::Node::ValidateConfig.(node, TestSchema, 'test-provider')
 
     assert result.key?(:width)
     assert_equal "must be a integer", result[:width]
@@ -218,18 +217,12 @@ class VideoProduction::Node::ValidateConfigTest < ActiveSupport::TestCase
     node = build(:video_production_node,
       pipeline:,
       type: 'test-node',
+      provider: 'simple-provider',
       config: {
         'provider' => 'invalid-provider'
       })
 
-    schema = {
-      'provider' => {
-        type: :string,
-        required: true,
-        allowed_values: %w[heygen remotion ffmpeg]
-      }
-    }
-    result = VideoProduction::Node::ValidateConfig.(node, schema)
+    result = VideoProduction::Node::ValidateConfig.(node, TestSchema, 'simple-provider')
 
     assert result.key?(:provider)
     assert_equal "must be one of: heygen, remotion, ffmpeg", result[:provider]

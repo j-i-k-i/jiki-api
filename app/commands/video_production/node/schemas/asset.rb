@@ -3,5 +3,8 @@ class VideoProduction::Node::Schemas::Asset
     # Asset nodes have no inputs - they are source nodes
   }.freeze
 
-  CONFIG = {}.freeze
+  # Assets don't have provider-specific config
+  PROVIDER_CONFIGS = {
+    'direct' => {}
+  }.freeze
 end

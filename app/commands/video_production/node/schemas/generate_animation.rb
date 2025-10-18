@@ -12,5 +12,30 @@ class VideoProduction::Node::Schemas::GenerateAnimation
     }
   }.freeze
 
-  CONFIG = {}.freeze
+  # Provider-specific config schemas
+  PROVIDER_CONFIGS = {
+    'veo3' => {
+      'model' => {
+        type: :string,
+        required: false,
+        allowed_values: %w[standard premium],
+        description: 'Veo3 model tier'
+      },
+      'aspect_ratio' => {
+        type: :string,
+        required: false,
+        allowed_values: %w[16:9 9:16 1:1],
+        description: 'Video aspect ratio'
+      }
+    },
+    'runway' => {
+      'generation' => {
+        type: :string,
+        required: false,
+        allowed_values: %w[gen2 gen3],
+        description: 'Runway generation version'
+      }
+    },
+    'stability' => {}
+  }.freeze
 end
