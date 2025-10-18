@@ -24,8 +24,6 @@ class V1::Admin::VideoProduction::NodesController < V1::Admin::BaseController
     render json: {
       node: SerializeAdminVideoProductionNode.(node)
     }, status: :created
-  rescue VideoProductionBadInputsError => e
-    render_validation_error(e)
   rescue ActiveRecord::RecordInvalid => e
     render_validation_error(e)
   end
@@ -38,8 +36,6 @@ class V1::Admin::VideoProduction::NodesController < V1::Admin::BaseController
     render json: {
       node: SerializeAdminVideoProductionNode.(node)
     }
-  rescue VideoProductionBadInputsError => e
-    render_validation_error(e)
   rescue ActiveRecord::RecordInvalid => e
     render_validation_error(e)
   end

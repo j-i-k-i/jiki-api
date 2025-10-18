@@ -9,7 +9,7 @@ module VideoProduction
     validates :uuid, presence: true, uniqueness: true, on: :update
     validates :title, presence: true
     validates :type, presence: true, inclusion: {
-      in: %w[asset talking-head generate-animation generate-voiceover
+      in: %w[asset generate-talking-head generate-animation generate-voiceover
              render-code mix-audio merge-videos compose-video]
     }
     validates :status, inclusion: { in: %w[pending in_progress completed failed] }
@@ -44,7 +44,7 @@ module VideoProduction
 
     # Check if ready to execute
     def ready_to_execute?
-      status == 'pending' && inputs_satisfied?
+      status == 'pending' && is_valid?
     end
   end
 end

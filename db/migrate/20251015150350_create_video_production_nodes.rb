@@ -16,6 +16,10 @@ class CreateVideoProductionNodes < ActiveRecord::Migration[8.0]
       t.jsonb :metadata
       t.jsonb :output
 
+      # Validation state (Rails writes)
+      t.boolean :is_valid, null: false, default: false
+      t.jsonb :validation_errors, null: false, default: {}
+
       t.timestamps
     end
 
