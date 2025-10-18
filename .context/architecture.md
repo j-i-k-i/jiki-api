@@ -154,6 +154,44 @@ Based on business requirements:
 
 Commands encapsulate business logic following the Command pattern using the Mandate gem.
 
+### General Command Patterns
+
+**Prefer Association Methods Over Manual Attribute Merging**:
+
+When creating records that belong to a parent, use ActiveRecord association methods instead of manually merging foreign keys:
+
+```ruby
+# CORRECT: Use association method
+class Lesson::Create
+  include Mandate
+  initialize_with :level, :attributes
+
+  def call
+    level.lessons.create!(attributes)  # ✅ Association handles level_id automatically
+  end
+end
+
+# INCORRECT: Manual foreign key merging
+class Lesson::Create
+  include Mandate
+  initialize_with :level, :attributes
+
+  def call
+    lesson_attributes = attributes.merge(level_id: level.id)  # ❌ Manual, error-prone
+    Lesson.create!(lesson_attributes)
+  end
+end
+```
+
+**Why association methods are better:**
+- ActiveRecord automatically sets the foreign key through the association
+- More idiomatic Rails code
+- Cleaner and less error-prone
+- Leverages ActiveRecord's built-in association handling
+- Reduces boilerplate code
+
+**Examples**: `Lesson::Create` (app/commands/lesson/create.rb:1)
+
 ### Search Commands
 
 Search commands handle filtering and pagination for collection endpoints. They follow a consistent pattern:

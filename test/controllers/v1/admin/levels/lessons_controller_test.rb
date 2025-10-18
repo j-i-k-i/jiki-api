@@ -9,7 +9,240 @@ class V1::Admin::Levels::LessonsControllerTest < ApplicationControllerTest
 
   # Authentication and authorization guards
   guard_admin! :v1_admin_level_lessons_path, args: [1], method: :get
+  guard_admin! :v1_admin_level_lessons_path, args: [1], method: :post
   guard_admin! :v1_admin_level_lesson_path, args: [1, 1], method: :patch
+
+  # CREATE tests
+
+  test "POST create calls Lesson::Create command with correct params" do
+    Lesson::Create.expects(:call).with(
+      @level,
+      { "title" => "New Lesson", "description" => "New description", "type" => "exercise" }
+    ).returns(create(:lesson, level: @level))
+
+    post v1_admin_level_lessons_path(@level),
+      params: {
+        lesson: {
+          title: "New Lesson",
+          description: "New description",
+          type: "exercise"
+        }
+      },
+      headers: @headers,
+      as: :json
+
+    assert_response :created
+  end
+
+  test "POST create returns created lesson" do
+    post v1_admin_level_lessons_path(@level),
+      params: {
+        lesson: {
+          title: "New Lesson",
+          description: "A great lesson",
+          type: "exercise",
+          data: { foo: "bar" }
+        }
+      },
+      headers: @headers,
+      as: :json
+
+    assert_response :created
+
+    json = response.parsed_body
+    assert_equal "New Lesson", json["lesson"]["title"]
+    assert_equal "A great lesson", json["lesson"]["description"]
+    assert_equal "exercise", json["lesson"]["type"]
+    assert_equal({ "foo" => "bar" }, json["lesson"]["data"])
+    assert json["lesson"]["id"].present?
+  end
+
+  test "POST create auto-generates slug from title when slug not provided" do
+    post v1_admin_level_lessons_path(@level),
+      params: {
+        lesson: {
+          title: "Hello World Lesson",
+          description: "Description",
+          type: "exercise",
+          data: { key: "value" }
+        }
+      },
+      headers: @headers,
+      as: :json
+
+    assert_response :created
+    json = response.parsed_body
+    assert_equal "hello-world-lesson", json["lesson"]["slug"]
+  end
+
+  test "POST create uses provided slug when given" do
+    post v1_admin_level_lessons_path(@level),
+      params: {
+        lesson: {
+          slug: "custom-slug",
+          title: "Some Title",
+          description: "Description",
+          type: "exercise",
+          data: { key: "value" }
+        }
+      },
+      headers: @headers,
+      as: :json
+
+    assert_response :created
+    json = response.parsed_body
+    assert_equal "custom-slug", json["lesson"]["slug"]
+  end
+
+  test "POST create auto-sets position to next available" do
+    create(:lesson, level: @level, position: 1)
+    create(:lesson, level: @level, position: 2)
+
+    post v1_admin_level_lessons_path(@level),
+      params: {
+        lesson: {
+          title: "New Lesson",
+          description: "Description",
+          type: "exercise",
+          data: { key: "value" }
+        }
+      },
+      headers: @headers,
+      as: :json
+
+    assert_response :created
+    json = response.parsed_body
+    assert_equal 3, json["lesson"]["position"]
+  end
+
+  test "POST create can manually set position" do
+    post v1_admin_level_lessons_path(@level),
+      params: {
+        lesson: {
+          title: "New Lesson",
+          description: "Description",
+          type: "exercise",
+          position: 10,
+          data: { key: "value" }
+        }
+      },
+      headers: @headers,
+      as: :json
+
+    assert_response :created
+    json = response.parsed_body
+    assert_equal 10, json["lesson"]["position"]
+  end
+
+  test "POST create handles nested JSON data structure" do
+    complex_data = {
+      nested: {
+        deeply: {
+          nested: {
+            array: [1, 2, { key: "value" }],
+            string: "test",
+            number: 42,
+            boolean: true
+          }
+        }
+      },
+      top_level: "value"
+    }
+
+    post v1_admin_level_lessons_path(@level),
+      params: {
+        lesson: {
+          title: "Complex Lesson",
+          description: "Description",
+          type: "exercise",
+          data: complex_data
+        }
+      },
+      headers: @headers,
+      as: :json
+
+    assert_response :created
+    json = response.parsed_body
+    assert_equal complex_data.deep_stringify_keys, json["lesson"]["data"]
+  end
+
+  test "POST create returns 422 for validation errors - missing title" do
+    post v1_admin_level_lessons_path(@level),
+      params: {
+        lesson: {
+          description: "Description",
+          type: "exercise"
+        }
+      },
+      headers: @headers,
+      as: :json
+
+    assert_response :unprocessable_entity
+    json = response.parsed_body
+    assert_equal "validation_error", json["error"]["type"]
+    assert_match(/Validation failed/, json["error"]["message"])
+  end
+
+  test "POST create returns 422 for validation errors - duplicate slug" do
+    create(:lesson, level: @level, slug: "duplicate-slug")
+
+    post v1_admin_level_lessons_path(@level),
+      params: {
+        lesson: {
+          slug: "duplicate-slug",
+          title: "Another Lesson",
+          description: "Description",
+          type: "exercise"
+        }
+      },
+      headers: @headers,
+      as: :json
+
+    assert_response :unprocessable_entity
+    json = response.parsed_body
+    assert_equal "validation_error", json["error"]["type"]
+  end
+
+  test "POST create returns 404 for non-existent level" do
+    post v1_admin_level_lessons_path(level_id: 99_999),
+      params: {
+        lesson: {
+          title: "New Lesson",
+          description: "Description",
+          type: "exercise"
+        }
+      },
+      headers: @headers,
+      as: :json
+
+    assert_response :not_found
+    assert_json_response({
+      error: {
+        type: "not_found",
+        message: "Level not found"
+      }
+    })
+  end
+
+  test "POST create uses SerializeAdminLesson" do
+    lesson = build(:lesson, level: @level)
+    Lesson::Create.stubs(:call).returns(lesson)
+
+    SerializeAdminLesson.expects(:call).with(lesson).returns({ id: lesson.id })
+
+    post v1_admin_level_lessons_path(@level),
+      params: {
+        lesson: {
+          title: "New Lesson",
+          description: "Description",
+          type: "exercise"
+        }
+      },
+      headers: @headers,
+      as: :json
+
+    assert_response :created
+  end
 
   # INDEX tests
 

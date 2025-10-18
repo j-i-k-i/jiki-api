@@ -10,6 +10,20 @@ class V1::Admin::Levels::LessonsController < V1::Admin::BaseController
     }
   end
 
+  def create
+    lesson = Lesson::Create.(@level, lesson_params)
+    render json: {
+      lesson: SerializeAdminLesson.(lesson)
+    }, status: :created
+  rescue ActiveRecord::RecordInvalid => e
+    render json: {
+      error: {
+        type: "validation_error",
+        message: e.message
+      }
+    }, status: :unprocessable_entity
+  end
+
   def update
     lesson = Lesson::Update.(@lesson, lesson_params)
     render json: {
@@ -48,6 +62,6 @@ class V1::Admin::Levels::LessonsController < V1::Admin::BaseController
   end
 
   def lesson_params
-    params.require(:lesson).permit(:title, :description, :type, :position, data: {})
+    params.require(:lesson).permit(:slug, :title, :description, :type, :position, data: {})
   end
 end
