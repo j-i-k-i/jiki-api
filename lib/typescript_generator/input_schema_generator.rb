@@ -91,6 +91,7 @@ module TypescriptGenerator
 
       # Combine them with intersection (&)
       parts << "export type #{type_name}Node = {"
+      parts << "  type: '#{node_type}';"
       parts << "  inputs: #{inputs_obj};"
       parts << "} & (#{provider_union});"
 

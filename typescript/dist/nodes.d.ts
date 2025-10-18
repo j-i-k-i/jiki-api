@@ -3,11 +3,12 @@
  * Auto-generated from Rails schemas
  * DO NOT EDIT MANUALLY
  *
- * Generated at: 2025-10-18T14:41:21Z
+ * Generated at: 2025-10-18T14:50:16Z
  * Source: app/commands/video_production/node/schemas/
  */
 /** Asset node type (inputs + provider-specific config) */
 export type AssetNode = {
+    type: 'asset';
     inputs: {};
 } & ({
     provider: 'direct';
@@ -15,6 +16,7 @@ export type AssetNode = {
 });
 /** ComposeVideo node type (inputs + provider-specific config) */
 export type ComposeVideoNode = {
+    type: 'compose-video';
     inputs: {
         background: string;
         overlay: string;
@@ -28,6 +30,7 @@ export type ComposeVideoNode = {
 });
 /** GenerateAnimation node type (inputs + provider-specific config) */
 export type GenerateAnimationNode = {
+    type: 'generate-animation';
     inputs: {
         prompt?: string;
         referenceImage?: string;
@@ -49,6 +52,7 @@ export type GenerateAnimationNode = {
 });
 /** GenerateTalkingHead node type (inputs + provider-specific config) */
 export type GenerateTalkingHeadNode = {
+    type: 'generate-talking-head';
     inputs: {
         script?: string;
     };
@@ -61,6 +65,7 @@ export type GenerateTalkingHeadNode = {
 });
 /** GenerateVoiceover node type (inputs + provider-specific config) */
 export type GenerateVoiceoverNode = {
+    type: 'generate-voiceover';
     inputs: {
         script?: string;
     };
@@ -73,6 +78,7 @@ export type GenerateVoiceoverNode = {
 });
 /** MergeVideos node type (inputs + provider-specific config) */
 export type MergeVideosNode = {
+    type: 'merge-videos';
     inputs: {
         segments: string[];
     };
@@ -85,6 +91,7 @@ export type MergeVideosNode = {
 });
 /** MixAudio node type (inputs + provider-specific config) */
 export type MixAudioNode = {
+    type: 'mix-audio';
     inputs: {
         video: string;
         audio: string;
@@ -98,6 +105,7 @@ export type MixAudioNode = {
 });
 /** RenderCode node type (inputs + provider-specific config) */
 export type RenderCodeNode = {
+    type: 'render-code';
     inputs: {
         config?: string;
     };
