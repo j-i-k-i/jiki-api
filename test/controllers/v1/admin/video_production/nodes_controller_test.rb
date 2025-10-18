@@ -147,6 +147,8 @@ class V1::Admin::VideoProduction::NodesControllerTest < ApplicationControllerTes
         asset: nil,
         metadata: { 'startedAt' => node.metadata['startedAt'] },
         output: nil,
+        is_valid: node.is_valid,
+        validation_errors: node.validation_errors,
         created_at: node.created_at.iso8601,
         updated_at: node.updated_at.iso8601
       }
