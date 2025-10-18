@@ -103,6 +103,8 @@ end
 
 Serializers transform models to hashes. Keep them focused on this single responsibility:
 
+**IMPORTANT**: Do not include `created_at` or `updated_at` timestamp fields in serialized output unless there is a specific business requirement for the client to display or use them. Timestamps add unnecessary data to API responses and increase payload size.
+
 ```ruby
 class SerializeExerciseSubmission
   include Mandate
@@ -113,7 +115,6 @@ class SerializeExerciseSubmission
     {
       uuid: submission.uuid,
       lesson_slug: submission.lesson.slug,
-      created_at: submission.created_at.iso8601,
       files: submission.files.map { |file| serialize_file(file) }
     }
   end
@@ -361,7 +362,6 @@ class SerializeExerciseSubmission
     {
       uuid: submission.uuid,
       lesson_slug: submission.lesson.slug,
-      created_at: submission.created_at.iso8601,
       files: submission.files.map { |file| serialize_file(file) }
     }
   end
