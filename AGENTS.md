@@ -37,9 +37,10 @@ Always perform these checks before committing code:
 
 1. **Run Tests**: `bin/rails test`
 2. **Run Linting**: `bin/rubocop`
-3. **Security Check**: `bin/brakeman`
-4. **Update Context Files**: Review if any `.context/` files need updating based on your changes
-5. **Commit Message**: Use clear, descriptive commit messages that explain the "why"
+3. **TypeScript Generation**: `bundle exec rake typescript:generate` (if schemas changed)
+4. **Security Check**: `bin/brakeman`
+5. **Update Context Files**: Review if any `.context/` files need updating based on your changes
+6. **Commit Message**: Use clear, descriptive commit messages that explain the "why"
 
 ## 5. Git Workflow for Agents (Committing)
 

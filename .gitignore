@@ -36,3 +36,11 @@
 
 # Ignore Claude Code local settings
 /.claude/settings.local.json
+
+# TypeScript generated package
+# Generated files - run 'rake typescript:generate' to build
+typescript/dist/
+typescript/node_modules/
+typescript/package-lock.json
+typescript/pnpm-lock.yaml
+typescript/.pnpm-store/

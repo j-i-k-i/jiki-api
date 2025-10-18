@@ -222,6 +222,10 @@ if Dir.exist?(video_production_seeds_dir)
       # Assets are immediately available, other nodes need execution
       status = node_data[:type] == 'asset' ? 'completed' : 'pending'
 
+      # Extract provider from config (if present) or use default for asset nodes
+      config_hash = node_data[:config] || {}
+      provider = config_hash.delete(:provider) || config_hash.delete('provider') || 'direct'
+
       # For asset nodes with S3 URLs, populate output field
       output = nil
       if node_data[:type] == 'asset' && node_data[:asset] && node_data[:asset][:source]&.start_with?('s3://')
@@ -237,8 +241,9 @@ if Dir.exist?(video_production_seeds_dir)
         uuid: node_data[:id],
         title: node_data[:title],
         type: node_data[:type],
+        provider: provider,
         inputs: node_data[:inputs] || {},
-        config: node_data[:config] || {},
+        config: config_hash,
         asset: node_data[:asset],
         status: status,
         output: output

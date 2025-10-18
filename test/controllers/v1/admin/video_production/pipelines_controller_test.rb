@@ -116,25 +116,6 @@ class V1::Admin::VideoProduction::PipelinesControllerTest < ApplicationControlle
 
   # SHOW tests
 
-  test "GET show returns single pipeline with nodes" do
-    Prosopite.finish
-    pipeline = create(:video_production_pipeline, title: "Test Pipeline")
-    node_1 = create(:video_production_node, pipeline: pipeline, title: "Node 1")
-    node_2 = create(:video_production_node, pipeline: pipeline, title: "Node 2")
-
-    Prosopite.scan
-    get v1_admin_video_production_pipeline_path(pipeline.uuid), headers: @headers, as: :json
-
-    assert_response :success
-    json = response.parsed_body
-
-    assert_equal pipeline.uuid, json["pipeline"]["uuid"]
-    assert_equal "Test Pipeline", json["pipeline"]["title"]
-    assert_equal 2, json["pipeline"]["nodes"].length
-    assert_equal node_1.uuid, json["pipeline"]["nodes"][0]["uuid"]
-    assert_equal node_2.uuid, json["pipeline"]["nodes"][1]["uuid"]
-  end
-
   test "GET show returns pipeline with full data structure" do
     pipeline = create(:video_production_pipeline,
       title: "Full Data Pipeline",
@@ -153,8 +134,7 @@ class V1::Admin::VideoProduction::PipelinesControllerTest < ApplicationControlle
         config: { 'storage' => { 'bucket' => 'my-bucket' } },
         metadata: { 'totalCost' => 25.75 },
         created_at: pipeline.created_at.iso8601,
-        updated_at: pipeline.updated_at.iso8601,
-        nodes: []
+        updated_at: pipeline.updated_at.iso8601
       }
     })
   end
@@ -169,36 +149,6 @@ class V1::Admin::VideoProduction::PipelinesControllerTest < ApplicationControlle
         message: "Pipeline not found"
       }
     })
-  end
-
-  test "GET show includes nodes with full node data" do
-    Prosopite.finish
-    pipeline = create(:video_production_pipeline)
-    node = create(:video_production_node, :completed,
-      pipeline: pipeline,
-      title: "Merge Videos",
-      type: "merge-videos",
-      status: "completed",
-      inputs: { 'segments' => %w[node-1 node-2] },
-      config: { 'provider' => 'ffmpeg' },
-      metadata: { 'cost' => 0.05 },
-      output: { 's3Key' => 'output.mp4' })
-
-    Prosopite.scan
-    get v1_admin_video_production_pipeline_path(pipeline.uuid), headers: @headers, as: :json
-
-    assert_response :success
-    json = response.parsed_body
-    node_data = json["pipeline"]["nodes"][0]
-
-    assert_equal node.uuid, node_data["uuid"]
-    assert_equal "Merge Videos", node_data["title"]
-    assert_equal "merge-videos", node_data["type"]
-    assert_equal "completed", node_data["status"]
-    assert_equal({ 'segments' => %w[node-1 node-2] }, node_data["inputs"])
-    assert_equal({ 'provider' => 'ffmpeg' }, node_data["config"])
-    assert node_data["metadata"].present?
-    assert node_data["output"].present?
   end
 
   # CREATE tests

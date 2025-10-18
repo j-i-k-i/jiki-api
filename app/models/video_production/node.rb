@@ -44,7 +44,7 @@ module VideoProduction
 
     # Check if ready to execute
     def ready_to_execute?
-      status == 'pending' && is_valid?
+      status == 'pending' && is_valid? && inputs_satisfied?
     end
   end
 end

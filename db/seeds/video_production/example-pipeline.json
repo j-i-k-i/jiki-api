@@ -46,7 +46,7 @@
     {
       "id": "scene1_video",
       "title": "Scene 1: Oh Hey There",
-      "type": "talking-head",
+      "type": "generate-talking-head",
       "inputs": {
         "script": ["scene1_script"]
       },
@@ -69,7 +69,7 @@
     {
       "id": "scene2_video",
       "title": "Scene 2: Introduction",
-      "type": "talking-head",
+      "type": "generate-talking-head",
       "inputs": {
         "script": ["scene2_script"]
       },

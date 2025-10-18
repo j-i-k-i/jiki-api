@@ -15,7 +15,7 @@ class V1::Admin::VideoProduction::PipelinesController < V1::Admin::BaseControlle
 
   def show
     render json: {
-      pipeline: SerializeAdminVideoProductionPipeline.(@pipeline, include_nodes: true)
+      pipeline: SerializeAdminVideoProductionPipeline.(@pipeline)
     }
   end
 

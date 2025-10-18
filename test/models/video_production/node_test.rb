@@ -197,6 +197,37 @@ module VideoProduction
       refute node.ready_to_execute?
     end
 
+    test "ready_to_execute? returns false when is_valid but inputs not satisfied" do
+      pipeline = create(:video_production_pipeline)
+      input = create(:video_production_node, pipeline: pipeline, status: 'pending')
+
+      # Explicitly set is_valid: true to ensure we're testing inputs_satisfied? check
+      node = create(:video_production_node,
+        pipeline: pipeline,
+        status: 'pending',
+        is_valid: true,
+        inputs: { 'config' => [input.uuid] })
+
+      # Should be false because input node is still pending (not completed)
+      refute node.ready_to_execute?,
+        "Node should not be ready when is_valid but inputs are not satisfied"
+    end
+
+    test "ready_to_execute? returns false when not is_valid" do
+      pipeline = create(:video_production_pipeline)
+      input = create(:video_production_node, pipeline: pipeline, status: 'completed')
+
+      # is_valid: false, but inputs are satisfied and status is pending
+      node = create(:video_production_node,
+        pipeline: pipeline,
+        status: 'pending',
+        is_valid: false,
+        inputs: { 'config' => [input.uuid] })
+
+      refute node.ready_to_execute?,
+        "Node should not be ready when inputs satisfied but not is_valid"
+    end
+
     test "provider field works" do
       node = create(:video_production_node, :talking_head)
       assert_equal 'heygen', node.provider
