@@ -15,10 +15,10 @@ class VideoProduction::Node::Executors::MergeVideos
     raise "At least 2 segments required" if segment_ids.length < 2
 
     # 3. Get input nodes and their S3 keys
-    input_nodes = VideoProduction::Node.where(id: segment_ids).index_by { |n| n.id.to_s }
+    input_nodes = VideoProduction::Node.where(uuid: segment_ids).index_by(&:uuid)
 
     # Preserve order from inputs array
-    ordered_inputs = segment_ids.map { |id| input_nodes[id.to_s] }
+    ordered_inputs = segment_ids.map { |uuid| input_nodes[uuid] }
 
     # Validate all inputs have outputs
     ordered_inputs.each do |input_node|

@@ -21,21 +21,25 @@ class VideoProduction::APIs::ElevenLabs::ProcessResultTest < ActiveSupport::Test
       with(headers: { 'xi-api-key' => Jiki.secrets.elevenlabs_api_key }).
       to_return(status: 200, body: audio_data)
 
-    # Mock S3 upload
-    mock_s3_client = mock('s3_client')
-    Aws::S3::Client.expects(:new).with(region: 'us-east-1').returns(mock_s3_client)
-    mock_s3_client.expects(:put_object).with(
-      bucket: ENV['AWS_S3_BUCKET'] || 'test-bucket',
-      key: "pipelines/#{pipeline.uuid}/nodes/#{node.uuid}/audio.mp3",
-      body: audio_data,
-      content_type: 'audio/mpeg'
-    )
+    # Mock S3 upload via Utils::UploadToS3
+    # The s3_key will have a UUID, so we match with anything and capture the key
+    captured_s3_key = nil
+    Utils::UploadToS3.expects(:call).with do |key, body, content_type, bucket|
+      captured_s3_key = key
+      key.start_with?("pipelines/#{pipeline.uuid}/nodes/#{node.uuid}/") &&
+        key.end_with?('.mp3') &&
+        body == audio_data &&
+        content_type == 'audio/mpeg' &&
+        bucket == :video_production
+    end.returns do # rubocop:disable Style/MultilineBlockChain
+      captured_s3_key
+    end
 
     VideoProduction::APIs::ElevenLabs::ProcessResult.(node.uuid, 'test-uuid', audio_url)
 
     node.reload
     assert_equal 'completed', node.status
-    assert_equal "pipelines/#{pipeline.uuid}/nodes/#{node.uuid}/audio.mp3", node.output['s3_key']
+    assert_match(%r{\Apipelines/#{Regexp.escape(pipeline.uuid)}/nodes/#{Regexp.escape(node.uuid)}/[a-f0-9-]+\.mp3\z}, node.output['s3_key'])
     assert_equal 'audio', node.output['type']
     assert_equal audio_data.bytesize, node.output['size']
     refute_nil node.metadata['completed_at']
@@ -71,8 +75,7 @@ class VideoProduction::APIs::ElevenLabs::ProcessResultTest < ActiveSupport::Test
     audio_url = 'https://api.elevenlabs.io/v1/audio/123.mp3'
 
     stub_request(:get, audio_url).to_return(status: 200, body: 'audio')
-    Aws::S3::Client.stubs(:new).returns(mock_s3_client = mock)
-    mock_s3_client.stubs(:put_object)
+    Utils::UploadToS3.stubs(:call).returns("pipelines/#{pipeline.uuid}/nodes/#{node.uuid}/#{SecureRandom.uuid}.mp3")
 
     # Mock with_lock to verify it's called
     VideoProduction::Node.any_instance.expects(:with_lock).yields

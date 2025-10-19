@@ -11,7 +11,7 @@ class VideoProduction::APIs::ElevenLabs::ProcessResult
     audio_data = download_from_elevenlabs!
 
     # 2. Upload to S3
-    s3_key = upload_to_s3!(audio_data)
+    upload_to_s3!(audio_data)
 
     # 3. Get metadata
     audio_size = audio_data.bytesize
@@ -31,6 +31,9 @@ class VideoProduction::APIs::ElevenLabs::ProcessResult
   memoize
   def node = VideoProduction::Node.find_by!(uuid: node_uuid)
 
+  memoize
+  def s3_key = "pipelines/#{node.pipeline.uuid}/nodes/#{node_uuid}/#{SecureRandom.uuid}.mp3"
+
   def download_from_elevenlabs!
     response = HTTParty.get(
       audio_url,
@@ -43,16 +46,11 @@ class VideoProduction::APIs::ElevenLabs::ProcessResult
   end
 
   def upload_to_s3!(audio_data)
-    s3_key = "pipelines/#{node.pipeline.uuid}/nodes/#{node_uuid}/audio.mp3"
-    s3_client = Aws::S3::Client.new(region: ENV.fetch('AWS_REGION', 'us-east-1'))
-
-    s3_client.put_object(
-      bucket: ENV.fetch('AWS_S3_BUCKET', 'test-bucket'),
-      key: s3_key,
-      body: audio_data,
-      content_type: 'audio/mpeg'
+    Utils::UploadToS3.(
+      s3_key,
+      audio_data,
+      'audio/mpeg',
+      :video_production
     )
-
-    s3_key
   end
 end
