@@ -18,22 +18,22 @@ class VideoProduction::Node::Schemas::ComposeVideo
       required: true,
       description: 'Apply rounded corners to overlay video'
     },
-    'crop_top' => {
+    'cropTop' => {
       type: :integer,
       required: false,
       description: 'Crop from top edge in pixels'
     },
-    'crop_left' => {
+    'cropLeft' => {
       type: :integer,
       required: false,
       description: 'Crop from left edge in pixels'
     },
-    'crop_width' => {
+    'cropWidth' => {
       type: :integer,
       required: false,
       description: 'Width of cropped region in pixels'
     },
-    'crop_height' => {
+    'cropHeight' => {
       type: :integer,
       required: false,
       description: 'Height of cropped region in pixels'

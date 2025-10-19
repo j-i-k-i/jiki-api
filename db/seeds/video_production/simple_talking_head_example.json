@@ -23,11 +23,7 @@
         "script": ["1a2b3c4d-5e6f-4789-a0b1-c2d3e4f5a6b7"]
       },
       "config": {
-        "provider": "elevenlabs",
-        "voice_id": "21m00Tcm4TlvDq8ikWAM",
-        "model_id": "eleven_turbo_v2_5",
-        "stability": 0.5,
-        "similarity_boost": 0.75
+        "provider": "elevenlabs"
       }
     },
     {
@@ -51,7 +47,7 @@
       },
       "config": {
         "provider": "heygen",
-        "avatar_id": "Monica_inSleeveless_20220819",
+        "avatarId": "Monica_inSleeveless_20220819",
         "width": 1280,
         "height": 720
       }

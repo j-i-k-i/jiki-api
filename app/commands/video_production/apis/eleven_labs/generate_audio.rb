@@ -48,7 +48,7 @@ class VideoProduction::APIs::ElevenLabs::GenerateAudio
         model_id: model_id,
         voice_settings: {
           stability: node.config['stability'] || 0.5,
-          similarity_boost: node.config['similarity_boost'] || 0.75
+          similarity_boost: node.config['similarityBoost'] || 0.75
         }
       }.to_json
     )

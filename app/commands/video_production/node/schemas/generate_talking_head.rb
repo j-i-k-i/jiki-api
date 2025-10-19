@@ -19,7 +19,7 @@ class VideoProduction::Node::Schemas::GenerateTalkingHead
       allowed_values: %w[heygen],
       description: 'Talking head video generation provider'
     },
-    'avatar_id' => {
+    'avatarId' => {
       type: :string,
       required: true,
       description: 'HeyGen avatar ID (e.g., "Monica_inSleeveless_20220819")'
