@@ -9,7 +9,6 @@ class SerializeAdminVideoProductionNode
       pipeline_uuid: node.pipeline.uuid,
       title: node.title,
       type: node.type,
-      provider: node.provider,
       status: node.status,
       inputs: node.inputs,
       config: node.config,

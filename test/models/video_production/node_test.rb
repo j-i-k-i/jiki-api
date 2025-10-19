@@ -228,9 +228,9 @@ module VideoProduction
         "Node should not be ready when inputs satisfied but not is_valid"
     end
 
-    test "provider field works" do
+    test "config accessor works" do
       node = create(:video_production_node, :talking_head)
-      assert_equal 'heygen', node.provider
+      assert_equal 'heygen', node.config['provider']
     end
 
     test "metadata accessor works" do
