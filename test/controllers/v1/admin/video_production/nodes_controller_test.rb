@@ -288,7 +288,7 @@ class V1::Admin::VideoProduction::NodesControllerTest < ApplicationControllerTes
       title: "Invalid Node",
       type: "merge-videos",
       inputs: { 'segments' => ['only-one'] },
-      config: {}
+      config: { 'provider' => 'ffmpeg' }
     }
 
     post v1_admin_video_production_pipeline_nodes_path(@pipeline.uuid),
@@ -307,7 +307,7 @@ class V1::Admin::VideoProduction::NodesControllerTest < ApplicationControllerTes
       title: "Invalid Node",
       type: "merge-videos",
       inputs: { 'segments' => ['only-one'] }, # Invalid: requires at least 2 segments
-      config: {}
+      config: { 'provider' => 'ffmpeg' }
     }
 
     post v1_admin_video_production_pipeline_nodes_path(@pipeline.uuid),
@@ -333,7 +333,7 @@ class V1::Admin::VideoProduction::NodesControllerTest < ApplicationControllerTes
       title: "Valid Node",
       type: "merge-videos",
       inputs: { 'segments' => [input1.uuid, input2.uuid] },
-      config: {}
+      config: { 'provider' => 'ffmpeg' }
     }
 
     post v1_admin_video_production_pipeline_nodes_path(@pipeline.uuid),
@@ -354,7 +354,7 @@ class V1::Admin::VideoProduction::NodesControllerTest < ApplicationControllerTes
       title: "Invalid References",
       type: "merge-videos",
       inputs: { 'segments' => %w[fake-uuid-1 fake-uuid-2] },
-      config: {}
+      config: { 'provider' => 'ffmpeg' }
     }
 
     post v1_admin_video_production_pipeline_nodes_path(@pipeline.uuid),
@@ -491,6 +491,7 @@ class V1::Admin::VideoProduction::NodesControllerTest < ApplicationControllerTes
     node = VideoProduction::Node::Create.(@pipeline, {
       type: "merge-videos",
       title: "Test Node",
+      config: { 'provider' => 'ffmpeg' },
       inputs: { 'segments' => [input1.uuid, input2.uuid] }
     })
 
@@ -519,6 +520,7 @@ class V1::Admin::VideoProduction::NodesControllerTest < ApplicationControllerTes
     node = create(:video_production_node,
       pipeline: @pipeline,
       type: "merge-videos",
+      config: { 'provider' => 'ffmpeg' },
       inputs: { 'segments' => [] }) # Invalid
 
     # Node should start as invalid

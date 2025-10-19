@@ -12,5 +12,12 @@ class VideoProduction::Node::Schemas::MixAudio
     }
   }.freeze
 
-  CONFIG = {}.freeze
+  CONFIG = {
+    'provider' => {
+      type: :string,
+      required: true,
+      allowed_values: %w[ffmpeg],
+      description: 'Audio mixing provider'
+    }
+  }.freeze
 end

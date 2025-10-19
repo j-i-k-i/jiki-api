@@ -18,8 +18,8 @@ FactoryBot.define do
       config do
         {
           'provider' => 'heygen',
-          'avatarId' => 'avatar-1',
-          'voiceId' => 'voice-1'
+          'avatar_id' => 'avatar-1',
+          'voice_id' => 'voice-1'
         }
       end
     end
@@ -37,8 +37,7 @@ FactoryBot.define do
       type { 'generate-voiceover' }
       config do
         {
-          'provider' => 'elevenlabs',
-          'voiceId' => 'voice-1'
+          'provider' => 'elevenlabs'
         }
       end
     end

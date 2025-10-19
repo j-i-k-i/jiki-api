@@ -7,5 +7,22 @@ class VideoProduction::Node::Schemas::GenerateTalkingHead
     }
   }.freeze
 
-  CONFIG = {}.freeze
+  CONFIG = {
+    'avatar_id' => {
+      type: :string,
+      required: true,
+      description: 'HeyGen avatar ID'
+    },
+    'voice_id' => {
+      type: :string,
+      required: true,
+      description: 'HeyGen voice ID'
+    },
+    'provider' => {
+      type: :string,
+      required: true,
+      allowed_values: %w[heygen],
+      description: 'Talking head generation provider'
+    }
+  }.freeze
 end

@@ -10,7 +10,11 @@ class VideoProduction::Node::Schemas::MergeVideos
   }.freeze
 
   CONFIG = {
-    # For merge-videos, config is typically minimal (FFmpeg provider is default)
-    # Add provider-specific validation here if needed in the future
+    'provider' => {
+      type: :string,
+      required: true,
+      allowed_values: %w[ffmpeg],
+      description: 'Video merging provider'
+    }
   }.freeze
 end

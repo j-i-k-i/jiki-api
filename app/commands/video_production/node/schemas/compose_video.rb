@@ -12,5 +12,37 @@ class VideoProduction::Node::Schemas::ComposeVideo
     }
   }.freeze
 
-  CONFIG = {}.freeze
+  CONFIG = {
+    'rounded' => {
+      type: :boolean,
+      required: true,
+      description: 'Apply rounded corners to overlay video'
+    },
+    'crop_top' => {
+      type: :integer,
+      required: false,
+      description: 'Crop from top edge in pixels'
+    },
+    'crop_left' => {
+      type: :integer,
+      required: false,
+      description: 'Crop from left edge in pixels'
+    },
+    'crop_width' => {
+      type: :integer,
+      required: false,
+      description: 'Width of cropped region in pixels'
+    },
+    'crop_height' => {
+      type: :integer,
+      required: false,
+      description: 'Height of cropped region in pixels'
+    },
+    'provider' => {
+      type: :string,
+      required: true,
+      allowed_values: %w[ffmpeg],
+      description: 'Video composition provider'
+    }
+  }.freeze
 end

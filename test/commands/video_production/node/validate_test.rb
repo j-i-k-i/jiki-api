@@ -8,6 +8,7 @@ class VideoProduction::Node::ValidateTest < ActiveSupport::TestCase
     node = create(:video_production_node,
       pipeline:,
       type: 'merge-videos',
+      config: { 'provider' => 'ffmpeg' },
       inputs: { 'segments' => [input1.uuid, input2.uuid] })
 
     result = VideoProduction::Node::Validate.(node)
@@ -22,6 +23,7 @@ class VideoProduction::Node::ValidateTest < ActiveSupport::TestCase
     node = create(:video_production_node,
       pipeline:,
       type: 'merge-videos',
+      config: { 'provider' => 'ffmpeg' },
       inputs: { 'segments' => [input1.uuid] })
 
     result = VideoProduction::Node::Validate.(node)
@@ -35,6 +37,7 @@ class VideoProduction::Node::ValidateTest < ActiveSupport::TestCase
     node = create(:video_production_node,
       pipeline:,
       type: 'merge-videos',
+      config: { 'provider' => 'ffmpeg' },
       inputs: { 'segments' => %w[fake-uuid-1 fake-uuid-2] })
 
     result = VideoProduction::Node::Validate.(node)
@@ -78,6 +81,7 @@ class VideoProduction::Node::ValidateTest < ActiveSupport::TestCase
     node = VideoProduction::Node::Create.(pipeline, {
       type: 'merge-videos',
       title: 'Test Node',
+      config: { 'provider' => 'ffmpeg' },
       inputs: { 'segments' => [input1.uuid, input2.uuid] }
     })
 
@@ -92,6 +96,7 @@ class VideoProduction::Node::ValidateTest < ActiveSupport::TestCase
     node = VideoProduction::Node::Create.(pipeline, {
       type: 'merge-videos',
       title: 'Invalid Node',
+      config: { 'provider' => 'ffmpeg' },
       inputs: { 'segments' => [] }
     })
 

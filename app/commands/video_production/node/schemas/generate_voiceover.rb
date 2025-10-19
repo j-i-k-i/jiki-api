@@ -7,5 +7,12 @@ class VideoProduction::Node::Schemas::GenerateVoiceover
     }
   }.freeze
 
-  CONFIG = {}.freeze
+  CONFIG = {
+    'provider' => {
+      type: :string,
+      required: true,
+      allowed_values: %w[elevenlabs],
+      description: 'Voiceover generation provider'
+    }
+  }.freeze
 end

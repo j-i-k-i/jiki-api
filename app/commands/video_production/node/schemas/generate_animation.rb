@@ -12,5 +12,12 @@ class VideoProduction::Node::Schemas::GenerateAnimation
     }
   }.freeze
 
-  CONFIG = {}.freeze
+  CONFIG = {
+    'provider' => {
+      type: :string,
+      required: true,
+      allowed_values: %w[veo3 runway stability],
+      description: 'Animation generation provider'
+    }
+  }.freeze
 end

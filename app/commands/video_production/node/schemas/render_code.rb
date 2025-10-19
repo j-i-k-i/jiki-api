@@ -7,5 +7,12 @@ class VideoProduction::Node::Schemas::RenderCode
     }
   }.freeze
 
-  CONFIG = {}.freeze
+  CONFIG = {
+    'provider' => {
+      type: :string,
+      required: true,
+      allowed_values: %w[remotion],
+      description: 'Code rendering provider'
+    }
+  }.freeze
 end

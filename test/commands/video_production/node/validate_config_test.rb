@@ -19,18 +19,18 @@ class VideoProduction::Node::ValidateConfigTest < ActiveSupport::TestCase
     assert_empty result
   end
 
-  test "returns empty hash when config schema is empty (actual schema)" do
+  test "returns empty hash when all required config keys are present" do
     pipeline = create(:video_production_pipeline)
     node = build(:video_production_node,
       pipeline:,
       type: 'generate-talking-head',
       config: {
         'provider' => 'heygen',
-        'avatarId' => 'avatar-1',
-        'voiceId' => 'voice-1'
+        'avatar_id' => 'avatar-1',
+        'voice_id' => 'voice-1'
       })
 
-    # Current schemas have empty CONFIG - this is expected behavior
+    # Schema now has required fields
     schema = VideoProduction::Node::Schemas::GenerateTalkingHead::CONFIG
     result = VideoProduction::Node::ValidateConfig.(node, schema)
 
