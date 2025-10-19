@@ -3,7 +3,7 @@
  * Auto-generated from Rails schemas
  * DO NOT EDIT MANUALLY
  *
- * Generated at: 2025-10-19T12:21:09Z
+ * Generated at: 2025-10-19T16:28:46Z
  * Source: app/commands/video_production/node/schemas/
  */
 
@@ -51,12 +51,14 @@ export type GenerateAnimationNode = {
 export type GenerateTalkingHeadNode = {
   type: 'generate-talking-head';
   inputs: {
-    script?: string;
+    audio: string;
+    background?: string;
   };
   config: {
-      avatar_id: string;
-      voice_id: string;
       provider: 'heygen';
+      avatar_id: string;
+      width?: number;
+      height?: number;
     };
 };
 

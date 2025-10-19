@@ -126,13 +126,14 @@ class V1::Admin::VideoProduction::NodesControllerTest < ApplicationControllerTes
   # SHOW tests
 
   test "GET show returns single node with full data" do
+    audio_node = create(:video_production_node, pipeline: @pipeline, type: 'generate-voiceover')
     node = create(:video_production_node,
       pipeline: @pipeline,
       title: "Test Node",
       type: "generate-talking-head",
       status: "in_progress",
-      inputs: { 'script' => ['script-node-id'] },
-      config: { 'provider' => 'heygen', 'avatarId' => 'avatar-1' },
+      inputs: { 'audio' => [audio_node.uuid] },
+      config: { 'provider' => 'heygen', 'avatar_id' => 'avatar-1' },
       metadata: { 'startedAt' => Time.current.iso8601 },
       output: nil)
 
@@ -148,8 +149,8 @@ class V1::Admin::VideoProduction::NodesControllerTest < ApplicationControllerTes
         title: "Test Node",
         type: "generate-talking-head",
         status: "in_progress",
-        inputs: { 'script' => ['script-node-id'] },
-        config: { 'provider' => 'heygen', 'avatarId' => 'avatar-1' },
+        inputs: { 'audio' => [audio_node.uuid] },
+        config: { 'provider' => 'heygen', 'avatar_id' => 'avatar-1' },
         asset: nil,
         metadata: { 'startedAt' => node.metadata['startedAt'] },
         output: nil,
@@ -622,7 +623,7 @@ class V1::Admin::VideoProduction::NodesControllerTest < ApplicationControllerTes
     node_with_string = create(:video_production_node,
       pipeline: @pipeline,
       type: "generate-talking-head",
-      inputs: { 'script' => node_to_delete.uuid })
+      inputs: { 'audio' => node_to_delete.uuid })
 
     Prosopite.scan
     delete v1_admin_video_production_pipeline_node_path(@pipeline.uuid, node_to_delete.uuid),

@@ -1,4 +1,4 @@
-class Utils::UploadToS3
+class Utils::S3::Upload
   include Mandate
 
   initialize_with :s3_key, :body, :content_type, :bucket

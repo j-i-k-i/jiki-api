@@ -1,0 +1,60 @@
+{
+  "id": "c7f9d3b4-8e2a-4f1c-9d5e-3a8f6b2c4d7e",
+  "title": "Simple Talking Head Example",
+  "version": "1.0",
+  "config": {},
+  "nodes": [
+    {
+      "id": "script-node-001",
+      "title": "Welcome Script",
+      "type": "asset",
+      "inputs": {},
+      "config": {},
+      "asset": {
+        "type": "script",
+        "content": "Welcome to Jiki, where learning to code becomes an adventure!"
+      }
+    },
+    {
+      "id": "voiceover-node-001",
+      "title": "ElevenLabs Voiceover",
+      "type": "generate-voiceover",
+      "inputs": {
+        "script": ["script-node-001"]
+      },
+      "config": {
+        "provider": "elevenlabs",
+        "voice_id": "21m00Tcm4TlvDq8ikWAM",
+        "model_id": "eleven_turbo_v2_5",
+        "stability": 0.5,
+        "similarity_boost": 0.75
+      }
+    },
+    {
+      "id": "background-node-001",
+      "title": "Background Image",
+      "type": "asset",
+      "inputs": {},
+      "config": {},
+      "asset": {
+        "type": "image",
+        "url": "https://example.com/classroom-background.jpg"
+      }
+    },
+    {
+      "id": "talking-head-node-001",
+      "title": "HeyGen Talking Head",
+      "type": "generate-talking-head",
+      "inputs": {
+        "audio": ["voiceover-node-001"],
+        "background": ["background-node-001"]
+      },
+      "config": {
+        "provider": "heygen",
+        "avatar_id": "Monica_inSleeveless_20220819",
+        "width": 1280,
+        "height": 720
+      }
+    }
+  ]
+}

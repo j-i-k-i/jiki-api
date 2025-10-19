@@ -18,8 +18,7 @@ FactoryBot.define do
       config do
         {
           'provider' => 'heygen',
-          'avatar_id' => 'avatar-1',
-          'voice_id' => 'voice-1'
+          'avatar_id' => 'avatar-1'
         }
       end
     end

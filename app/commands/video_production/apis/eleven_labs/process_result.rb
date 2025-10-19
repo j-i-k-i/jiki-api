@@ -46,7 +46,7 @@ class VideoProduction::APIs::ElevenLabs::ProcessResult
   end
 
   def upload_to_s3!(audio_data)
-    Utils::UploadToS3.(
+    Utils::S3::Upload.(
       s3_key,
       audio_data,
       'audio/mpeg',

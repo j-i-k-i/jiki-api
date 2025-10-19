@@ -21,10 +21,10 @@ class VideoProduction::APIs::ElevenLabs::ProcessResultTest < ActiveSupport::Test
       with(headers: { 'xi-api-key' => Jiki.secrets.elevenlabs_api_key }).
       to_return(status: 200, body: audio_data)
 
-    # Mock S3 upload via Utils::UploadToS3
+    # Mock S3 upload via Utils::S3::Upload
     # The s3_key will have a UUID, so we match with anything and capture the key
     captured_s3_key = nil
-    Utils::UploadToS3.expects(:call).with do |key, body, content_type, bucket|
+    Utils::S3::Upload.expects(:call).with do |key, body, content_type, bucket|
       captured_s3_key = key
       key.start_with?("pipelines/#{pipeline.uuid}/nodes/#{node.uuid}/") &&
         key.end_with?('.mp3') &&
@@ -75,7 +75,7 @@ class VideoProduction::APIs::ElevenLabs::ProcessResultTest < ActiveSupport::Test
     audio_url = 'https://api.elevenlabs.io/v1/audio/123.mp3'
 
     stub_request(:get, audio_url).to_return(status: 200, body: 'audio')
-    Utils::UploadToS3.stubs(:call).returns("pipelines/#{pipeline.uuid}/nodes/#{node.uuid}/#{SecureRandom.uuid}.mp3")
+    Utils::S3::Upload.stubs(:call).returns("pipelines/#{pipeline.uuid}/nodes/#{node.uuid}/#{SecureRandom.uuid}.mp3")
 
     # Mock with_lock to verify it's called
     VideoProduction::Node.any_instance.expects(:with_lock).yields
