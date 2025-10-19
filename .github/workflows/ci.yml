@@ -80,6 +80,8 @@ jobs:
     runs-on: ubuntu-latest
     # Only run on push to main (after PR merge)
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: write  # Required to push commits back to main
 
     steps:
       - name: Checkout code
