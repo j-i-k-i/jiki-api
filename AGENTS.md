@@ -37,10 +37,35 @@ Always perform these checks before committing code:
 
 1. **Run Tests**: `bin/rails test`
 2. **Run Linting**: `bin/rubocop`
-3. **TypeScript Generation**: `bundle exec rake typescript:generate` (if schemas changed)
+3. **TypeScript Generation**: Automatically handled by pre-commit hook if schemas changed
 4. **Security Check**: `bin/brakeman`
 5. **Update Context Files**: Review if any `.context/` files need updating based on your changes
 6. **Commit Message**: Use clear, descriptive commit messages that explain the "why"
+
+### Pre-Commit Hook
+
+The `.husky/pre-commit` hook automatically:
+- Runs linting on staged files
+- Runs all tests
+- Runs security scanning with Brakeman
+- **Generates TypeScript types** if schema files changed
+- Stages generated TypeScript files automatically
+
+If schema files in `app/commands/video_production/node/schemas/` are staged, the hook will:
+1. Detect the schema changes
+2. Run `bundle exec rake typescript:generate`
+3. Stage the generated files in `typescript/src/`
+4. Include them in your commit
+
+### CI Auto-Generation
+
+If you bypass the pre-commit hook or forget to regenerate types, the CI pipeline will:
+1. Detect missing type updates after merge to `main`
+2. Generate the types automatically
+3. Create a follow-up commit with the updated types
+4. Push it to `main`
+
+This ensures types are always in sync with schemas on the `main` branch.
 
 ## 5. Git Workflow for Agents (Committing)
 
