@@ -3,7 +3,7 @@
  * Auto-generated from Rails schemas
  * DO NOT EDIT MANUALLY
  *
- * Generated at: 2025-10-19T16:28:46Z
+ * Generated at: 2025-10-19T21:20:41Z
  * Source: app/commands/video_production/node/schemas/
  */
 
