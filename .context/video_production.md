@@ -25,7 +25,7 @@ The video production system allows admins to create and execute complex video ge
 │  • CRUD operations for pipelines/nodes          │
 │  • Input validation                             │
 │  • Database writes (status, metadata, output)   │
-│  • Future: Sidekiq background jobs              │
+│  • Sidekiq executors & polling jobs             │
 └─────────────────┬───────────────────────────────┘
                   │
          ┌────────┼────────┬────────┬──────────┐
@@ -35,6 +35,22 @@ The video production system allows admins to create and execute complex video ge
     │(FFmpeg)│ │ API  │ │ API  │ │Labs API│ │    │
     └────────┘ └─────┘ └──────┘ └────────┘ └────┘
 ```
+
+## Services Structure
+
+Lambda functions and deployment configuration live in `services/video_production/`:
+
+```
+services/video_production/
+├── README.md                    # Deployment guide and architecture
+├── template.yaml                # AWS SAM deployment config
+└── video-merger/                # FFmpeg video concatenation Lambda
+    ├── index.js
+    ├── package.json
+    └── README.md
+```
+
+All Ruby code (executors, API clients, utilities) remains in `app/commands/video_production/`.
 
 ## Database Schema
 
@@ -429,17 +445,95 @@ assert_raises(VideoProductionBadInputsError) do
 end
 ```
 
-## Future Implementation: Execution System
+## Execution System
 
-Phase 3 will add execution capabilities. See `VIDEO_PRODUCTION_PLAN.md` for details.
+### Executors
 
-**Planned Components:**
-- `VideoProduction::Node::Execute` - Command to queue execution jobs
-- Executor commands for each node type (TalkingHead, MergeVideos, etc.)
-- Lambda integration for FFmpeg operations
-- External API clients (HeyGen, ElevenLabs, Veo 3)
-- JSONB partial updates to avoid race conditions
-- Sidekiq background jobs with retry logic
+Node executors are Sidekiq jobs that process individual nodes. Each executor handles a specific node type.
+
+Location: `app/commands/video_production/node/executors/`
+
+**Implemented Executors:**
+- `MergeVideos` - Concatenates videos via Lambda (FFmpeg)
+- `GenerateVoiceover` - Text-to-speech via ElevenLabs API
+
+**Future Executors:**
+- `TalkingHead` - HeyGen talking head videos
+- `GenerateAnimation` - Veo 3 / Runway animations
+- `RenderCode` - Remotion code screen animations
+- `MixAudio` - FFmpeg audio replacement via Lambda
+- `ComposeVideo` - FFmpeg picture-in-picture via Lambda
+
+### Lambda Integration
+
+The `VideoProduction::InvokeLambda` command provides a reusable interface for calling AWS Lambda functions:
+
+```ruby
+result = VideoProduction::InvokeLambda.(
+  'jiki-video-merger-production',
+  {
+    input_videos: ['s3://bucket/video1.mp4', 's3://bucket/video2.mp4'],
+    output_bucket: 'jiki-videos',
+    output_key: 'pipelines/123/nodes/456/output.mp4'
+  }
+)
+# Returns: { s3_key:, duration:, size:, statusCode: 200 }
+```
+
+Location: `app/commands/video_production/invoke_lambda.rb`
+
+**Lambda Functions:**
+- **video-merger**: FFmpeg concatenation (Node.js 20, 3008 MB, 15 min timeout)
+
+See `services/video_production/README.md` for Lambda deployment.
+
+### External API Integration
+
+External APIs (ElevenLabs, HeyGen, Veo 3) use a two-command pattern: **submit + poll**.
+
+#### ElevenLabs Pattern
+
+**Commands:**
+- `VideoProduction::APIs::ElevenLabs::GenerateAudio` - Submit TTS job
+- `VideoProduction::APIs::ElevenLabs::CheckForResult` - Poll for completion
+
+Location: `app/commands/video_production/apis/eleven_labs/`
+
+**Flow:**
+1. Executor calls `GenerateAudio`
+2. `GenerateAudio` submits to API, stores `audio_id` in node metadata
+3. `GenerateAudio` queues `CheckForResult` for 10 seconds later
+4. `CheckForResult` polls every 10 seconds (max 60 attempts = 10 minutes)
+5. When complete, downloads audio from ElevenLabs and uploads to S3
+6. Updates node status to `completed` with S3 key in output
+
+**Self-Rescheduling Pattern:**
+```ruby
+# CheckForResult reschedules itself if still processing
+if status == 'processing'
+  self.class.set(wait: 10.seconds).defer(pipeline_id, node_id, audio_id, attempt + 1)
+end
+```
+
+**Future APIs:** HeyGen and Veo 3 will follow the same pattern.
+
+### JSONB Partial Updates
+
+All executor database updates use JSONB `jsonb_set()` to avoid race conditions between Next.js and Rails:
+
+```ruby
+sql = <<~SQL
+  UPDATE video_production_nodes
+  SET metadata = jsonb_set(COALESCE(metadata, '{}'::jsonb), '{key}', $1)
+  WHERE pipeline_id = $2 AND id = $3
+SQL
+
+ActiveRecord::Base.connection.execute(
+  ActiveRecord::Base.sanitize_sql([sql, value.to_json, pipeline_id, node_id])
+)
+```
+
+This prevents data loss when Next.js updates structure fields (`config`) while Rails updates state fields (`metadata`, `output`).
 
 ## Common Patterns
 
