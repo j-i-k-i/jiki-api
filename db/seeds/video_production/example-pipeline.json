@@ -27,9 +27,7 @@
       "type": "generate-animation",
       "inputs": {},
       "config": {
-        "provider": "veo3",
-        "duration": 5,
-        "aspectRatio": "16:9"
+        "provider": "veo3"
       }
     },
     {
@@ -45,10 +43,21 @@
     },
     {
       "uuid": "c4d5e6f7-a8b9-4c0d-1e2f-3a4b5c6d7e8f",
+      "title": "Scene 1: Oh Hey There Voiceover",
+      "type": "generate-voiceover",
+      "inputs": {
+        "script": ["b3c4d5e6-f7a8-4b9c-0d1e-2f3a4b5c6d7e"]
+      },
+      "config": {
+        "provider": "elevenlabs"
+      }
+    },
+    {
+      "uuid": "c4d5e6f7-a8b9-4c0d-1e2f-3a4b5c6d7e8f-talking-head",
       "title": "Scene 1: Oh Hey There",
       "type": "generate-talking-head",
       "inputs": {
-        "script": ["b3c4d5e6-f7a8-4b9c-0d1e-2f3a4b5c6d7e"]
+        "audio": ["c4d5e6f7-a8b9-4c0d-1e2f-3a4b5c6d7e8f"]
       },
       "config": {
         "provider": "heygen",
@@ -68,10 +77,21 @@
     },
     {
       "uuid": "e6f7a8b9-c0d1-4e2f-3a4b-5c6d7e8f9a0b",
+      "title": "Scene 2: Introduction Voiceover",
+      "type": "generate-voiceover",
+      "inputs": {
+        "script": ["d5e6f7a8-b9c0-4d1e-2f3a-4b5c6d7e8f9a"]
+      },
+      "config": {
+        "provider": "elevenlabs"
+      }
+    },
+    {
+      "uuid": "e6f7a8b9-c0d1-4e2f-3a4b-5c6d7e8f9a0b-talking-head",
       "title": "Scene 2: Introduction",
       "type": "generate-talking-head",
       "inputs": {
-        "script": ["d5e6f7a8-b9c0-4d1e-2f3a-4b5c6d7e8f9a"]
+        "audio": ["e6f7a8b9-c0d1-4e2f-3a4b-5c6d7e8f9a0b"]
       },
       "config": {
         "provider": "heygen",
@@ -97,8 +117,7 @@
         "config": ["f7a8b9c0-d1e2-4f3a-4b5c-6d7e8f9a0b1c"]
       },
       "config": {
-        "provider": "remotion",
-        "compositionId": "code-scene"
+        "provider": "remotion"
       }
     },
     {
@@ -120,8 +139,7 @@
         "config": ["b9c0d1e2-f3a4-4b5c-6d7e-8f9a0b1c2d3e"]
       },
       "config": {
-        "provider": "remotion",
-        "compositionId": "code-scene"
+        "provider": "remotion"
       }
     },
     {
@@ -154,9 +172,7 @@
         "script": ["e2f3a4b5-c6d7-4e8f-9a0b-1c2d3e4f5a6b"]
       },
       "config": {
-        "provider": "elevenlabs",
-        "voice": "professional-male",
-        "speed": 1.0
+        "provider": "elevenlabs"
       }
     },
     {
@@ -164,11 +180,10 @@
       "title": "Merged Scene Segments",
       "type": "merge-videos",
       "inputs": {
-        "segments": ["c4d5e6f7-a8b9-4c0d-1e2f-3a4b5c6d7e8f", "a8b9c0d1-e2f3-4a4b-5c6d-7e8f9a0b1c2d", "e6f7a8b9-c0d1-4e2f-3a4b-5c6d7e8f9a0b", "c0d1e2f3-a4b5-4c6d-7e8f-9a0b1c2d3e4f"]
+        "segments": ["c4d5e6f7-a8b9-4c0d-1e2f-3a4b5c6d7e8f-talking-head", "a8b9c0d1-e2f3-4a4b-5c6d-7e8f9a0b1c2d", "e6f7a8b9-c0d1-4e2f-3a4b-5c6d7e8f9a0b-talking-head", "c0d1e2f3-a4b5-4c6d-7e8f-9a0b1c2d3e4f"]
       },
       "config": {
-        "provider": "ffmpeg",
-        "transitions": "fade"
+        "provider": "ffmpeg"
       }
     },
     {
@@ -180,9 +195,7 @@
         "audio": ["f3a4b5c6-d7e8-4f9a-0b1c-2d3e4f5a6b7c"]
       },
       "config": {
-        "provider": "ffmpeg",
-        "mode": "overlay",
-        "volume": 0.8
+        "provider": "ffmpeg"
       }
     },
     {
@@ -195,8 +208,7 @@
       },
       "config": {
         "provider": "ffmpeg",
-        "position": "bottom-right",
-        "scale": 0.25
+        "rounded": true
       }
     }
   ]

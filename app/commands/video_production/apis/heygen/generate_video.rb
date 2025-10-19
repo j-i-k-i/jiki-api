@@ -19,7 +19,7 @@ class VideoProduction::APIs::Heygen::GenerateVideo
 
   private
   memoize
-  def avatar_id = node.config['avatar_id'] || raise("avatar_id is required in config")
+  def avatar_id = node.config['avatarId'] || raise("avatarId is required in config")
 
   memoize
   def dimensions
