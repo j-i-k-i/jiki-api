@@ -447,15 +447,155 @@ end
 
 ## Execution System
 
+### Execution Lifecycle Commands
+
+All execution commands follow a strict lifecycle to prevent race conditions and ensure data integrity.
+
+**Execution Lifecycle:**
+1. `ExecutionStarted` - Marks node as `in_progress`, generates unique `process_uuid`
+2. `ExecutionUpdated` - Updates metadata during processing (with UUID verification)
+3. `ExecutionSucceeded` or `ExecutionFailed` - Completes execution (with UUID verification)
+
+#### VideoProduction::Node::ExecutionStarted
+
+Marks a node as `in_progress` and generates a unique process UUID to track this specific execution.
+
+```ruby
+process_uuid = VideoProduction::Node::ExecutionStarted.(node, { audio_id: 'abc-123', stage: 'submitted' })
+# Returns: "d3c9efcf-307b-4f23-b658-2bc2ac0b3d5e"
+```
+
+Location: `app/commands/video_production/node/execution_started.rb`
+
+**Key Features:**
+- Generates and memoizes unique `process_uuid` via `SecureRandom.uuid`
+- Stores UUID in `node.metadata['process_uuid']`
+- Updates status to `in_progress`
+- Uses database lock (`with_lock`) for atomicity
+- Returns UUID to caller for tracking
+
+**Metadata Updated:**
+- `started_at` - ISO8601 timestamp
+- `process_uuid` - Unique execution identifier
+- Any additional metadata passed in
+
+#### VideoProduction::Node::ExecutionUpdated
+
+Updates node metadata during execution without changing status.
+
+```ruby
+VideoProduction::Node::ExecutionUpdated.(node, { audio_id: 'abc-123', stage: 'processing' }, process_uuid)
+```
+
+Location: `app/commands/video_production/node/execution_updated.rb`
+
+**Key Features:**
+- Verifies `process_uuid` matches before updating (prevents stale job updates)
+- Silently exits if UUID mismatch (race condition protection)
+- Uses database lock for atomicity
+- Merges new metadata with existing metadata
+
+**Use Cases:**
+- Updating processing stage during long-running operations
+- Storing external API job IDs after submission
+- Recording intermediate progress
+
+#### VideoProduction::Node::ExecutionSucceeded
+
+Marks execution as completed and stores output data.
+
+```ruby
+VideoProduction::Node::ExecutionSucceeded.(
+  node,
+  { type: 'audio', s3_key: 'output.mp3', size: 1024, duration: 10.5 },
+  process_uuid
+)
+```
+
+Location: `app/commands/video_production/node/execution_succeeded.rb`
+
+**Key Features:**
+- Verifies `process_uuid` matches before updating
+- Silently exits if UUID mismatch (race condition protection)
+- Updates status to `completed`
+- Stores output hash in `node.output`
+- Records completion timestamp in metadata
+- Uses database lock for atomicity
+
+#### VideoProduction::Node::ExecutionFailed
+
+Marks execution as failed with error message.
+
+```ruby
+VideoProduction::Node::ExecutionFailed.(node, "API timeout after 60 seconds", process_uuid)
+```
+
+Location: `app/commands/video_production/node/execution_failed.rb`
+
+**Key Features:**
+- Verifies `process_uuid` matches before updating (or accepts `nil` for pre-execution failures)
+- Silently exits if UUID mismatch
+- Updates status to `failed`
+- Stores error message in `node.metadata['error']`
+- Records completion timestamp
+- Uses database lock for atomicity
+
+**Special Case:** Accepts `nil` for `process_uuid` when failure occurs before execution starts (e.g., unknown provider).
+
+### Race Condition Protection
+
+The execution system implements comprehensive protection against three types of race conditions:
+
+**1. Webhook Double-Processing**
+- Problem: Webhook arrives before/during polling job
+- Solution: `CheckForResult` verifies status is still `in_progress` before processing
+
+**2. Concurrent Executions**
+- Problem: Second execution starts while first is still running
+- Solution: Each execution has unique `process_uuid`; all completion commands verify UUID matches
+
+**3. Check-Then-Update Races**
+- Problem: Status/UUID read and write not atomic
+- Solution: All commands use `node.with_lock` to make read-check-write operations atomic
+
+**Stale Job Behavior:**
+- When UUID mismatch detected, commands silently exit
+- No errors raised (normal distributed systems behavior)
+- Current execution continues unaffected
+
 ### Executors
 
-Node executors are Sidekiq jobs that process individual nodes. Each executor handles a specific node type.
+Node executors are Sidekiq jobs that process individual nodes. Each executor handles a specific node type and follows the execution lifecycle.
 
 Location: `app/commands/video_production/node/executors/`
 
 **Implemented Executors:**
 - `MergeVideos` - Concatenates videos via Lambda (FFmpeg)
 - `GenerateVoiceover` - Text-to-speech via ElevenLabs API
+
+**Executor Pattern:**
+```ruby
+class VideoProduction::Node::Executors::MergeVideos
+  include Mandate
+  queue_as :video_production
+  initialize_with :node
+
+  def call
+    # 1. Start execution and get process_uuid
+    process_uuid = VideoProduction::Node::ExecutionStarted.(node, {})
+
+    # 2. Do the work (call Lambda, API, etc.)
+    result = VideoProduction::InvokeLambda.(...)
+
+    # 3. Mark as succeeded
+    VideoProduction::Node::ExecutionSucceeded.(node, output, process_uuid)
+  rescue StandardError => e
+    # 4. Mark as failed on error
+    VideoProduction::Node::ExecutionFailed.(node, e.message, process_uuid)
+    raise
+  end
+end
+```
 
 **Future Executors:**
 - `TalkingHead` - HeyGen talking head videos
@@ -489,51 +629,151 @@ See `services/video_production/README.md` for Lambda deployment.
 
 ### External API Integration
 
-External APIs (ElevenLabs, HeyGen, Veo 3) use a two-command pattern: **submit + poll**.
+External APIs (ElevenLabs, HeyGen, Veo 3) use a three-command pattern: **submit → poll → process**.
 
-#### ElevenLabs Pattern
+#### ElevenLabs Implementation
 
 **Commands:**
-- `VideoProduction::APIs::ElevenLabs::GenerateAudio` - Submit TTS job
-- `VideoProduction::APIs::ElevenLabs::CheckForResult` - Poll for completion
+- `VideoProduction::APIs::ElevenLabs::GenerateAudio` - Submit TTS job to API
+- `VideoProduction::APIs::ElevenLabs::CheckForResult` - Poll for job completion
+- `VideoProduction::APIs::ElevenLabs::ProcessResult` - Download and upload to S3
 
 Location: `app/commands/video_production/apis/eleven_labs/`
 
-**Flow:**
-1. Executor calls `GenerateAudio`
-2. `GenerateAudio` submits to API, stores `audio_id` in node metadata
-3. `GenerateAudio` queues `CheckForResult` for 10 seconds later
-4. `CheckForResult` polls every 10 seconds (max 60 attempts = 10 minutes)
-5. When complete, downloads audio from ElevenLabs and uploads to S3
-6. Updates node status to `completed` with S3 key in output
+#### VideoProduction::APIs::ElevenLabs::GenerateAudio
 
-**Self-Rescheduling Pattern:**
+Submits text-to-speech job to ElevenLabs API.
+
 ```ruby
-# CheckForResult reschedules itself if still processing
-if status == 'processing'
-  self.class.set(wait: 10.seconds).defer(pipeline_id, node_id, audio_id, attempt + 1)
+VideoProduction::APIs::ElevenLabs::GenerateAudio.(node, process_uuid)
+```
+
+**Flow:**
+1. Extracts voice settings and script from node config/inputs
+2. Calls ElevenLabs API (`POST /text-to-speech/{voice_id}`)
+3. Raises error if no `audio_id` in response (validates API response)
+4. Updates node metadata with `audio_id` and `stage: 'submitted'` via `ExecutionUpdated`
+5. Queues `CheckForResult` polling job (starts after 10 seconds)
+
+**Important:** Does NOT call `ExecutionStarted` - the executor handles that.
+
+#### VideoProduction::APIs::ElevenLabs::CheckForResult
+
+Polls ElevenLabs API until job completes (with race condition protection).
+
+```ruby
+VideoProduction::APIs::ElevenLabs::CheckForResult.defer(node, process_uuid, audio_id, 1, wait: 10.seconds)
+```
+
+**Parameters:**
+- `node` - Node being processed
+- `process_uuid` - Execution identifier for race protection
+- `audio_id` - ElevenLabs job ID (external ID)
+- `attempt` - Current polling attempt number
+
+**Flow:**
+1. **Verify still current execution:** Reloads node, checks `status == 'in_progress'` AND `process_uuid` matches
+2. **Exit silently if mismatch:** Webhook already processed, or new execution started
+3. **Check max attempts:** Fails execution if exceeded (60 attempts = 10 minutes)
+4. **Poll API:** Calls `check_api_status!` to get job status
+5. **Handle response:**
+   - `completed` → Call `process_result!` to download and upload
+   - `failed` → Mark execution as failed
+   - `processing`/`pending` → Reschedule self after 10 seconds
+6. **On error:** Mark execution as failed with error message
+
+**Race Protection:**
+```ruby
+def call
+  node.reload
+  unless node.status == 'in_progress' && node.process_uuid == process_uuid
+    return  # Silently exit - stale job
+  end
+  # ... continue processing
 end
 ```
 
-**Future APIs:** HeyGen and Veo 3 will follow the same pattern.
+#### VideoProduction::APIs::ElevenLabs::ProcessResult
 
-### JSONB Partial Updates
-
-All executor database updates use JSONB `jsonb_set()` to avoid race conditions between Next.js and Rails:
+Downloads audio from ElevenLabs and uploads to S3.
 
 ```ruby
-sql = <<~SQL
-  UPDATE video_production_nodes
-  SET metadata = jsonb_set(COALESCE(metadata, '{}'::jsonb), '{key}', $1)
-  WHERE pipeline_id = $2 AND id = $3
-SQL
-
-ActiveRecord::Base.connection.execute(
-  ActiveRecord::Base.sanitize_sql([sql, value.to_json, pipeline_id, node_id])
-)
+VideoProduction::APIs::ElevenLabs::ProcessResult.(node_uuid, process_uuid, audio_url)
 ```
 
-This prevents data loss when Next.js updates structure fields (`config`) while Rails updates state fields (`metadata`, `output`).
+**Flow:**
+1. Download audio from ElevenLabs (`GET audio_url` with API key)
+2. Upload to S3 via AWS SDK (`put_object`)
+3. Mark execution succeeded with output:
+   ```ruby
+   {
+     type: 'audio',
+     s3_key: 'pipelines/.../audio.mp3',
+     size: 1024
+   }
+   ```
+
+#### CheckForResult Base Class
+
+All API polling jobs inherit from this base class.
+
+Location: `app/commands/video_production/apis/check_for_result.rb`
+
+**Abstract Methods (override in subclasses):**
+- `check_api_status!` - Returns `{ status:, data: }` hash
+- `process_result!(data)` - Downloads and processes completed result
+
+**Configuration:**
+- `MAX_ATTEMPTS` - Maximum polling attempts (default: 60)
+- `POLL_INTERVAL` - Time between polls (default: 10 seconds)
+
+**Self-Rescheduling Pattern:**
+```ruby
+case response[:status]
+when 'completed'
+  process_result!(response[:data])
+when 'processing', 'pending'
+  self.class.defer(node, process_uuid, external_id, attempt + 1, wait: poll_interval)
+when 'failed'
+  VideoProduction::Node::ExecutionFailed.(node, "API error", process_uuid)
+end
+```
+
+**Future APIs:** HeyGen and Veo 3 will follow the same pattern by inheriting from `CheckForResult`.
+
+### Node Metadata Fields
+
+**Process Tracking:**
+- `process_uuid` - Unique identifier for this execution (prevents race conditions)
+- `started_at` - ISO8601 timestamp when execution started
+- `completed_at` - ISO8601 timestamp when execution finished
+
+**External API Integration:**
+- `audio_id` - ElevenLabs job ID
+- `stage` - Current processing stage (e.g., 'submitted', 'processing')
+- `job_id` - Generic external job identifier
+
+**Error Tracking:**
+- `error` - Error message if execution failed
+
+**Other:**
+- `cost` - Estimated cost for this execution
+- `retries` - Number of retry attempts
+
+### Database Concurrency
+
+**Process UUID Protection:**
+All execution commands verify `process_uuid` matches before updating. Combined with `with_lock`, this ensures:
+- Only the current execution can update the node
+- Stale jobs (from webhooks or superseded executions) silently exit
+- No data corruption from concurrent execution attempts
+
+**Next.js/Rails Coordination:**
+Column ownership prevents conflicts:
+- **Next.js writes**: `type`, `inputs`, `config`, `asset`, `title`
+- **Rails writes**: `status`, `metadata`, `output`
+
+Both systems can safely write to their columns simultaneously without conflicts.
 
 ## Common Patterns
 
