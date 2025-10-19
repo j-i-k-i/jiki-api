@@ -10,7 +10,7 @@ class VideoProduction::Node::ExecutionSucceededTest < ActiveSupport::TestCase
 
     output = {
       type: 'audio',
-      s3Key: 'pipelines/123/audio.mp3',
+      s3_key: 'pipelines/123/audio.mp3',
       duration: 120,
       size: 1024
     }
@@ -31,7 +31,7 @@ class VideoProduction::Node::ExecutionSucceededTest < ActiveSupport::TestCase
       status: 'in_progress',
       metadata: { process_uuid: 'test-uuid' })
 
-    output = { type: 'video', s3Key: 'test.mp4', duration: 60, size: 2048 }
+    output = { type: 'video', s3_key: 'test.mp4', duration: 60, size: 2048 }
 
     VideoProduction::Node.any_instance.expects(:with_lock).yields
 
@@ -51,7 +51,7 @@ class VideoProduction::Node::ExecutionSucceededTest < ActiveSupport::TestCase
     node.update!(metadata: { process_uuid: 'second-execution', started_at: Time.current.iso8601 })
 
     # First execution tries to mark as succeeded with its old UUID
-    output = { type: 'audio', s3Key: 'old-output.mp3', duration: 10.5 }
+    output = { type: 'audio', s3_key: 'old-output.mp3', duration: 10.5 }
 
     # This should NOT update the node because process_uuid doesn't match
     VideoProduction::Node::ExecutionSucceeded.(node, output, 'first-execution')
@@ -70,13 +70,13 @@ class VideoProduction::Node::ExecutionSucceededTest < ActiveSupport::TestCase
       status: 'in_progress',
       metadata: { process_uuid: 'matching-uuid', started_at: 1.minute.ago.iso8601 })
 
-    output = { type: 'audio', s3Key: 'correct-output.mp3', duration: 10.5 }
+    output = { type: 'audio', s3_key: 'correct-output.mp3', duration: 10.5 }
 
     # This should succeed because UUID matches
     VideoProduction::Node::ExecutionSucceeded.(node, output, 'matching-uuid')
 
     node.reload
     assert_equal 'completed', node.status
-    assert_equal 'correct-output.mp3', node.output['s3Key']
+    assert_equal 'correct-output.mp3', node.output['s3_key']
   end
 end
