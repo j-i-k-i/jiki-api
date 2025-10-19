@@ -2,8 +2,6 @@ require "test_helper"
 
 class VideoProduction::Node::Executors::MergeVideosTest < ActiveSupport::TestCase
   test "successfully merges videos and updates node" do
-    ENV['AWS_S3_BUCKET'] = 'test-bucket'
-
     pipeline = create(:video_production_pipeline)
 
     # Create input nodes with outputs
@@ -22,6 +20,7 @@ class VideoProduction::Node::Executors::MergeVideosTest < ActiveSupport::TestCas
       status: 'pending')
 
     # Mock Lambda invocation
+    bucket = Jiki.config.s3_bucket_video_production
     expected_result = {
       s3_key: "pipelines/#{pipeline.uuid}/nodes/#{node.uuid}/output.mp4",
       duration: 10.5,
@@ -31,10 +30,10 @@ class VideoProduction::Node::Executors::MergeVideosTest < ActiveSupport::TestCas
       "jiki-video-merger-test",
       {
         input_videos: [
-          "s3://test-bucket/path/to/video1.mp4",
-          "s3://test-bucket/path/to/video2.mp4"
+          "s3://#{bucket}/path/to/video1.mp4",
+          "s3://#{bucket}/path/to/video2.mp4"
         ],
-        output_bucket: 'test-bucket',
+        output_bucket: bucket,
         output_key: "pipelines/#{pipeline.uuid}/nodes/#{node.uuid}/output.mp4"
       }
     ).returns(expected_result)
@@ -110,8 +109,6 @@ class VideoProduction::Node::Executors::MergeVideosTest < ActiveSupport::TestCas
   end
 
   test "preserves input order from segments array" do
-    ENV['AWS_S3_BUCKET'] = 'test-bucket'
-
     pipeline = create(:video_production_pipeline)
 
     input1 = create(:video_production_node,
@@ -132,12 +129,13 @@ class VideoProduction::Node::Executors::MergeVideosTest < ActiveSupport::TestCas
       inputs: { 'segments' => [input3.uuid, input1.uuid, input2.uuid] },
       status: 'pending')
 
+    bucket = Jiki.config.s3_bucket_video_production
     VideoProduction::InvokeLambda.expects(:call).with do |_function_name, payload|
       # Verify order matches the segments array
       payload[:input_videos] == [
-        "s3://test-bucket/path/to/video3.mp4",
-        "s3://test-bucket/path/to/video1.mp4",
-        "s3://test-bucket/path/to/video2.mp4"
+        "s3://#{bucket}/path/to/video3.mp4",
+        "s3://#{bucket}/path/to/video1.mp4",
+        "s3://#{bucket}/path/to/video2.mp4"
       ]
     end.returns({
       s3_key: "output.mp4",
@@ -164,7 +162,6 @@ class VideoProduction::Node::Executors::MergeVideosTest < ActiveSupport::TestCas
       inputs: { 'segments' => [input1.uuid, input2.uuid] },
       status: 'pending')
 
-    ENV.stubs(:fetch).with('AWS_S3_BUCKET').returns('test-bucket')
     ENV.stubs(:fetch).with('RAILS_ENV', 'development').returns('test')
     ENV.stubs(:fetch).with('VIDEO_MERGER_LAMBDA_NAME', 'jiki-video-merger-test').returns('custom-lambda-name')
 
@@ -181,8 +178,6 @@ class VideoProduction::Node::Executors::MergeVideosTest < ActiveSupport::TestCas
   end
 
   test "marks execution as started before processing" do
-    ENV['AWS_S3_BUCKET'] = 'test-bucket'
-
     pipeline = create(:video_production_pipeline)
     input1 = create(:video_production_node,
       pipeline:,

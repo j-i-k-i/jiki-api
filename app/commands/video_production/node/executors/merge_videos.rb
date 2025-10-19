@@ -29,7 +29,7 @@ class VideoProduction::Node::Executors::MergeVideos
     end
 
     # 4. Build S3 URLs for Lambda
-    bucket = ENV.fetch('AWS_S3_BUCKET')
+    bucket = Jiki.config.s3_bucket_video_production
     input_urls = ordered_inputs.map do |input_node|
       "s3://#{bucket}/#{input_node.output['s3_key']}"
     end
