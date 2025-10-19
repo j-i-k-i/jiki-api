@@ -197,7 +197,7 @@ if Dir.exist?(video_production_seeds_dir)
     pipeline_data = JSON.parse(File.read(file), symbolize_names: true)
 
     # Create or update pipeline
-    pipeline = VideoProduction::Pipeline.find_or_initialize_by(uuid: pipeline_data[:id])
+    pipeline = VideoProduction::Pipeline.find_or_initialize_by(uuid: pipeline_data[:uuid])
     pipeline.title = pipeline_data[:title]
     pipeline.version = pipeline_data[:version] || "1.0"
     pipeline.config = pipeline_data[:config] || {}
@@ -237,7 +237,7 @@ if Dir.exist?(video_production_seeds_dir)
       end
 
       node = pipeline.nodes.create!(
-        uuid: node_data[:id],
+        uuid: node_data[:uuid],
         title: node_data[:title],
         type: node_data[:type],
         inputs: node_data[:inputs] || {},

@@ -1,11 +1,11 @@
 {
-  "id": "c7f9d3b4-8e2a-4f1c-9d5e-3a8f6b2c4d7e",
+  "uuid": "c7f9d3b4-8e2a-4f1c-9d5e-3a8f6b2c4d7e",
   "title": "Simple Talking Head Example",
   "version": "1.0",
   "config": {},
   "nodes": [
     {
-      "id": "script-node-001",
+      "uuid": "1a2b3c4d-5e6f-4789-a0b1-c2d3e4f5a6b7",
       "title": "Welcome Script",
       "type": "asset",
       "inputs": {},
@@ -16,11 +16,11 @@
       }
     },
     {
-      "id": "voiceover-node-001",
+      "uuid": "2b3c4d5e-6f7a-4890-b1c2-d3e4f5a6b7c8",
       "title": "ElevenLabs Voiceover",
       "type": "generate-voiceover",
       "inputs": {
-        "script": ["script-node-001"]
+        "script": ["1a2b3c4d-5e6f-4789-a0b1-c2d3e4f5a6b7"]
       },
       "config": {
         "provider": "elevenlabs",
@@ -31,7 +31,7 @@
       }
     },
     {
-      "id": "background-node-001",
+      "uuid": "3c4d5e6f-7a8b-4901-c2d3-e4f5a6b7c8d9",
       "title": "Background Image",
       "type": "asset",
       "inputs": {},
@@ -42,12 +42,12 @@
       }
     },
     {
-      "id": "talking-head-node-001",
+      "uuid": "4d5e6f7a-8b9c-4012-d3e4-f5a6b7c8d9e0",
       "title": "HeyGen Talking Head",
       "type": "generate-talking-head",
       "inputs": {
-        "audio": ["voiceover-node-001"],
-        "background": ["background-node-001"]
+        "audio": ["2b3c4d5e-6f7a-4890-b1c2-d3e4f5a6b7c8"],
+        "background": ["3c4d5e6f-7a8b-4901-c2d3-e4f5a6b7c8d9"]
       },
       "config": {
         "provider": "heygen",
