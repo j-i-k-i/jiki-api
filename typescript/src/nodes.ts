@@ -3,7 +3,7 @@
  * Auto-generated from Rails schemas
  * DO NOT EDIT MANUALLY
  *
- * Generated at: 2025-10-18T15:47:43Z
+ * Generated at: 2025-10-19T12:21:09Z
  * Source: app/commands/video_production/node/schemas/
  */
 
@@ -11,104 +11,99 @@
 // Video Production Node Types
 // ============================================================================
 
-/** Asset node type (inputs + provider-specific config) */
+/** Asset node type (inputs + config) */
 export type AssetNode = {
   type: 'asset';
   inputs: {};
-} & (
-  | { provider: 'direct'; config: {} });
+  config: {};
+};
 
-/** ComposeVideo node type (inputs + provider-specific config) */
+/** ComposeVideo node type (inputs + config) */
 export type ComposeVideoNode = {
   type: 'compose-video';
   inputs: {
     background: string;
     overlay: string;
   };
-} & (
-  | { provider: 'ffmpeg'; config: {
-      position?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'center';
-      scale?: string;
-    } });
+  config: {
+      rounded: boolean;
+      crop_top?: number;
+      crop_left?: number;
+      crop_width?: number;
+      crop_height?: number;
+      provider: 'ffmpeg';
+    };
+};
 
-/** GenerateAnimation node type (inputs + provider-specific config) */
+/** GenerateAnimation node type (inputs + config) */
 export type GenerateAnimationNode = {
   type: 'generate-animation';
   inputs: {
     prompt?: string;
     referenceImage?: string;
   };
-} & (
-  | { provider: 'veo3'; config: {
-      model?: 'standard' | 'premium';
-      aspect_ratio?: '16:9' | '9:16' | '1:1';
-    } }
-  | { provider: 'runway'; config: {
-      generation?: 'gen2' | 'gen3';
-    } }
-  | { provider: 'stability'; config: {} });
+  config: {
+      provider: 'veo3' | 'runway' | 'stability';
+    };
+};
 
-/** GenerateTalkingHead node type (inputs + provider-specific config) */
+/** GenerateTalkingHead node type (inputs + config) */
 export type GenerateTalkingHeadNode = {
   type: 'generate-talking-head';
   inputs: {
     script?: string;
   };
-} & (
-  | { provider: 'heygen'; config: {
+  config: {
       avatar_id: string;
       voice_id: string;
-    } });
+      provider: 'heygen';
+    };
+};
 
-/** GenerateVoiceover node type (inputs + provider-specific config) */
+/** GenerateVoiceover node type (inputs + config) */
 export type GenerateVoiceoverNode = {
   type: 'generate-voiceover';
   inputs: {
     script?: string;
   };
-} & (
-  | { provider: 'elevenlabs'; config: {
-      voice_id: string;
-      model?: 'eleven_monolingual_v1' | 'eleven_multilingual_v2';
-    } });
+  config: {
+      provider: 'elevenlabs';
+    };
+};
 
-/** MergeVideos node type (inputs + provider-specific config) */
+/** MergeVideos node type (inputs + config) */
 export type MergeVideosNode = {
   type: 'merge-videos';
   inputs: {
     segments: string[];
   };
-} & (
-  | { provider: 'ffmpeg'; config: {
-      output_format?: 'mp4' | 'webm';
-      preset?: 'ultrafast' | 'superfast' | 'veryfast' | 'faster' | 'fast' | 'medium' | 'slow' | 'slower' | 'veryslow';
-    } });
+  config: {
+      provider: 'ffmpeg';
+    };
+};
 
-/** MixAudio node type (inputs + provider-specific config) */
+/** MixAudio node type (inputs + config) */
 export type MixAudioNode = {
   type: 'mix-audio';
   inputs: {
     video: string;
     audio: string;
   };
-} & (
-  | { provider: 'ffmpeg'; config: {
-      audio_codec?: 'aac' | 'mp3' | 'opus';
-      volume?: number;
-    } });
+  config: {
+      provider: 'ffmpeg';
+    };
+};
 
-/** RenderCode node type (inputs + provider-specific config) */
+/** RenderCode node type (inputs + config) */
 export type RenderCodeNode = {
   type: 'render-code';
   inputs: {
     config?: string;
   };
-} & (
-  | { provider: 'remotion'; config: {
-      composition: string;
-      fps?: number;
-      quality?: number;
-    } });
+  config: {
+      provider: 'remotion';
+    };
+};
 
 // ============================================================================
 // Union Type for All Nodes

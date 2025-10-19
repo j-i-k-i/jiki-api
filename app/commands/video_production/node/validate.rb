@@ -12,30 +12,8 @@ class VideoProduction::Node::Validate
       }
     end
 
-    # Check provider field exists
-    if node.provider.blank?
-      return {
-        is_valid: false,
-        validation_errors: { provider: "Provider is required" }
-      }
-    end
-
-    # Get provider-specific config from schema
-    provider_configs = begin
-      schema.const_get(:PROVIDER_CONFIGS)
-    rescue StandardError
-      {}
-    end
-    unless provider_configs.key?(node.provider)
-      return {
-        is_valid: false,
-        validation_errors: { provider: "Unknown provider '#{node.provider}' for #{node.type} nodes" }
-      }
-    end
-
-    # Validate inputs and config with provider-specific schema
     input_errors = VideoProduction::Node::ValidateInputs.(node, schema::INPUTS)
-    config_errors = VideoProduction::Node::ValidateConfig.(node, schema, node.provider)
+    config_errors = VideoProduction::Node::ValidateConfig.(node, schema::CONFIG)
 
     errors = input_errors.merge(config_errors)
 

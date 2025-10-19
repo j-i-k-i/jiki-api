@@ -9,21 +9,12 @@ class VideoProduction::Node::Schemas::MergeVideos
     }
   }.freeze
 
-  # Provider-specific config schemas
-  PROVIDER_CONFIGS = {
-    'ffmpeg' => {
-      'output_format' => {
-        type: :string,
-        required: false,
-        allowed_values: %w[mp4 webm],
-        description: 'Output video format'
-      },
-      'preset' => {
-        type: :string,
-        required: false,
-        allowed_values: %w[ultrafast superfast veryfast faster fast medium slow slower veryslow],
-        description: 'FFmpeg encoding preset'
-      }
+  CONFIG = {
+    'provider' => {
+      type: :string,
+      required: true,
+      allowed_values: %w[ffmpeg],
+      description: 'Video merging provider'
     }
   }.freeze
 end

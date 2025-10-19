@@ -77,12 +77,6 @@ module TypescriptGenerator
           next
         end
 
-        # Skip if PROVIDER_CONFIGS is not defined
-        unless schema_class.const_defined?(:PROVIDER_CONFIGS)
-          Rails.logger.warn "Skipping #{filename}: PROVIDER_CONFIGS not defined"
-          next
-        end
-
         schemas[node_type] = schema_class
       end
 
@@ -92,22 +86,23 @@ module TypescriptGenerator
     def generate_node_type(node_type, schema_class)
       type_name = node_type_to_type_name(node_type)
       inputs = schema_class::INPUTS
-      provider_configs = schema_class::PROVIDER_CONFIGS
+      config_schema = schema_class::CONFIG
 
       parts = []
-      parts << "/** #{type_name} node type (inputs + provider-specific config) */"
+      parts << "/** #{type_name} node type (inputs + config) */"
 
       # Generate inputs object inline
       inputs_obj = generate_inputs_object(inputs)
 
-      # Generate provider discriminated union
-      provider_union = generate_provider_union(provider_configs)
+      # Generate config object
+      config_obj = generate_config_object(config_schema)
 
-      # Combine them with intersection (&)
+      # Combine them
       parts << "export type #{type_name}Node = {"
       parts << "  type: '#{node_type}';"
       parts << "  inputs: #{inputs_obj};"
-      parts << "} & (#{provider_union});"
+      parts << "  config: #{config_obj};"
+      parts << "};"
 
       parts.join("\n")
     end
@@ -136,15 +131,6 @@ module TypescriptGenerator
 
       lines << "  }"
       lines.join("\n")
-    end
-
-    def generate_provider_union(provider_configs)
-      union_parts = provider_configs.map do |provider_name, config_schema|
-        config_obj = generate_config_object(config_schema)
-        "\n  | { provider: '#{provider_name}'; config: #{config_obj} }"
-      end
-
-      union_parts.join
     end
 
     def generate_config_object(config_schema)

@@ -4,22 +4,20 @@ FactoryBot.define do
 
     title { "Test Node" }
     type { 'asset' }
-    provider { 'direct' }
     inputs { {} }
     config { {} }
     status { 'pending' }
 
     trait :merge_videos do
       type { 'merge-videos' }
-      provider { 'ffmpeg' }
-      config { {} }
+      config { { 'provider' => 'ffmpeg' } }
     end
 
     trait :talking_head do
       type { 'generate-talking-head' }
-      provider { 'heygen' }
       config do
         {
+          'provider' => 'heygen',
           'avatar_id' => 'avatar-1',
           'voice_id' => 'voice-1'
         }
@@ -28,16 +26,18 @@ FactoryBot.define do
 
     trait :generate_animation do
       type { 'generate-animation' }
-      provider { 'veo3' }
-      config { {} }
+      config do
+        {
+          'provider' => 'veo3'
+        }
+      end
     end
 
     trait :generate_voiceover do
       type { 'generate-voiceover' }
-      provider { 'elevenlabs' }
       config do
         {
-          'voice_id' => 'voice-1'
+          'provider' => 'elevenlabs'
         }
       end
     end

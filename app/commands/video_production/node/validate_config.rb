@@ -1,33 +1,21 @@
 class VideoProduction::Node::ValidateConfig
   include Mandate
 
-  initialize_with :node, :schema, :provider
+  initialize_with :node, :schema
 
   def call
     return {} if schema.blank?
 
-    # Get provider-specific config schema
-    provider_configs = begin
-      schema.const_get(:PROVIDER_CONFIGS)
-    rescue StandardError
-      {}
-    end
-    return {} if provider_configs.blank?
-
-    # Get the config schema for this provider
-    provider_schema = provider_configs[provider]
-    return {} if provider_schema.blank?
-
     errors = {}
-    errors.merge!(validate_each_config_key(provider_schema))
+    errors.merge!(validate_each_config_key)
     errors
   end
 
   private
-  def validate_each_config_key(provider_schema)
+  def validate_each_config_key
     errors = {}
 
-    provider_schema.each do |key_name, rules|
+    schema.each do |key_name, rules|
       value = node.config&.dig(key_name)
 
       # Validate required
