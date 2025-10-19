@@ -1,28 +1,38 @@
 class VideoProduction::Node::Schemas::GenerateTalkingHead
   INPUTS = {
-    'script' => {
+    'audio' => {
+      type: :single,
+      required: true,
+      description: 'Reference to audio node for avatar speech'
+    },
+    'background' => {
       type: :single,
       required: false,
-      description: 'Reference to asset node with script text'
+      description: 'Reference to image asset node for video background'
     }
   }.freeze
 
   CONFIG = {
-    'avatar_id' => {
-      type: :string,
-      required: true,
-      description: 'HeyGen avatar ID'
-    },
-    'voice_id' => {
-      type: :string,
-      required: true,
-      description: 'HeyGen voice ID'
-    },
     'provider' => {
       type: :string,
       required: true,
       allowed_values: %w[heygen],
-      description: 'Talking head generation provider'
+      description: 'Talking head video generation provider'
+    },
+    'avatar_id' => {
+      type: :string,
+      required: true,
+      description: 'HeyGen avatar ID (e.g., "Monica_inSleeveless_20220819")'
+    },
+    'width' => {
+      type: :integer,
+      required: false,
+      description: 'Video width in pixels (default: 1280)'
+    },
+    'height' => {
+      type: :integer,
+      required: false,
+      description: 'Video height in pixels (default: 720)'
     }
   }.freeze
 end

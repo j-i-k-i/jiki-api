@@ -173,13 +173,13 @@ class VideoProduction::Node::ValidateInputsTest < ActiveSupport::TestCase
     assert_equal "asset nodes should not have inputs", result[:unexpected_inputs]
   end
 
-  test "generate-talking-head with valid script input" do
+  test "generate-talking-head with valid audio input" do
     pipeline = create(:video_production_pipeline)
-    script_node = create(:video_production_node, pipeline:, type: 'asset')
+    audio_node = create(:video_production_node, pipeline:, type: 'generate-voiceover')
     node = build(:video_production_node,
       pipeline:,
       type: 'generate-talking-head',
-      inputs: { 'script' => script_node.uuid })
+      inputs: { 'audio' => audio_node.uuid })
 
     schema = VideoProduction::Node::Schemas::GenerateTalkingHead::INPUTS
     result = VideoProduction::Node::ValidateInputs.(node, schema)
@@ -187,9 +187,24 @@ class VideoProduction::Node::ValidateInputsTest < ActiveSupport::TestCase
     assert_empty result
   end
 
-  test "generate-talking-head without script is valid (optional)" do
+  test "generate-talking-head without audio fails (required)" do
     pipeline = create(:video_production_pipeline)
     node = build(:video_production_node, pipeline:, type: 'generate-talking-head', inputs: {})
+
+    schema = VideoProduction::Node::Schemas::GenerateTalkingHead::INPUTS
+    result = VideoProduction::Node::ValidateInputs.(node, schema)
+
+    assert_equal "is required for generate-talking-head nodes", result[:audio]
+  end
+
+  test "generate-talking-head with audio and background inputs" do
+    pipeline = create(:video_production_pipeline)
+    audio_node = create(:video_production_node, pipeline:, type: 'generate-voiceover')
+    background_node = create(:video_production_node, pipeline:, type: 'asset')
+    node = build(:video_production_node,
+      pipeline:,
+      type: 'generate-talking-head',
+      inputs: { 'audio' => audio_node.uuid, 'background' => background_node.uuid })
 
     schema = VideoProduction::Node::Schemas::GenerateTalkingHead::INPUTS
     result = VideoProduction::Node::ValidateInputs.(node, schema)

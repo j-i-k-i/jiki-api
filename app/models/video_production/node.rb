@@ -16,7 +16,7 @@ module VideoProduction
 
     # JSONB accessors
     store_accessor :config, :provider
-    store_accessor :metadata, :started_at, :completed_at, :job_id, :cost, :retries, :error
+    store_accessor :metadata, :started_at, :completed_at, :job_id, :cost, :retries, :error, :process_uuid
     store_accessor :output, :s3_key, :local_file, :duration, :size
 
     # Scopes

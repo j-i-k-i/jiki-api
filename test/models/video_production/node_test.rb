@@ -235,14 +235,14 @@ module VideoProduction
 
     test "metadata accessor works" do
       node = create(:video_production_node, :completed)
-      assert node.metadata['completedAt'].present?
+      assert node.metadata['completed_at'].present?
       assert_equal 0.05, node.metadata['cost']
     end
 
     test "output accessor works" do
       node = create(:video_production_node, :completed)
       assert_equal 'video', node.output['type']
-      assert_equal 'output/test.mp4', node.output['s3Key']
+      assert_equal 'output/test.mp4', node.output['s3_key']
     end
   end
 end

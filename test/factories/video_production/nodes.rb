@@ -18,8 +18,7 @@ FactoryBot.define do
       config do
         {
           'provider' => 'heygen',
-          'avatar_id' => 'avatar-1',
-          'voice_id' => 'voice-1'
+          'avatar_id' => 'avatar-1'
         }
       end
     end
@@ -46,15 +45,15 @@ FactoryBot.define do
       status { 'completed' }
       metadata do
         {
-          'startedAt' => 1.hour.ago.iso8601,
-          'completedAt' => Time.current.iso8601,
+          'started_at' => 1.hour.ago.iso8601,
+          'completed_at' => Time.current.iso8601,
           'cost' => 0.05
         }
       end
       output do
         {
           'type' => 'video',
-          's3Key' => 'output/test.mp4',
+          's3_key' => 'output/test.mp4',
           'duration' => 60.0,
           'size' => 5_242_880
         }

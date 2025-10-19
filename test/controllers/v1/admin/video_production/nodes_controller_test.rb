@@ -66,7 +66,7 @@ class V1::Admin::VideoProduction::NodesControllerTest < ApplicationControllerTes
       inputs: { 'segments' => [input1.uuid, input2.uuid] },
       config: { 'provider' => 'ffmpeg' },
       metadata: { 'cost' => 0.05 },
-      output: { 's3Key' => 'output.mp4' })
+      output: { 's3_key' => 'output.mp4' })
 
     Prosopite.scan
     get v1_admin_video_production_pipeline_nodes_path(@pipeline.uuid), headers: @headers, as: :json
@@ -84,7 +84,7 @@ class V1::Admin::VideoProduction::NodesControllerTest < ApplicationControllerTes
     assert_equal({ 'segments' => [input1.uuid, input2.uuid] }, node_data["inputs"])
     assert_equal({ 'provider' => 'ffmpeg' }, node_data["config"])
     assert_equal({ 'cost' => 0.05 }, node_data["metadata"])
-    assert_equal({ 's3Key' => 'output.mp4' }, node_data["output"])
+    assert_equal({ 's3_key' => 'output.mp4' }, node_data["output"])
     # Validation state fields are present (values depend on Create vs factory)
     assert node_data.key?("is_valid")
     assert node_data.key?("validation_errors")
@@ -126,14 +126,15 @@ class V1::Admin::VideoProduction::NodesControllerTest < ApplicationControllerTes
   # SHOW tests
 
   test "GET show returns single node with full data" do
+    audio_node = create(:video_production_node, pipeline: @pipeline, type: 'generate-voiceover')
     node = create(:video_production_node,
       pipeline: @pipeline,
       title: "Test Node",
       type: "generate-talking-head",
       status: "in_progress",
-      inputs: { 'script' => ['script-node-id'] },
-      config: { 'provider' => 'heygen', 'avatarId' => 'avatar-1' },
-      metadata: { 'startedAt' => Time.current.iso8601 },
+      inputs: { 'audio' => [audio_node.uuid] },
+      config: { 'provider' => 'heygen', 'avatar_id' => 'avatar-1' },
+      metadata: { 'started_at' => Time.current.iso8601 },
       output: nil)
 
     get v1_admin_video_production_pipeline_node_path(@pipeline.uuid, node.uuid),
@@ -148,10 +149,10 @@ class V1::Admin::VideoProduction::NodesControllerTest < ApplicationControllerTes
         title: "Test Node",
         type: "generate-talking-head",
         status: "in_progress",
-        inputs: { 'script' => ['script-node-id'] },
-        config: { 'provider' => 'heygen', 'avatarId' => 'avatar-1' },
+        inputs: { 'audio' => [audio_node.uuid] },
+        config: { 'provider' => 'heygen', 'avatar_id' => 'avatar-1' },
         asset: nil,
-        metadata: { 'startedAt' => node.metadata['startedAt'] },
+        metadata: { 'started_at' => node.metadata['started_at'] },
         output: nil,
         is_valid: node.is_valid,
         validation_errors: node.validation_errors
@@ -180,13 +181,13 @@ class V1::Admin::VideoProduction::NodesControllerTest < ApplicationControllerTes
       pipeline: @pipeline,
       status: "completed",
       metadata: {
-        'startedAt' => 1.hour.ago.iso8601,
-        'completedAt' => Time.current.iso8601,
+        'started_at' => 1.hour.ago.iso8601,
+        'completed_at' => Time.current.iso8601,
         'cost' => 0.15
       },
       output: {
         'type' => 'video',
-        's3Key' => 'pipelines/xyz/nodes/abc/output.mp4',
+        's3_key' => 'pipelines/xyz/nodes/abc/output.mp4',
         'duration' => 120.5,
         'size' => 10_485_760
       })
@@ -198,10 +199,10 @@ class V1::Admin::VideoProduction::NodesControllerTest < ApplicationControllerTes
     assert_response :success
     json = response.parsed_body
     assert_equal "completed", json["node"]["status"]
-    assert json["node"]["metadata"]["completedAt"].present?
+    assert json["node"]["metadata"]["completed_at"].present?
     assert_equal 0.15, json["node"]["metadata"]["cost"]
     assert_equal "video", json["node"]["output"]["type"]
-    assert_equal "pipelines/xyz/nodes/abc/output.mp4", json["node"]["output"]["s3Key"]
+    assert_equal "pipelines/xyz/nodes/abc/output.mp4", json["node"]["output"]["s3_key"]
   end
 
   test "GET show returns 404 for non-existent pipeline" do
@@ -622,7 +623,7 @@ class V1::Admin::VideoProduction::NodesControllerTest < ApplicationControllerTes
     node_with_string = create(:video_production_node,
       pipeline: @pipeline,
       type: "generate-talking-head",
-      inputs: { 'script' => node_to_delete.uuid })
+      inputs: { 'audio' => node_to_delete.uuid })
 
     Prosopite.scan
     delete v1_admin_video_production_pipeline_node_path(@pipeline.uuid, node_to_delete.uuid),

@@ -23,7 +23,7 @@ class EmailTemplate::Search
     filter_slug!
     filter_locale!
 
-    @email_templates.page(page).per(per)
+    @email_templates.order(:id).page(page).per(per)
   end
 
   private

@@ -17,7 +17,6 @@ module TypescriptGenerator
          * Auto-generated from Rails schemas
          * DO NOT EDIT MANUALLY
          *
-         * Generated at: #{Time.current.iso8601}
          * Source: app/commands/video_production/node/schemas/
          */
 

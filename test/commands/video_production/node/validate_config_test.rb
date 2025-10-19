@@ -26,8 +26,7 @@ class VideoProduction::Node::ValidateConfigTest < ActiveSupport::TestCase
       type: 'generate-talking-head',
       config: {
         'provider' => 'heygen',
-        'avatar_id' => 'avatar-1',
-        'voice_id' => 'voice-1'
+        'avatar_id' => 'avatar-1'
       })
 
     # Schema now has required fields

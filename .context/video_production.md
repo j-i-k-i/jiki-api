@@ -25,7 +25,7 @@ The video production system allows admins to create and execute complex video ge
 │  • CRUD operations for pipelines/nodes          │
 │  • Input validation                             │
 │  • Database writes (status, metadata, output)   │
-│  • Future: Sidekiq background jobs              │
+│  • Sidekiq executors & polling jobs             │
 └─────────────────┬───────────────────────────────┘
                   │
          ┌────────┼────────┬────────┬──────────┐
@@ -36,6 +36,22 @@ The video production system allows admins to create and execute complex video ge
     └────────┘ └─────┘ └──────┘ └────────┘ └────┘
 ```
 
+## Services Structure
+
+Lambda functions and deployment configuration live in `services/video_production/`:
+
+```
+services/video_production/
+├── README.md                    # Deployment guide and architecture
+├── template.yaml                # AWS SAM deployment config
+└── video-merger/                # FFmpeg video concatenation Lambda
+    ├── index.js
+    ├── package.json
+    └── README.md
+```
+
+All Ruby code (executors, API clients, utilities) remains in `app/commands/video_production/`.
+
 ## Database Schema
 
 ### Shared PostgreSQL Database
@@ -43,7 +59,7 @@ The video production system allows admins to create and execute complex video ge
 Both Next.js (code-videos) and Rails connect to the same database. Column ownership prevents conflicts:
 
 - **Next.js writes**: `type`, `inputs`, `config`, `asset`, `title`
-- **Rails writes**: `status`, `metadata`, `output`
+- **Rails writes**: `status`, `metadata`, `output`, `is_valid`, `validation_errors`
 
 ### video_production_pipelines
 
@@ -79,13 +95,17 @@ create_table :video_production_nodes, id: :uuid do |t|
   t.jsonb :metadata
   t.jsonb :output
 
+  # Validation state (Rails writes)
+  t.boolean :is_valid, null: false, default: false
+  t.jsonb :validation_errors, null: false, default: {}
+
   t.timestamps
 end
 ```
 
 **Node Types:**
 - `asset` - Static file references
-- `talking-head` - HeyGen talking head videos
+- `generate-talking-head` - HeyGen talking head videos
 - `generate-animation` - Veo 3 / Runway animations
 - `generate-voiceover` - ElevenLabs text-to-speech
 - `render-code` - Remotion code screen animations
@@ -97,296 +117,71 @@ end
 
 ## Models
 
-### VideoProduction::Pipeline
+### VideoProduction::Pipeline (`app/models/video_production/pipeline.rb`)
 
-```ruby
-class VideoProduction::Pipeline < ApplicationRecord
-  self.table_name = 'video_production_pipelines'
+- Has many nodes (cascade delete)
+- Auto-generates UUID on create
+- JSONB accessors: `storage`, `working_directory`, `total_cost`, `estimated_total_cost`, `progress`
+- `progress_summary` method returns node progress counts from metadata
 
-  has_many :nodes, class_name: 'VideoProduction::Node',
-           foreign_key: :pipeline_id, dependent: :destroy
+### VideoProduction::Node (`app/models/video_production/node.rb`)
 
-  validates :title, presence: true
-  validates :version, presence: true
-end
-```
+- Uses `disable_sti!` to prevent Rails STI on `type` column
+- Belongs to pipeline
+- Auto-generates UUID on create
+- JSONB accessors for config (provider), metadata (process_uuid, timestamps, error, cost), output (s3_key, duration, size)
+- Scopes: `pending`, `in_progress`, `completed`, `failed`
+- `inputs_satisfied?` - Checks if all input nodes are completed
+- `ready_to_execute?` - Returns true if pending, valid, and inputs satisfied
 
-Location: `app/models/video_production/pipeline.rb`
+## Schema-Based Validation
 
-### VideoProduction::Node
+Each node type has a schema class in `app/commands/video_production/node/schemas/` that defines:
+- **INPUTS** - Input slot definitions (types, requirements, constraints)
+- **CONFIG** - Configuration field definitions (types, allowed values, requirements)
 
-```ruby
-class VideoProduction::Node < ApplicationRecord
-  self.table_name = 'video_production_nodes'
+**Schema Structure:**
+- Input types: `:single` (one node reference) or `:multiple` (array of references with min/max counts)
+- Config types: `:string`, `:integer`, `:boolean`, `:array`, `:hash`
+- Common properties: `required`, `allowed_values`, `description`, `min_count`, `max_count`
 
-  # Prevent Rails STI on 'type' column
-  self.inheritance_column = :_type_disabled
+**Validation Commands:**
+- `VideoProduction::Node::Validate` - Main orchestrator that calls ValidateInputs and ValidateConfig, updates `is_valid` and `validation_errors` columns
+- `VideoProduction::Node::ValidateInputs` - Validates input slots against schema, checks node references exist
+- `VideoProduction::Node::ValidateConfig` - Validates config fields against schema, checks types and allowed values
 
-  belongs_to :pipeline, class_name: 'VideoProduction::Pipeline',
-             foreign_key: :pipeline_id
-
-  validates :uuid, presence: true, uniqueness: { scope: :pipeline_id }
-  validates :title, presence: true
-  validates :type, presence: true, inclusion: {
-    in: %w[asset talking-head generate-animation generate-voiceover
-           render-code mix-audio merge-videos compose-video]
-  }
-  validates :status, inclusion: {
-    in: %w[pending in_progress completed failed]
-  }
-end
-```
-
-Location: `app/models/video_production/node.rb`
-
-**Important:** Uses `self.inheritance_column = :_type_disabled` to prevent Rails STI behavior.
-
-## Input Validation
-
-Input schemas are defined in `app/models/video_production.rb`:
-
-```ruby
-module VideoProduction
-  INPUT_SCHEMAS = {
-    'asset' => {},  # No inputs
-    'merge-videos' => {
-      segments: { type: :array, required: true, min_items: 2 }
-    },
-    'mix-audio' => {
-      video: { type: :array, required: true },
-      audio: { type: :array, required: true }
-    },
-    'compose-video' => {
-      background: { type: :array, required: true },
-      overlay: { type: :array, required: true }
-    },
-    'talking-head' => {
-      script: { type: :array, required: false }
-    },
-    'generate-animation' => {
-      prompt: { type: :array, required: false },
-      referenceImage: { type: :array, required: false }
-    },
-    'generate-voiceover' => {
-      script: { type: :array, required: false }
-    },
-    'render-code' => {
-      config: { type: :array, required: false }
-    }
-  }.freeze
-end
-```
-
-Validation is performed by `VideoProduction::Node::ValidateInputs` command, which:
-1. Checks for unexpected input slots
-2. Validates required inputs
-3. Checks array types and minimum items
-4. Verifies referenced node UUIDs exist in database
-
-Location: `app/commands/video_production/node/validate_inputs.rb`
+Validation runs automatically on node create/update. Nodes with `is_valid: false` cannot execute (`ready_to_execute?` checks this).
 
 ## Commands
 
-All commands use the Mandate pattern (see `.context/architecture.md`).
+All commands in `app/commands/video_production/` use the Mandate pattern (see `.context/architecture.md`).
 
-### VideoProduction::Pipeline::Create
+**Pipeline CRUD:**
+- `Pipeline::Create` - Creates pipeline with title, version, config, metadata
+- `Pipeline::Update` - Updates pipeline attributes
+- `Pipeline::Destroy` - Deletes pipeline (cascades to nodes)
 
-Creates a new pipeline with provided parameters.
+**Node CRUD:**
+- `Node::Create` - Creates node and runs validation (raises `VideoProductionBadInputsError` on failure)
+- `Node::Update` - Updates node, resets status to `pending` if structure fields (`inputs`, `config`, `asset`) change
+- `Node::Destroy` - Deletes node and cleans up references (removes UUID from array inputs, removes entire slot for single inputs)
 
-```ruby
-VideoProduction::Pipeline::Create.(
-  title: "Ruby Course",
-  version: "1.0",
-  config: { storage: { bucket: "jiki-videos" } },
-  metadata: { totalCost: 0 }
-)
-```
+## Controllers & Serializers
 
-Location: `app/commands/video_production/pipeline/create.rb`
+**Controllers:** Admin-only CRUD at `/v1/admin/video_production/*` (see Routes below)
+- `PipelinesController` - Index (paginated 25/page), show, create, update, destroy
+- `NodesController` - Nested under pipelines, index, show, create (validates), update (validates, resets status), destroy (cleans refs)
+- Returns 404 for not found, 422 for validation errors
 
-### VideoProduction::Pipeline::Update
-
-Updates an existing pipeline.
-
-```ruby
-VideoProduction::Pipeline::Update.(
-  pipeline,
-  title: "Updated Title"
-)
-```
-
-Location: `app/commands/video_production/pipeline/update.rb`
-
-### VideoProduction::Pipeline::Destroy
-
-Deletes a pipeline (cascades to nodes via foreign key).
-
-```ruby
-VideoProduction::Pipeline::Destroy.(pipeline)
-```
-
-Location: `app/commands/video_production/pipeline/destroy.rb`
-
-### VideoProduction::Node::Create
-
-Creates a node and validates inputs.
-
-```ruby
-VideoProduction::Node::Create.(
-  pipeline,
-  title: "Merge Videos",
-  type: "merge-videos",
-  inputs: { segments: ["uuid1", "uuid2"] },
-  config: { provider: "ffmpeg" }
-)
-```
-
-Location: `app/commands/video_production/node/create.rb`
-
-**Raises:** `VideoProductionBadInputsError` if validation fails
-
-### VideoProduction::Node::Update
-
-Updates a node, resets status to `pending` if structure fields change.
-
-```ruby
-VideoProduction::Node::Update.(
-  node,
-  config: { provider: "updated" }
-)
-```
-
-Location: `app/commands/video_production/node/update.rb`
-
-Structure fields that trigger status reset:
-- `inputs`
-- `config`
-- `asset`
-
-### VideoProduction::Node::Destroy
-
-Deletes a node and removes references from other nodes' inputs.
-
-```ruby
-VideoProduction::Node::Destroy.(node)
-```
-
-Location: `app/commands/video_production/node/destroy.rb`
-
-When a node is deleted:
-- If referenced in an array input, UUID is removed from array
-- If referenced as a string/direct input, the entire slot is removed
-
-### VideoProduction::Node::ValidateInputs
-
-Validates node inputs against schema.
-
-```ruby
-VideoProduction::Node::ValidateInputs.(
-  'merge-videos',
-  { 'segments' => ['uuid1', 'uuid2'] },
-  pipeline.id
-)
-```
-
-Location: `app/commands/video_production/node/validate_inputs.rb`
-
-**Raises:** `VideoProductionBadInputsError` with comma-separated error messages
-
-## Controllers
-
-### V1::Admin::VideoProduction::PipelinesController
-
-Admin-only CRUD operations for pipelines.
-
-**Actions:**
-- `index` - Paginated list (25 per page by default)
-- `show` - Single pipeline with nodes included
-- `create` - Create new pipeline
-- `update` - Update existing pipeline
-- `destroy` - Delete pipeline (cascades to nodes)
-
-Location: `app/controllers/v1/admin/video_production/pipelines_controller.rb`
-
-### V1::Admin::VideoProduction::NodesController
-
-Admin-only CRUD operations for nodes within a pipeline.
-
-**Actions:**
-- `index` - All nodes for a pipeline (ordered by created_at)
-- `show` - Single node
-- `create` - Create new node (validates inputs)
-- `update` - Update node (validates inputs, resets status if needed)
-- `destroy` - Delete node (cleans up references)
-
-Location: `app/controllers/v1/admin/video_production/nodes_controller.rb`
-
-**Error Responses:**
-- `404 Not Found` - Pipeline or node not found
-- `422 Unprocessable Entity` - Validation errors
-
-## Serializers
-
-### SerializeAdminVideoProductionPipeline
-
-Serializes a pipeline with optional nodes.
-
-```ruby
-SerializeAdminVideoProductionPipeline.(
-  pipeline,
-  include_nodes: true
-)
-```
-
-Location: `app/serializers/serialize_admin_video_production_pipeline.rb`
-
-### SerializeAdminVideoProductionPipelines
-
-Collection serializer for pipelines (delegates to singular).
-
-Location: `app/serializers/serialize_admin_video_production_pipelines.rb`
-
-### SerializeAdminVideoProductionNode
-
-Serializes a single node with all fields.
-
-```ruby
-SerializeAdminVideoProductionNode.(node)
-```
-
-Location: `app/serializers/serialize_admin_video_production_node.rb`
-
-### SerializeAdminVideoProductionNodes
-
-Collection serializer for nodes (delegates to singular).
-
-Location: `app/serializers/serialize_admin_video_production_nodes.rb`
+**Serializers:** All in `app/serializers/` using Mandate pattern
+- `SerializeAdminVideoProductionPipeline(s)` - Pipeline with UUID, title, version, config, metadata (optionally includes nodes)
+- `SerializeAdminVideoProductionNode(s)` - Node with all fields including validation state
 
 ## Routes
 
-```ruby
-namespace :v1 do
-  namespace :admin do
-    namespace :video_production do
-      resources :pipelines, only: [:index, :show, :create, :update, :destroy], param: :uuid do
-        resources :nodes, only: [:index, :show, :create, :update, :destroy], param: :uuid
-      end
-    end
-  end
-end
-```
-
-**Generated Routes:**
-- `GET    /v1/admin/video_production/pipelines`
-- `POST   /v1/admin/video_production/pipelines`
-- `GET    /v1/admin/video_production/pipelines/:uuid`
-- `PATCH  /v1/admin/video_production/pipelines/:uuid`
-- `DELETE /v1/admin/video_production/pipelines/:uuid`
-- `GET    /v1/admin/video_production/pipelines/:pipeline_uuid/nodes`
-- `POST   /v1/admin/video_production/pipelines/:pipeline_uuid/nodes`
-- `GET    /v1/admin/video_production/pipelines/:pipeline_uuid/nodes/:uuid`
-- `PATCH  /v1/admin/video_production/pipelines/:pipeline_uuid/nodes/:uuid`
-- `DELETE /v1/admin/video_production/pipelines/:pipeline_uuid/nodes/:uuid`
+Nested resources under `/v1/admin/video_production/`:
+- `pipelines` - Standard REST actions (index, show, create, update, destroy) using `:uuid` param
+- `pipelines/:pipeline_uuid/nodes` - Nested nodes with same REST actions using `:uuid` param
 
 ## Testing
 
@@ -429,87 +224,132 @@ assert_raises(VideoProductionBadInputsError) do
 end
 ```
 
-## Future Implementation: Execution System
+## Execution System
 
-Phase 3 will add execution capabilities. See `VIDEO_PRODUCTION_PLAN.md` for details.
+### Execution Lifecycle Commands
 
-**Planned Components:**
-- `VideoProduction::Node::Execute` - Command to queue execution jobs
-- Executor commands for each node type (TalkingHead, MergeVideos, etc.)
-- Lambda integration for FFmpeg operations
-- External API clients (HeyGen, ElevenLabs, Veo 3)
-- JSONB partial updates to avoid race conditions
-- Sidekiq background jobs with retry logic
+All execution commands follow a strict lifecycle to prevent race conditions and ensure data integrity.
 
-## Common Patterns
+**Execution Lifecycle:**
+1. `ExecutionStarted` - Marks node as `in_progress`, generates unique `process_uuid`
+2. `ExecutionUpdated` - Updates metadata during processing (with UUID verification)
+3. `ExecutionSucceeded` or `ExecutionFailed` - Completes execution (with UUID verification)
 
-### Creating a Pipeline with Nodes
+**Execution Lifecycle Commands** (`app/commands/video_production/node/`):
 
-```ruby
-# 1. Create pipeline
-pipeline = VideoProduction::Pipeline::Create.(
-  title: "Course Intro",
-  version: "1.0",
-  config: {},
-  metadata: {}
-)
+1. `ExecutionStarted` - Sets status to `in_progress`, generates unique `process_uuid`, sets `started_at`, returns UUID for tracking
+2. `ExecutionUpdated` - Updates metadata during processing (verifies process_uuid matches, silently exits on mismatch)
+3. `ExecutionSucceeded` - Sets status to `completed`, stores output, sets `completed_at` (verifies process_uuid)
+4. `ExecutionFailed` - Sets status to `failed`, stores error message, sets `completed_at` (verifies process_uuid, accepts nil for pre-execution failures)
 
-# 2. Create asset nodes
-script = VideoProduction::Node::Create.(
-  pipeline,
-  title: "Script",
-  type: "asset",
-  asset: { source: "scripts/intro.txt", type: "text" }
-)
+All use `with_lock` for atomicity. UUID verification prevents stale jobs from corrupting state.
 
-# 3. Create processing nodes
-talking_head = VideoProduction::Node::Create.(
-  pipeline,
-  title: "Talking Head",
-  type: "talking-head",
-  inputs: { script: [script.uuid] },
-  config: { provider: "heygen", avatarId: "avatar-1" }
-)
-```
+### Race Condition Protection
 
-### Updating Node Structure
+The execution system implements comprehensive protection against three types of race conditions:
 
-```ruby
-# This will reset status to 'pending' because inputs changed
-VideoProduction::Node::Update.(
-  node,
-  inputs: { segments: [new_uuid1, new_uuid2] }
-)
+**1. Webhook Double-Processing**
+- Problem: Webhook arrives before/during polling job
+- Solution: `CheckForResult` verifies status is still `in_progress` before processing
 
-# This will NOT reset status (only title changed)
-VideoProduction::Node::Update.(
-  node,
-  title: "New Title"
-)
-```
+**2. Concurrent Executions**
+- Problem: Second execution starts while first is still running
+- Solution: Each execution has unique `process_uuid`; all completion commands verify UUID matches
 
-### Deleting a Node with References
+**3. Check-Then-Update Races**
+- Problem: Status/UUID read and write not atomic
+- Solution: All commands use `node.with_lock` to make read-check-write operations atomic
 
-```ruby
-# Node A references Node B in its inputs
-node_a.inputs # => { "segments" => ["node-b-uuid", "node-c-uuid"] }
+**Stale Job Behavior:**
+- When UUID mismatch detected, commands silently exit
+- No errors raised (normal distributed systems behavior)
+- Current execution continues unaffected
 
-# Delete Node B
-VideoProduction::Node::Destroy.(node_b)
+### Executors
 
-# Node A's inputs are updated
-node_a.reload.inputs # => { "segments" => ["node-c-uuid"] }
-```
+Node executors are Sidekiq jobs that process individual nodes. Each executor handles a specific node type and follows the execution lifecycle.
 
-## Important Notes
+Location: `app/commands/video_production/node/executors/`
 
-1. **STI Prevention**: Use `self.inheritance_column = :_type_disabled` because we have a `type` column
-2. **UUID Primary Keys**: Both tables use UUID primary keys for better distributed systems support
-3. **Input Validation**: Always validate inputs when creating/updating nodes
-4. **Status Management**: Status automatically resets to `pending` when structure changes
-5. **Reference Cleanup**: Deleting a node automatically cleans up references in other nodes
-6. **Shared Database**: Next.js and Rails share the database - follow column ownership rules
-7. **Admin Only**: All endpoints require admin authentication
+**Implemented Executors:**
+- `MergeVideos` - Concatenates videos via Lambda (FFmpeg)
+- `GenerateVoiceover` - Text-to-speech via ElevenLabs API
+- `GenerateTalkingHead` - Talking head videos via HeyGen API
+
+**Executor Pattern:** Sidekiq jobs that (1) call ExecutionStarted to get process_uuid, (2) perform work (Lambda/API calls), (3) call ExecutionSucceeded with output, or ExecutionFailed on error.
+
+**Future Executors:**
+- `GenerateAnimation` - Veo 3 / Runway animations
+- `RenderCode` - Remotion code screen animations
+- `MixAudio` - FFmpeg audio replacement via Lambda
+- `ComposeVideo` - FFmpeg picture-in-picture via Lambda
+
+### Lambda Integration
+
+`VideoProduction::InvokeLambda` - Synchronous Lambda invocation wrapper. Currently used by MergeVideos executor.
+
+**Lambda Functions:** `video-merger` for FFmpeg video concatenation (Node.js 20, 3008 MB, 15 min timeout). See `services/video_production/README.md` for deployment.
+
+### External API Integration
+
+External APIs use a **three-command pattern** (submit → poll → process) with inheritance from `CheckForResult` base class.
+
+**Pattern:**
+1. **Generate** command submits job to API, updates metadata with external job ID, queues CheckForResult polling
+2. **CheckForResult** polls API status (60 max attempts, 10s interval), verifies process_uuid matches before processing, self-reschedules until complete/failed
+3. **ProcessResult** downloads output, uploads to S3, marks execution succeeded
+
+**Implemented:**
+- **ElevenLabs** (`app/commands/video_production/apis/eleven_labs/`) - Text-to-speech via `POST /text-to-speech/{voice_id}`
+- **HeyGen** (`app/commands/video_production/apis/heygen/`) - Talking head videos via `POST /v2/video/generate`, uses presigned URLs for audio/background inputs
+
+**Future:** Veo 3 will follow same pattern.
+
+### Node Metadata Fields
+
+**Process Tracking:**
+- `process_uuid` - Unique identifier for this execution (prevents race conditions)
+- `started_at` - ISO8601 timestamp when execution started
+- `completed_at` - ISO8601 timestamp when execution finished
+
+**External API Integration:**
+- `audio_id` - ElevenLabs job ID
+- `video_id` - HeyGen job ID
+- `stage` - Current processing stage (e.g., 'submitted', 'processing')
+- `job_id` - Generic external job identifier
+
+**Error Tracking:**
+- `error` - Error message if execution failed
+
+**Other:**
+- `cost` - Estimated cost for this execution
+- `retries` - Number of retry attempts
+
+### Database Concurrency
+
+**Process UUID Protection:**
+All execution commands verify `process_uuid` matches before updating. Combined with `with_lock`, this ensures:
+- Only the current execution can update the node
+- Stale jobs (from webhooks or superseded executions) silently exit
+- No data corruption from concurrent execution attempts
+
+**Next.js/Rails Coordination:**
+Column ownership prevents conflicts:
+- **Next.js writes**: `type`, `inputs`, `config`, `asset`, `title`
+- **Rails writes**: `status`, `metadata`, `output`, `is_valid`, `validation_errors`
+
+Both systems can safely write to their columns simultaneously without conflicts.
+
+## Key Architecture Points
+
+1. **STI Prevention**: Models use `disable_sti!` to allow `type` column without Rails STI
+2. **UUID Primary Keys**: Both tables use UUIDs for distributed systems support
+3. **Validation**: Runs automatically on create/update, stores results in `is_valid`/`validation_errors` columns
+4. **Status Management**: Automatically resets to `pending` when structure fields (`inputs`, `config`, `asset`) change
+5. **Reference Cleanup**: Deleting node removes its UUID from other nodes' input arrays
+6. **Shared Database**: Next.js (writes structure) and Rails (writes execution state/validation) have distinct column ownership
+7. **Race Condition Protection**: process_uuid tracking + database locks prevent concurrent execution conflicts
+8. **Admin Only**: All API endpoints require admin authentication
 
 ## Related Files
 
