@@ -82,4 +82,21 @@ class VideoProduction::Node::ExecutionFailedTest < ActiveSupport::TestCase
     assert_equal 'failed', node.status
     assert_equal 'Valid error', node.metadata['error']
   end
+
+  test "does not update node when process_uuid is nil (execution never started)" do
+    pipeline = create(:video_production_pipeline)
+    node = create(:video_production_node,
+      pipeline:,
+      status: 'in_progress',
+      metadata: { process_uuid: 'current-execution', started_at: Time.current.iso8601 })
+
+    # Simulate: Exception before ExecutionStarted completes (process_uuid = nil in executor)
+    # This should NOT fail the node since another execution is running
+    VideoProduction::Node::ExecutionFailed.(node, "Early error", nil)
+
+    node.reload
+    assert_equal 'in_progress', node.status
+    assert_nil node.metadata['error']
+    assert_equal 'current-execution', node.metadata['process_uuid']
+  end
 end

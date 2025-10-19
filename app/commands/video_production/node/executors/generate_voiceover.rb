@@ -6,6 +6,9 @@ class VideoProduction::Node::Executors::GenerateVoiceover
   initialize_with :node
 
   def call
+    # Initialize process_uuid to nil in case of early exception
+    process_uuid = nil
+
     # 1. Mark execution as started and get process_uuid
     process_uuid = VideoProduction::Node::ExecutionStarted.(node, {})
 

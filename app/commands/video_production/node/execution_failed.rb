@@ -6,8 +6,8 @@ class VideoProduction::Node::ExecutionFailed
   def call
     node.with_lock do
       # Verify this execution still owns the node (not a stale job)
-      # If process_uuid is nil, execution never started, so we should always mark as failed
-      return unless process_uuid.nil? || node.process_uuid == process_uuid
+      # Only fail if this execution's UUID matches the node's current process_uuid
+      return unless node.process_uuid == process_uuid
 
       node.update!(status: 'failed', metadata: new_metadata)
     end
