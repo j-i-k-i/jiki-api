@@ -9,7 +9,7 @@ class VideoProduction::Node::Executors::GenerateTalkingHeadTest < ActiveSupport:
     node = create(:video_production_node,
       pipeline:,
       type: 'generate-talking-head',
-      config: { 'provider' => 'heygen', 'avatar_id' => 'test-avatar' },
+      config: { 'provider' => 'heygen', 'avatarId' => 'test-avatar' },
       inputs: { 'audio' => [audio_node.uuid] })
 
     # Mock ExecutionStarted to return a process_uuid

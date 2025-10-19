@@ -10,7 +10,7 @@ class VideoProduction::APIs::Heygen::GenerateVideoTest < ActiveSupport::TestCase
     node = create(:video_production_node,
       pipeline:,
       type: 'generate-talking-head',
-      config: { 'avatar_id' => 'Monica_inSleeveless_20220819', 'width' => 1280, 'height' => 720 },
+      config: { 'avatarId' => 'Monica_inSleeveless_20220819', 'width' => 1280, 'height' => 720 },
       inputs: { 'audio' => [audio_node.uuid] },
       status: 'pending')
 
@@ -46,7 +46,7 @@ class VideoProduction::APIs::Heygen::GenerateVideoTest < ActiveSupport::TestCase
     node = create(:video_production_node,
       pipeline:,
       type: 'generate-talking-head',
-      config: { 'avatar_id' => 'test-avatar' },
+      config: { 'avatarId' => 'test-avatar' },
       inputs: { 'audio' => [audio_node.uuid], 'background' => [background_node.uuid] })
 
     # Mock presigned URL generation
@@ -78,7 +78,7 @@ class VideoProduction::APIs::Heygen::GenerateVideoTest < ActiveSupport::TestCase
     node = create(:video_production_node,
       pipeline:,
       type: 'generate-talking-head',
-      config: { 'avatar_id' => 'test-avatar' },
+      config: { 'avatarId' => 'test-avatar' },
       inputs: { 'audio' => [audio_node.uuid] })
 
     Utils::S3::GeneratePresignedUrl.stubs(:call).returns('https://s3.example.com/audio.mp3')
@@ -102,7 +102,7 @@ class VideoProduction::APIs::Heygen::GenerateVideoTest < ActiveSupport::TestCase
     node = create(:video_production_node,
       pipeline:,
       type: 'generate-talking-head',
-      config: { 'avatar_id' => 'test-avatar' },
+      config: { 'avatarId' => 'test-avatar' },
       inputs: {})
 
     error = assert_raises(RuntimeError) do
@@ -112,7 +112,7 @@ class VideoProduction::APIs::Heygen::GenerateVideoTest < ActiveSupport::TestCase
     assert_match(/No audio input specified/, error.message)
   end
 
-  test "raises error when avatar_id not specified" do
+  test "raises error when avatarId not specified" do
     pipeline = create(:video_production_pipeline)
     audio_node = create(:video_production_node,
       pipeline:,
@@ -127,7 +127,7 @@ class VideoProduction::APIs::Heygen::GenerateVideoTest < ActiveSupport::TestCase
       VideoProduction::APIs::Heygen::GenerateVideo.(node, 'test-uuid')
     end
 
-    assert_match(/avatar_id is required/, error.message)
+    assert_match(/avatarId is required/, error.message)
   end
 
   test "raises error when HeyGen API fails" do
@@ -138,7 +138,7 @@ class VideoProduction::APIs::Heygen::GenerateVideoTest < ActiveSupport::TestCase
     node = create(:video_production_node,
       pipeline:,
       type: 'generate-talking-head',
-      config: { 'avatar_id' => 'test-avatar' },
+      config: { 'avatarId' => 'test-avatar' },
       inputs: { 'audio' => [audio_node.uuid] })
 
     Utils::S3::GeneratePresignedUrl.stubs(:call).returns('https://s3.example.com/audio.mp3')

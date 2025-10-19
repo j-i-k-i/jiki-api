@@ -26,10 +26,10 @@ export type ComposeVideoNode = {
   };
   config: {
       rounded: boolean;
-      crop_top?: number;
-      crop_left?: number;
-      crop_width?: number;
-      crop_height?: number;
+      cropTop?: number;
+      cropLeft?: number;
+      cropWidth?: number;
+      cropHeight?: number;
       provider: 'ffmpeg';
     };
 };
@@ -55,7 +55,7 @@ export type GenerateTalkingHeadNode = {
   };
   config: {
       provider: 'heygen';
-      avatar_id: string;
+      avatarId: string;
       width?: number;
       height?: number;
     };

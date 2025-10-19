@@ -133,7 +133,7 @@ class V1::Admin::VideoProduction::NodesControllerTest < ApplicationControllerTes
       type: "generate-talking-head",
       status: "in_progress",
       inputs: { 'audio' => [audio_node.uuid] },
-      config: { 'provider' => 'heygen', 'avatar_id' => 'avatar-1' },
+      config: { 'provider' => 'heygen', 'avatarId' => 'avatar-1' },
       metadata: { 'started_at' => Time.current.iso8601 },
       output: nil)
 
@@ -150,7 +150,7 @@ class V1::Admin::VideoProduction::NodesControllerTest < ApplicationControllerTes
         type: "generate-talking-head",
         status: "in_progress",
         inputs: { 'audio' => [audio_node.uuid] },
-        config: { 'provider' => 'heygen', 'avatar_id' => 'avatar-1' },
+        config: { 'provider' => 'heygen', 'avatarId' => 'avatar-1' },
         asset: nil,
         metadata: { 'started_at' => node.metadata['started_at'] },
         output: nil,
