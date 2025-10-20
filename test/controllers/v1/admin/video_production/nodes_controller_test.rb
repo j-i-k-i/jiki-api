@@ -14,6 +14,7 @@ class V1::Admin::VideoProduction::NodesControllerTest < ApplicationControllerTes
   guard_admin! :v1_admin_video_production_pipeline_node_path, args: %w[test-uuid node-uuid], method: :patch
   guard_admin! :v1_admin_video_production_pipeline_node_path, args: %w[test-uuid node-uuid], method: :delete
   guard_admin! :execute_v1_admin_video_production_pipeline_node_path, args: %w[test-uuid node-uuid], method: :post
+  guard_admin! :output_v1_admin_video_production_pipeline_node_path, args: %w[test-uuid node-uuid], method: :get
 
   # INDEX tests
 
@@ -734,6 +735,84 @@ class V1::Admin::VideoProduction::NodesControllerTest < ApplicationControllerTes
 
   test "POST execute returns 404 for non-existent node" do
     post execute_v1_admin_video_production_pipeline_node_path(@pipeline.uuid, 'non-existent-uuid'),
+      headers: @headers,
+      as: :json
+
+    assert_response :not_found
+  end
+
+  # OUTPUT tests
+
+  test "GET output returns redirect to presigned URL for completed node with output" do
+    node = create(:video_production_node,
+      pipeline: @pipeline,
+      status: 'completed',
+      output: { 's3_key' => 'pipelines/test/nodes/abc/output.mp4' })
+
+    get output_v1_admin_video_production_pipeline_node_path(@pipeline.uuid, node.uuid),
+      headers: @headers,
+      as: :json
+
+    assert_response :redirect
+    assert_match %r{http://localhost:3065/jiki-videos-dev/pipelines/test/nodes/abc/output\.mp4}, response.location
+    assert_match(/X-Amz-Algorithm=AWS4-HMAC-SHA256/, response.location)
+    assert_match(/X-Amz-Signature=/, response.location)
+  end
+
+  test "GET output returns redirect to presigned URL for asset node" do
+    node = create(:video_production_node,
+      pipeline: @pipeline,
+      type: 'asset',
+      asset: { 'source' => 'test-assets/video1.mp4', 'type' => 'video' })
+
+    get output_v1_admin_video_production_pipeline_node_path(@pipeline.uuid, node.uuid),
+      headers: @headers,
+      as: :json
+
+    assert_response :redirect
+    assert_match %r{http://localhost:3065/jiki-videos-dev/test-assets/video1\.mp4}, response.location
+    assert_match(/X-Amz-Algorithm=AWS4-HMAC-SHA256/, response.location)
+  end
+
+  test "GET output returns 422 when node has no output" do
+    node = create(:video_production_node,
+      pipeline: @pipeline,
+      type: 'merge-videos',
+      status: 'pending')
+
+    get output_v1_admin_video_production_pipeline_node_path(@pipeline.uuid, node.uuid),
+      headers: @headers,
+      as: :json
+
+    assert_response :unprocessable_entity
+    json = response.parsed_body
+    assert_match(/no output/i, json['error'])
+  end
+
+  test "GET output returns 404 for non-existent pipeline" do
+    get output_v1_admin_video_production_pipeline_node_path('non-existent-uuid', 'node-uuid'),
+      headers: @headers,
+      as: :json
+
+    assert_response :not_found
+  end
+
+  test "GET output returns 404 for non-existent node" do
+    get output_v1_admin_video_production_pipeline_node_path(@pipeline.uuid, 'non-existent-uuid'),
+      headers: @headers,
+      as: :json
+
+    assert_response :not_found
+  end
+
+  test "GET output returns 404 when node belongs to different pipeline" do
+    other_pipeline = create(:video_production_pipeline)
+    node = create(:video_production_node,
+      pipeline: other_pipeline,
+      status: 'completed',
+      output: { 's3_key' => 'test.mp4' })
+
+    get output_v1_admin_video_production_pipeline_node_path(@pipeline.uuid, node.uuid),
       headers: @headers,
       as: :json
 

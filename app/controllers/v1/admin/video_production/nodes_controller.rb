@@ -1,6 +1,6 @@
 class V1::Admin::VideoProduction::NodesController < V1::Admin::BaseController
   before_action :use_pipeline
-  before_action :use_node, only: %i[show update destroy execute]
+  before_action :use_node, only: %i[show update destroy execute output]
 
   def index
     nodes = @pipeline.nodes.order(:created_at)
@@ -51,6 +51,13 @@ class V1::Admin::VideoProduction::NodesController < V1::Admin::BaseController
       node: SerializeAdminVideoProductionNode.(node)
     }
   rescue VideoProductionBadInputsError => e
+    render json: { error: e.message }, status: :unprocessable_entity
+  end
+
+  def output
+    presigned_url = VideoProduction::Node::GenerateOutputUrl.(@node)
+    redirect_to presigned_url, allow_other_host: true
+  rescue VideoProduction::Node::GenerateOutputUrl::NoOutputError => e
     render json: { error: e.message }, status: :unprocessable_entity
   end
 

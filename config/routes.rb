@@ -64,6 +64,7 @@ Rails.application.routes.draw do
           resources :nodes, only: %i[index show create update destroy], param: :uuid do
             member do
               post :execute
+              get :output
             end
           end
         end
