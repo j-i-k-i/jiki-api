@@ -35,29 +35,10 @@ class VideoProduction::Node::Executors::MergeVideos
     end
 
     # 5. Invoke Lambda to merge videos (locally or via AWS)
-    output_key = "pipelines/#{node.pipeline.uuid}/nodes/#{node.uuid}/output.mp4"
-
-    payload = {
-      input_videos: input_urls,
-      output_bucket: bucket,
-      output_key: output_key
-    }
-
-    if ENV['INVOKE_LAMBDA_LOCALLY']
-      # Development: Execute Lambda handler locally via Node.js
-      result = VideoProduction::InvokeLambdaLocal.(lambda_function_name, payload)
-    else
-      # Production/Default: Execute via AWS Lambda SDK
-      result = VideoProduction::InvokeLambda.(lambda_function_name, payload)
-    end
+    lambda_result = invoke_lambda(bucket, input_urls)
 
     # 6. Update node with output
-    output = {
-      type: 'video',
-      s3_key: result[:s3_key],
-      duration: result[:duration],
-      size: result[:size]
-    }
+    output = build_output(lambda_result)
     VideoProduction::Node::ExecutionSucceeded.(node, output, process_uuid)
   rescue StandardError => e
     VideoProduction::Node::ExecutionFailed.(node, e.message, process_uuid)
@@ -65,6 +46,37 @@ class VideoProduction::Node::Executors::MergeVideos
   end
 
   private
+  def invoke_lambda(bucket, input_urls)
+    payload = build_payload(bucket, input_urls)
+
+    if ENV['INVOKE_LAMBDA_LOCALLY']
+      # Development: Execute Lambda handler locally via Node.js
+      VideoProduction::InvokeLambdaLocal.(lambda_function_name, payload)
+    else
+      # Production/Default: Execute via AWS Lambda SDK
+      VideoProduction::InvokeLambda.(lambda_function_name, payload)
+    end
+  end
+
+  def build_payload(bucket, input_urls)
+    output_key = "pipelines/#{node.pipeline.uuid}/nodes/#{node.uuid}/output.mp4"
+
+    {
+      input_videos: input_urls,
+      output_bucket: bucket,
+      output_key: output_key
+    }
+  end
+
+  def build_output(lambda_result)
+    {
+      type: 'video',
+      s3_key: lambda_result[:s3_key],
+      duration: lambda_result[:duration],
+      size: lambda_result[:size]
+    }
+  end
+
   def lambda_function_name
     # Get function name from environment or use default
     # In production this would be: jiki-video-merger-production

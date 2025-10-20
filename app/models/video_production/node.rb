@@ -4,14 +4,23 @@ module VideoProduction
 
     self.table_name = 'video_production_nodes'
 
+    # Node types that can be executed
+    NODE_TYPES = %w[
+      asset
+      generate-talking-head
+      generate-animation
+      generate-voiceover
+      render-code
+      mix-audio
+      merge-videos
+      compose-video
+    ].freeze
+
     belongs_to :pipeline, class_name: 'VideoProduction::Pipeline', inverse_of: :nodes
 
     validates :uuid, presence: true, uniqueness: true, on: :update
     validates :title, presence: true
-    validates :type, presence: true, inclusion: {
-      in: %w[asset generate-talking-head generate-animation generate-voiceover
-             render-code mix-audio merge-videos compose-video]
-    }
+    validates :type, presence: true, inclusion: { in: NODE_TYPES }
     validates :status, inclusion: { in: %w[pending in_progress completed failed] }
 
     # JSONB accessors

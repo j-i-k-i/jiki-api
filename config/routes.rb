@@ -61,7 +61,11 @@ Rails.application.routes.draw do
 
       namespace :video_production do
         resources :pipelines, only: %i[index show create update destroy], param: :uuid do
-          resources :nodes, only: %i[index show create update destroy], param: :uuid
+          resources :nodes, only: %i[index show create update destroy], param: :uuid do
+            member do
+              post :execute
+            end
+          end
         end
       end
     end

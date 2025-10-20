@@ -13,6 +13,7 @@ class V1::Admin::VideoProduction::NodesControllerTest < ApplicationControllerTes
   guard_admin! :v1_admin_video_production_pipeline_nodes_path, args: ['test-uuid'], method: :post
   guard_admin! :v1_admin_video_production_pipeline_node_path, args: %w[test-uuid node-uuid], method: :patch
   guard_admin! :v1_admin_video_production_pipeline_node_path, args: %w[test-uuid node-uuid], method: :delete
+  guard_admin! :execute_v1_admin_video_production_pipeline_node_path, args: %w[test-uuid node-uuid], method: :post
 
   # INDEX tests
 
@@ -643,6 +644,96 @@ class V1::Admin::VideoProduction::NodesControllerTest < ApplicationControllerTes
 
   test "DELETE destroy returns 404 for non-existent node" do
     delete v1_admin_video_production_pipeline_node_path(@pipeline.uuid, 'non-existent-uuid'),
+      headers: @headers,
+      as: :json
+
+    assert_response :not_found
+  end
+
+  # EXECUTE tests
+
+  test "POST execute queues execution for ready node" do
+    input1 = create(:video_production_node, :completed, pipeline: @pipeline, type: 'asset')
+    input2 = create(:video_production_node, :completed, pipeline: @pipeline, type: 'asset')
+    node = create(:video_production_node,
+      pipeline: @pipeline,
+      type: 'merge-videos',
+      config: { 'provider' => 'ffmpeg' },
+      inputs: { 'segments' => [input1.uuid, input2.uuid] },
+      status: 'pending',
+      is_valid: true)
+
+    # Mock the defer call
+    VideoProduction::Node::Executors::MergeVideos.expects(:defer).with(node)
+
+    post execute_v1_admin_video_production_pipeline_node_path(@pipeline.uuid, node.uuid),
+      headers: @headers,
+      as: :json
+
+    assert_response :success
+    json = response.parsed_body
+    assert_equal node.uuid, json['node']['uuid']
+    assert_equal 'merge-videos', json['node']['type']
+  end
+
+  test "POST execute returns 422 when node is not ready (not pending)" do
+    node = create(:video_production_node,
+      pipeline: @pipeline,
+      type: 'merge-videos',
+      status: 'completed')
+
+    post execute_v1_admin_video_production_pipeline_node_path(@pipeline.uuid, node.uuid),
+      headers: @headers,
+      as: :json
+
+    assert_response :unprocessable_entity
+    json = response.parsed_body
+    assert_match(/not ready to execute/i, json['error'])
+    assert_match(/pending/i, json['error'])
+  end
+
+  test "POST execute returns 422 when node is not valid" do
+    node = create(:video_production_node,
+      pipeline: @pipeline,
+      type: 'merge-videos',
+      status: 'pending',
+      is_valid: false,
+      validation_errors: { 'inputs' => ['segments is required'] })
+
+    post execute_v1_admin_video_production_pipeline_node_path(@pipeline.uuid, node.uuid),
+      headers: @headers,
+      as: :json
+
+    assert_response :unprocessable_entity
+    json = response.parsed_body
+    assert_match(/not ready to execute/i, json['error'])
+    assert_match(/validation errors/i, json['error'])
+  end
+
+  test "POST execute returns 422 when inputs are not satisfied" do
+    input_node = create(:video_production_node,
+      pipeline: @pipeline,
+      type: 'asset',
+      status: 'pending')
+    node = create(:video_production_node,
+      pipeline: @pipeline,
+      type: 'merge-videos',
+      inputs: { 'segments' => [input_node.uuid] },
+      status: 'pending',
+      is_valid: true)
+
+    post execute_v1_admin_video_production_pipeline_node_path(@pipeline.uuid, node.uuid),
+      headers: @headers,
+      as: :json
+
+    assert_response :unprocessable_entity
+    json = response.parsed_body
+    assert_match(/not ready to execute/i, json['error'])
+    assert_match(/input nodes/i, json['error'])
+  end
+
+  test "POST execute returns 404 for non-existent node" do
+    post execute_v1_admin_video_production_pipeline_node_path(@pipeline.uuid, 'non-existent-uuid'),
       headers: @headers,
       as: :json
 

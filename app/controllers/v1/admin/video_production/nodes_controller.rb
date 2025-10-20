@@ -1,6 +1,6 @@
 class V1::Admin::VideoProduction::NodesController < V1::Admin::BaseController
   before_action :use_pipeline
-  before_action :use_node, only: %i[show update destroy]
+  before_action :use_node, only: %i[show update destroy execute]
 
   def index
     nodes = @pipeline.nodes.order(:created_at)
@@ -43,6 +43,15 @@ class V1::Admin::VideoProduction::NodesController < V1::Admin::BaseController
   def destroy
     VideoProduction::Node::Destroy.(@node)
     head :no_content
+  end
+
+  def execute
+    node = VideoProduction::Node::Execute.(@node)
+    render json: {
+      node: SerializeAdminVideoProductionNode.(node)
+    }
+  rescue VideoProductionBadInputsError => e
+    render json: { error: e.message }, status: :unprocessable_entity
   end
 
   private

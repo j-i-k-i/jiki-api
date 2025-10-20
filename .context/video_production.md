@@ -54,64 +54,22 @@ All Ruby code (executors, API clients, utilities) remains in `app/commands/video
 
 ## Database Schema
 
-### Shared PostgreSQL Database
+**Schema files:** See `db/migrate/*_create_video_production_*.rb`
+
+### Shared Database Pattern
 
 Both Next.js (code-videos) and Rails connect to the same database. Column ownership prevents conflicts:
 
 - **Next.js writes**: `type`, `inputs`, `config`, `asset`, `title`
 - **Rails writes**: `status`, `metadata`, `output`, `is_valid`, `validation_errors`
 
-### video_production_pipelines
+### Tables Overview
 
-```ruby
-create_table :video_production_pipelines, id: :uuid do |t|
-  t.string :version, null: false, default: '1.0'
-  t.string :title, null: false
-  t.jsonb :config, null: false, default: {}
-  t.jsonb :metadata, null: false, default: {}
-  t.timestamps
-end
-```
+**video_production_pipelines:** UUID primary key, JSONB columns for `config` (storage/directory settings) and `metadata` (cost tracking, progress statistics)
 
-**JSONB Columns:**
-- `config`: Storage and working directory settings
-- `metadata`: Cost tracking and progress statistics
+**video_production_nodes:** UUID primary key with pipeline foreign key. Structure columns (Next.js), execution state columns (Rails), validation state columns (Rails).
 
-### video_production_nodes
-
-```ruby
-create_table :video_production_nodes, id: :uuid do |t|
-  t.uuid :pipeline_id, null: false, foreign_key: true
-  t.string :title, null: false
-
-  # Structure (Next.js writes)
-  t.string :type, null: false
-  t.jsonb :inputs, null: false, default: {}
-  t.jsonb :config, null: false, default: {}
-  t.jsonb :asset
-
-  # Execution state (Rails writes)
-  t.string :status, null: false, default: 'pending'
-  t.jsonb :metadata
-  t.jsonb :output
-
-  # Validation state (Rails writes)
-  t.boolean :is_valid, null: false, default: false
-  t.jsonb :validation_errors, null: false, default: {}
-
-  t.timestamps
-end
-```
-
-**Node Types:**
-- `asset` - Static file references
-- `generate-talking-head` - HeyGen talking head videos
-- `generate-animation` - Veo 3 / Runway animations
-- `generate-voiceover` - ElevenLabs text-to-speech
-- `render-code` - Remotion code screen animations
-- `mix-audio` - FFmpeg audio replacement
-- `merge-videos` - FFmpeg video concatenation
-- `compose-video` - FFmpeg picture-in-picture overlays
+**Node Types:** `asset`, `generate-talking-head`, `generate-animation`, `generate-voiceover`, `render-code`, `mix-audio`, `merge-videos`, `compose-video`
 
 **Status Values:** `pending`, `in_progress`, `completed`, `failed`
 
@@ -307,23 +265,7 @@ External APIs use a **three-command pattern** (submit → poll → process) with
 
 ### Node Metadata Fields
 
-**Process Tracking:**
-- `process_uuid` - Unique identifier for this execution (prevents race conditions)
-- `started_at` - ISO8601 timestamp when execution started
-- `completed_at` - ISO8601 timestamp when execution finished
-
-**External API Integration:**
-- `audio_id` - ElevenLabs job ID
-- `video_id` - HeyGen job ID
-- `stage` - Current processing stage (e.g., 'submitted', 'processing')
-- `job_id` - Generic external job identifier
-
-**Error Tracking:**
-- `error` - Error message if execution failed
-
-**Other:**
-- `cost` - Estimated cost for this execution
-- `retries` - Number of retry attempts
+Common JSONB metadata fields: `process_uuid` (execution tracking), `started_at`/`completed_at` (timestamps), `audio_id`/`video_id`/`job_id` (external API tracking), `stage` (processing stage), `error` (failure message), `cost`, `retries`. See execution lifecycle commands for usage.
 
 ### Database Concurrency
 
@@ -340,65 +282,13 @@ Column ownership prevents conflicts:
 
 Both systems can safely write to their columns simultaneously without conflicts.
 
-## Usage Examples
+## Usage Patterns
 
-### Creating a Pipeline with Nodes
+**Creating pipelines and nodes:** Use `VideoProduction::Pipeline::Create` and `VideoProduction::Node::Create` commands. See command files in `app/commands/video_production/`.
 
-```ruby
-# 1. Create pipeline
-pipeline = VideoProduction::Pipeline::Create.(
-  title: "Course Intro",
-  version: "1.0",
-  config: {},
-  metadata: {}
-)
+**Updating nodes:** `VideoProduction::Node::Update` automatically resets status to `pending` when structure fields (`inputs`, `config`, `asset`) change.
 
-# 2. Create asset nodes
-script = VideoProduction::Node::Create.(
-  pipeline,
-  title: "Script",
-  type: "asset",
-  asset: { source: "scripts/intro.txt", type: "text" }
-)
-
-# 3. Create processing nodes
-talking_head = VideoProduction::Node::Create.(
-  pipeline,
-  title: "Talking Head",
-  type: "talking-head",
-  inputs: { script: [script.uuid] },
-  config: { provider: "heygen", avatarId: "avatar-1" }
-)
-```
-
-### Updating Node Structure
-
-```ruby
-# This will reset status to 'pending' because inputs changed
-VideoProduction::Node::Update.(
-  node,
-  inputs: { segments: [new_uuid1, new_uuid2] }
-)
-
-# This will NOT reset status (only title changed)
-VideoProduction::Node::Update.(
-  node,
-  title: "New Title"
-)
-```
-
-### Deleting a Node with References
-
-```ruby
-# Node A references Node B in its inputs
-node_a.inputs # => { "segments" => ["node-b-uuid", "node-c-uuid"] }
-
-# Delete Node B
-VideoProduction::Node::Destroy.(node_b)
-
-# Node A's inputs are updated
-node_a.reload.inputs # => { "segments" => ["node-c-uuid"] }
-```
+**Deleting nodes with references:** `VideoProduction::Node::Destroy` automatically cleans up references (removes UUID from array inputs, removes slot for single inputs).
 
 ## Local Development Setup
 
@@ -440,59 +330,9 @@ This script:
 
 ### Quick Test: End-to-End Video Merge
 
-Test the complete video merge workflow with one command:
+**Run test:** `bin/test-video-merge` (requires FFmpeg, LocalStack running, Lambda deployed)
 
-```bash
-# 1. Create and upload test videos to LocalStack S3
-bin/seed-test-videos
-
-# 2. Run complete test (creates pipeline, executes merge, verifies output)
-bin/test-video-merge
-```
-
-**What `bin/test-video-merge` does:**
-1. Creates 2 simple test videos (blue 3s, red 3s) using FFmpeg
-2. Uploads them to LocalStack S3
-3. Creates a pipeline with merge-videos node
-4. Executes the merge via Lambda
-5. Verifies the output (should be 6s video: blue then red)
-
-**Output:**
-```
-=== Testing Video Merge Locally ===
-
-Checking LocalStack S3... ✓
-Checking Lambda function... ✓
-Checking test videos exist... ✓
-
-All prerequisites met!
-
-Creating test pipeline... ✓ (uuid)
-Creating video asset nodes... ✓
-Creating merge node... ✓ (uuid)
-
-Executing video merge...
-Input 1: s3://jiki-videos-dev/test-assets/video1.mp4 (blue, 3s)
-Input 2: s3://jiki-videos-dev/test-assets/video2.mp4 (red, 3s)
-Expected output: 6 second video (blue then red)
-
-Running executor... ✓
-
-=== Results ===
-
-Status: completed
-Output:
-  S3 Key: pipelines/{uuid}/nodes/{uuid}/output.mp4
-  Duration: 6.0s
-  Size: 125KB
-
-✓ Video merge completed successfully!
-```
-
-**Prerequisites for test:**
-- **FFmpeg installed**: `brew install ffmpeg` (for creating test videos)
-- **LocalStack running**: `bin/dev`
-- **Lambda deployed**: `bin/setup-video-production`
+**What it tests:** Creates test videos, uploads to S3, creates pipeline with merge-videos node, executes merge via Lambda, verifies output. See script for details.
 
 ### LocalStack Configuration
 
@@ -524,54 +364,15 @@ Jiki.lambda_client.invoke(function_name: 'jiki-video-merger-development', ...)
 
 **No environment variables needed** - configuration handled by `JikiConfig::GenerateAwsSettings`.
 
-### Testing Video Merge Locally
+### Testing Video Merge Manually
 
-1. **Upload test videos to LocalStack S3**:
-   ```ruby
-   bucket = Jiki.config.s3_bucket_video_production
-   Jiki.s3_client.put_object(
-     bucket: bucket,
-     key: 'test/video1.mp4',
-     body: File.read('path/to/video1.mp4')
-   )
-   ```
+**Quick approach:** Use `bin/test-video-merge` for automated end-to-end testing.
 
-2. **Create pipeline and nodes**:
-   ```ruby
-   pipeline = VideoProduction::Pipeline.create!(title: "Test", version: "1.0")
-
-   video1 = VideoProduction::Node.create!(
-     pipeline: pipeline,
-     title: "Video 1",
-     type: "asset",
-     asset: { type: "video", source: "test/video1.mp4" },
-     output: { type: "video", s3_key: "test/video1.mp4" },
-     status: "completed"
-   )
-
-   merge_node = VideoProduction::Node.create!(
-     pipeline: pipeline,
-     title: "Merged Video",
-     type: "merge-videos",
-     config: { "provider" => "ffmpeg" },
-     inputs: { "segments" => [video1.uuid, video2.uuid] }
-   )
-   ```
-
-3. **Execute merge**:
-   ```ruby
-   VideoProduction::Node::Executors::MergeVideos.perform_now(merge_node)
-
-   # Or via Sidekiq
-   VideoProduction::Node::Executors::MergeVideos.defer(merge_node)
-   ```
-
-4. **Check output**:
-   ```ruby
-   merge_node.reload
-   merge_node.status # => "completed"
-   merge_node.output # => { "type" => "video", "s3_key" => "...", "duration" => 10.5, "size" => 1024000 }
-   ```
+**Manual testing:**
+1. Upload test videos to S3 (`Jiki.s3_client.put_object`)
+2. Create pipeline and nodes (see `VideoProduction::Pipeline::Create`, `VideoProduction::Node::Create`)
+3. Execute merge (`VideoProduction::Node::Executors::MergeVideos.perform_now(node)`)
+4. Check output (node status and output fields)
 
 ### Troubleshooting
 
@@ -614,44 +415,13 @@ services/video_production/
 
 ### Local Lambda Execution (Fast Development)
 
-For rapid iteration when developing Lambda functions, you can execute the Lambda handler **locally without deployment** using the `INVOKE_LAMBDA_LOCALLY=true` environment variable.
+**Pattern:** Use `INVOKE_LAMBDA_LOCALLY=true` to run Lambda handler directly via Node.js instead of deploying to LocalStack (~5s vs ~2min).
 
-**How it works:**
-- Instead of deploying to LocalStack Lambda and invoking via AWS SDK
-- Runs the Lambda handler directly via Node.js: `node -e "require('./index.js').handler(event)"`
-- Uses `VideoProduction::InvokeLambdaLocal` command instead of `InvokeLambda`
-- Still uses LocalStack S3 for download/upload (full integration testing)
-- AWS SDK configuration passed as environment variables from `JikiConfig::GenerateAwsSettings`
+**Implementation:** `VideoProduction::InvokeLambdaLocal` (`app/commands/video_production/invoke_lambda_local.rb`) executes handler via `node -e`, passes AWS config as env vars, still uses LocalStack S3 for full integration testing.
 
-**Usage:**
-```bash
-# Run test with local Lambda execution
-INVOKE_LAMBDA_LOCALLY=true bin/rails runner bin/test-video-merge
+**Usage:** `INVOKE_LAMBDA_LOCALLY=true bin/test-video-merge` or set `ENV['INVOKE_LAMBDA_LOCALLY'] = 'true'` in console.
 
-# Or in Rails console
-ENV['INVOKE_LAMBDA_LOCALLY'] = 'true'
-VideoProduction::Node::Executors::MergeVideos.perform_now(merge_node)
-```
-
-**Development workflow:**
-1. Edit Lambda function: `services/video_production/video-merger/index.js`
-2. Run test immediately with `INVOKE_LAMBDA_LOCALLY=true`
-3. See results in ~5 seconds (no deployment needed)
-4. Iterate quickly
-
-**When to use:**
-- ✅ Developing/debugging Lambda functions
-- ✅ Testing ffmpeg commands
-- ✅ Rapid iteration (~5s vs ~2min deploy cycle)
-- ❌ Don't use in production (Lambda SDK only)
-
-**Implementation:**
-- `VideoProduction::InvokeLambdaLocal` - Executes handler via `node -e`
-- Passes AWS config as env vars: `AWS_ENDPOINT_URL`, `AWS_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`
-- Lambda handler detects `AWS_ENDPOINT_URL` and configures S3Client for LocalStack (with `forcePathStyle: true`)
-- Executor checks `ENV['INVOKE_LAMBDA_LOCALLY']` to choose execution path
-
-**Location:** `app/commands/video_production/invoke_lambda_local.rb`
+**When to use:** Developing/debugging Lambda functions, rapid iteration. Don't use in production.
 
 ### Important Notes
 
