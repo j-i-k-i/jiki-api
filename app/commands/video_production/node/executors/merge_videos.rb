@@ -34,17 +34,22 @@ class VideoProduction::Node::Executors::MergeVideos
       "s3://#{bucket}/#{input_node.output['s3_key']}"
     end
 
-    # 5. Invoke Lambda to merge videos
+    # 5. Invoke Lambda to merge videos (locally or via AWS)
     output_key = "pipelines/#{node.pipeline.uuid}/nodes/#{node.uuid}/output.mp4"
 
-    result = VideoProduction::InvokeLambda.(
-      lambda_function_name,
-      {
-        input_videos: input_urls,
-        output_bucket: bucket,
-        output_key: output_key
-      }
-    )
+    payload = {
+      input_videos: input_urls,
+      output_bucket: bucket,
+      output_key: output_key
+    }
+
+    if ENV['INVOKE_LAMBDA_LOCALLY']
+      # Development: Execute Lambda handler locally via Node.js
+      result = VideoProduction::InvokeLambdaLocal.(lambda_function_name, payload)
+    else
+      # Production/Default: Execute via AWS Lambda SDK
+      result = VideoProduction::InvokeLambda.(lambda_function_name, payload)
+    end
 
     # 6. Update node with output
     output = {

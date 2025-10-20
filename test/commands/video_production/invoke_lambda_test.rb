@@ -9,7 +9,7 @@ class VideoProduction::InvokeLambdaTest < ActiveSupport::TestCase
     function_name = 'jiki-video-merger-test'
     payload = { input_videos: ['s3://bucket/video1.mp4'], output_bucket: 'test-bucket', output_key: 'output.mp4' }
 
-    # Mock AWS Lambda client
+    # Mock Lambda client and response
     mock_client = mock('lambda_client')
     mock_response = mock('lambda_response')
     mock_response.stubs(:status_code).returns(200)
@@ -17,7 +17,7 @@ class VideoProduction::InvokeLambdaTest < ActiveSupport::TestCase
     mock_payload = StringIO.new('{"s3_key":"output.mp4","duration":120,"size":1024,"statusCode":200}')
     mock_response.stubs(:payload).returns(mock_payload)
 
-    Aws::Lambda::Client.expects(:new).with(region: 'us-east-1').returns(mock_client)
+    Jiki.stubs(:lambda_client).returns(mock_client)
     mock_client.expects(:invoke).with(
       function_name: function_name,
       invocation_type: 'RequestResponse',
@@ -39,7 +39,7 @@ class VideoProduction::InvokeLambdaTest < ActiveSupport::TestCase
     mock_response = mock('lambda_response')
     mock_response.stubs(:status_code).returns(500)
 
-    Aws::Lambda::Client.stubs(:new).returns(mock_client)
+    Jiki.stubs(:lambda_client).returns(mock_client)
     mock_client.stubs(:invoke).returns(mock_response)
 
     error = assert_raises(RuntimeError) do
@@ -58,7 +58,7 @@ class VideoProduction::InvokeLambdaTest < ActiveSupport::TestCase
     mock_response.stubs(:status_code).returns(200)
     mock_response.stubs(:function_error).returns('Unhandled')
 
-    Aws::Lambda::Client.stubs(:new).returns(mock_client)
+    Jiki.stubs(:lambda_client).returns(mock_client)
     mock_client.stubs(:invoke).returns(mock_response)
 
     error = assert_raises(RuntimeError) do
@@ -79,7 +79,7 @@ class VideoProduction::InvokeLambdaTest < ActiveSupport::TestCase
     mock_payload = StringIO.new('{"error":"FFmpeg failed","statusCode":500}')
     mock_response.stubs(:payload).returns(mock_payload)
 
-    Aws::Lambda::Client.stubs(:new).returns(mock_client)
+    Jiki.stubs(:lambda_client).returns(mock_client)
     mock_client.stubs(:invoke).returns(mock_response)
 
     error = assert_raises(RuntimeError) do

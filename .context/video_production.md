@@ -340,6 +340,327 @@ Column ownership prevents conflicts:
 
 Both systems can safely write to their columns simultaneously without conflicts.
 
+## Usage Examples
+
+### Creating a Pipeline with Nodes
+
+```ruby
+# 1. Create pipeline
+pipeline = VideoProduction::Pipeline::Create.(
+  title: "Course Intro",
+  version: "1.0",
+  config: {},
+  metadata: {}
+)
+
+# 2. Create asset nodes
+script = VideoProduction::Node::Create.(
+  pipeline,
+  title: "Script",
+  type: "asset",
+  asset: { source: "scripts/intro.txt", type: "text" }
+)
+
+# 3. Create processing nodes
+talking_head = VideoProduction::Node::Create.(
+  pipeline,
+  title: "Talking Head",
+  type: "talking-head",
+  inputs: { script: [script.uuid] },
+  config: { provider: "heygen", avatarId: "avatar-1" }
+)
+```
+
+### Updating Node Structure
+
+```ruby
+# This will reset status to 'pending' because inputs changed
+VideoProduction::Node::Update.(
+  node,
+  inputs: { segments: [new_uuid1, new_uuid2] }
+)
+
+# This will NOT reset status (only title changed)
+VideoProduction::Node::Update.(
+  node,
+  title: "New Title"
+)
+```
+
+### Deleting a Node with References
+
+```ruby
+# Node A references Node B in its inputs
+node_a.inputs # => { "segments" => ["node-b-uuid", "node-c-uuid"] }
+
+# Delete Node B
+VideoProduction::Node::Destroy.(node_b)
+
+# Node A's inputs are updated
+node_a.reload.inputs # => { "segments" => ["node-c-uuid"] }
+```
+
+## Local Development Setup
+
+### Prerequisites
+
+- **LocalStack**: AWS service emulation (S3, Lambda)
+- **Docker**: For running LocalStack container
+- **jq**: JSON processor for reading `.dockerimages.json`
+- **Node.js**: For Lambda function dependencies
+- **curl** and **zip**: For FFmpeg download and packaging
+
+### Starting Development Environment
+
+```bash
+# Start all services (Rails, Sidekiq, LocalStack)
+bin/dev
+```
+
+This command:
+1. Starts LocalStack container on port 3040
+2. Initializes S3 bucket from `Jiki.config.s3_bucket_video_production`
+3. Starts Rails server and Sidekiq via hivemind
+
+### Deploying Lambda to LocalStack
+
+After starting `bin/dev`, deploy the video-merger Lambda function:
+
+```bash
+bin/setup-video-production
+```
+
+This script:
+1. Installs Node.js dependencies for video-merger
+2. Downloads FFmpeg static binary (~50MB, one-time)
+3. Creates deployment ZIP package
+4. Deploys function to LocalStack as `jiki-video-merger-development`
+
+**Note**: Only needs to be run once after starting LocalStack, or after modifying Lambda code.
+
+### Quick Test: End-to-End Video Merge
+
+Test the complete video merge workflow with one command:
+
+```bash
+# 1. Create and upload test videos to LocalStack S3
+bin/seed-test-videos
+
+# 2. Run complete test (creates pipeline, executes merge, verifies output)
+bin/test-video-merge
+```
+
+**What `bin/test-video-merge` does:**
+1. Creates 2 simple test videos (blue 3s, red 3s) using FFmpeg
+2. Uploads them to LocalStack S3
+3. Creates a pipeline with merge-videos node
+4. Executes the merge via Lambda
+5. Verifies the output (should be 6s video: blue then red)
+
+**Output:**
+```
+=== Testing Video Merge Locally ===
+
+Checking LocalStack S3... ✓
+Checking Lambda function... ✓
+Checking test videos exist... ✓
+
+All prerequisites met!
+
+Creating test pipeline... ✓ (uuid)
+Creating video asset nodes... ✓
+Creating merge node... ✓ (uuid)
+
+Executing video merge...
+Input 1: s3://jiki-videos-dev/test-assets/video1.mp4 (blue, 3s)
+Input 2: s3://jiki-videos-dev/test-assets/video2.mp4 (red, 3s)
+Expected output: 6 second video (blue then red)
+
+Running executor... ✓
+
+=== Results ===
+
+Status: completed
+Output:
+  S3 Key: pipelines/{uuid}/nodes/{uuid}/output.mp4
+  Duration: 6.0s
+  Size: 125KB
+
+✓ Video merge completed successfully!
+```
+
+**Prerequisites for test:**
+- **FFmpeg installed**: `brew install ffmpeg` (for creating test videos)
+- **LocalStack running**: `bin/dev`
+- **Lambda deployed**: `bin/setup-video-production`
+
+### LocalStack Configuration
+
+**Endpoints** (from `jiki-config` gem):
+- Development: `http://localhost:3040`
+- Test: `http://localhost:3040`
+- Production: Real AWS endpoints
+
+**S3 Bucket** (from `../config/settings/local.yml`):
+- Bucket name: `Jiki.config.s3_bucket_video_production` → `jiki-videos-dev`
+
+**Lambda Function**:
+- Function name: `jiki-video-merger-development`
+- Runtime: Node.js 20.x
+- Memory: 3008 MB
+- Timeout: 15 minutes
+
+### AWS Client Configuration
+
+All AWS clients use the `Jiki.*_client` pattern from `jiki-config` gem:
+
+```ruby
+# S3 client (auto-configured for LocalStack in dev/test)
+Jiki.s3_client.put_object(bucket: Jiki.config.s3_bucket_video_production, ...)
+
+# Lambda client (auto-configured for LocalStack in dev/test)
+Jiki.lambda_client.invoke(function_name: 'jiki-video-merger-development', ...)
+```
+
+**No environment variables needed** - configuration handled by `JikiConfig::GenerateAwsSettings`.
+
+### Testing Video Merge Locally
+
+1. **Upload test videos to LocalStack S3**:
+   ```ruby
+   bucket = Jiki.config.s3_bucket_video_production
+   Jiki.s3_client.put_object(
+     bucket: bucket,
+     key: 'test/video1.mp4',
+     body: File.read('path/to/video1.mp4')
+   )
+   ```
+
+2. **Create pipeline and nodes**:
+   ```ruby
+   pipeline = VideoProduction::Pipeline.create!(title: "Test", version: "1.0")
+
+   video1 = VideoProduction::Node.create!(
+     pipeline: pipeline,
+     title: "Video 1",
+     type: "asset",
+     asset: { type: "video", source: "test/video1.mp4" },
+     output: { type: "video", s3_key: "test/video1.mp4" },
+     status: "completed"
+   )
+
+   merge_node = VideoProduction::Node.create!(
+     pipeline: pipeline,
+     title: "Merged Video",
+     type: "merge-videos",
+     config: { "provider" => "ffmpeg" },
+     inputs: { "segments" => [video1.uuid, video2.uuid] }
+   )
+   ```
+
+3. **Execute merge**:
+   ```ruby
+   VideoProduction::Node::Executors::MergeVideos.perform_now(merge_node)
+
+   # Or via Sidekiq
+   VideoProduction::Node::Executors::MergeVideos.defer(merge_node)
+   ```
+
+4. **Check output**:
+   ```ruby
+   merge_node.reload
+   merge_node.status # => "completed"
+   merge_node.output # => { "type" => "video", "s3_key" => "...", "duration" => 10.5, "size" => 1024000 }
+   ```
+
+### Troubleshooting
+
+**LocalStack not starting:**
+```bash
+# Check if port 3040 is already in use
+lsof -i :3040
+
+# Restart LocalStack container
+docker ps | grep localstack
+docker restart <container-id>
+```
+
+**Lambda deployment fails:**
+```bash
+# Ensure LocalStack is running
+curl http://localhost:3040/_localstack/health
+
+# Re-run setup
+bin/setup-video-production
+```
+
+**FFmpeg download fails:**
+- Download manually from: https://johnvansickle.com/ffmpeg/builds/ffmpeg-git-amd64-static.tar.xz
+- Extract and place `ffmpeg` binary in `services/video_production/video-merger/bin/`
+
+### Directory Structure
+
+```
+services/video_production/
+├── video-merger/              # Lambda function code
+│   ├── index.js               # Lambda handler
+│   ├── package.json           # Node.js dependencies
+│   ├── bin/                   # FFmpeg binary (downloaded by setup script)
+│   │   └── ffmpeg
+│   └── node_modules/          # Installed by setup script
+├── template.yaml              # AWS SAM deployment (production)
+└── README.md                  # Lambda function documentation
+```
+
+### Local Lambda Execution (Fast Development)
+
+For rapid iteration when developing Lambda functions, you can execute the Lambda handler **locally without deployment** using the `INVOKE_LAMBDA_LOCALLY=true` environment variable.
+
+**How it works:**
+- Instead of deploying to LocalStack Lambda and invoking via AWS SDK
+- Runs the Lambda handler directly via Node.js: `node -e "require('./index.js').handler(event)"`
+- Uses `VideoProduction::InvokeLambdaLocal` command instead of `InvokeLambda`
+- Still uses LocalStack S3 for download/upload (full integration testing)
+- AWS SDK configuration passed as environment variables from `JikiConfig::GenerateAwsSettings`
+
+**Usage:**
+```bash
+# Run test with local Lambda execution
+INVOKE_LAMBDA_LOCALLY=true bin/rails runner bin/test-video-merge
+
+# Or in Rails console
+ENV['INVOKE_LAMBDA_LOCALLY'] = 'true'
+VideoProduction::Node::Executors::MergeVideos.perform_now(merge_node)
+```
+
+**Development workflow:**
+1. Edit Lambda function: `services/video_production/video-merger/index.js`
+2. Run test immediately with `INVOKE_LAMBDA_LOCALLY=true`
+3. See results in ~5 seconds (no deployment needed)
+4. Iterate quickly
+
+**When to use:**
+- ✅ Developing/debugging Lambda functions
+- ✅ Testing ffmpeg commands
+- ✅ Rapid iteration (~5s vs ~2min deploy cycle)
+- ❌ Don't use in production (Lambda SDK only)
+
+**Implementation:**
+- `VideoProduction::InvokeLambdaLocal` - Executes handler via `node -e`
+- Passes AWS config as env vars: `AWS_ENDPOINT_URL`, `AWS_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`
+- Lambda handler detects `AWS_ENDPOINT_URL` and configures S3Client for LocalStack (with `forcePathStyle: true`)
+- Executor checks `ENV['INVOKE_LAMBDA_LOCALLY']` to choose execution path
+
+**Location:** `app/commands/video_production/invoke_lambda_local.rb`
+
+### Important Notes
+
+- **LocalStack resets on restart** - Re-run `bin/setup-video-production` if you restart LocalStack
+- **S3 bucket auto-created** - `bin/init-localstack` creates bucket on every `bin/dev` run
+- **No production impact** - All local dev uses LocalStack, production uses real AWS
+- **Bucket name from config** - Never hardcode bucket names, always use `Jiki.config.s3_bucket_video_production`
+- **Fast iteration** - Use `INVOKE_LAMBDA_LOCALLY=true` to skip Lambda deployment and run handler directly
+
 ## Key Architecture Points
 
 1. **STI Prevention**: Models use `disable_sti!` to allow `type` column without Rails STI
@@ -350,6 +671,9 @@ Both systems can safely write to their columns simultaneously without conflicts.
 6. **Shared Database**: Next.js (writes structure) and Rails (writes execution state/validation) have distinct column ownership
 7. **Race Condition Protection**: process_uuid tracking + database locks prevent concurrent execution conflicts
 8. **Admin Only**: All API endpoints require admin authentication
+9. **LocalStack for Dev**: Use LocalStack for S3 and Lambda in development - see "Local Development Setup" above
+10. **Config-driven**: All AWS configuration comes from `Jiki.config` and `Jiki.*_client` - never hardcode
+11. **Fast iteration**: Use `INVOKE_LAMBDA_LOCALLY=true` to skip Lambda deployment and run handler directly via Node.js
 
 ## Related Files
 
@@ -358,3 +682,6 @@ Both systems can safely write to their columns simultaneously without conflicts.
 - `.context/architecture.md` - Rails patterns and Mandate usage
 - `.context/controllers.md` - Controller patterns
 - `.context/testing.md` - Testing guidelines
+- `bin/dev` - Starts LocalStack and initializes S3 buckets
+- `bin/init-localstack` - S3 bucket initialization script
+- `bin/setup-video-production` - Lambda deployment script for LocalStack

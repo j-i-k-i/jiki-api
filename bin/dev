@@ -10,4 +10,12 @@ if [ ! -f Procfile.dev ]; then
   exit 1
 fi
 
+# Start LocalStack
+echo "Starting LocalStack..."
+docker run -dp 3042:8080 -p 3040:4566 -p 3041:4566 $(jq -r '.localstack' .dockerimages.json)
+
+# Initialize LocalStack (create S3 buckets)
+echo "Initializing LocalStack..."
+bin/init-localstack
+
 hivemind Procfile.dev

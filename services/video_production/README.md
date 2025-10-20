@@ -101,6 +101,29 @@ result = VideoProduction::InvokeLambda.(
 # Returns: { s3_key:, duration:, size:, statusCode: 200 }
 ```
 
+### Local Lambda Execution (Development Only)
+
+For rapid development iteration, you can execute Lambda handlers **locally without deployment** using `VideoProduction::InvokeLambdaLocal`:
+
+```bash
+# Enable local execution mode
+INVOKE_LAMBDA_LOCALLY=true bin/rails runner bin/test-video-merge
+```
+
+**How it works:**
+- Runs Lambda handler via Node.js: `node -e "require('./index.js').handler(event)"`
+- No deployment needed - instant feedback (~5 seconds vs ~2 minutes)
+- Still uses LocalStack S3 for full integration testing
+- AWS configuration passed as environment variables
+
+**When to use:**
+- ✅ Developing/debugging Lambda functions
+- ✅ Testing FFmpeg commands
+- ✅ Rapid iteration during development
+- ❌ Never in production (use `InvokeLambda` for deployed Lambdas)
+
+See `.context/video_production.md` for implementation details.
+
 ### Environment Variables
 
 Add to Rails `.env` files:

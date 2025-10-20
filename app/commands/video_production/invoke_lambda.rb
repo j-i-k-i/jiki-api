@@ -4,14 +4,7 @@ class VideoProduction::InvokeLambda
   initialize_with :function_name, :payload
 
   def call
-    # Require AWS SDK (will need to add to Gemfile)
-    require 'aws-sdk-lambda'
-
-    client = Aws::Lambda::Client.new(
-      region: ENV.fetch('AWS_REGION', 'us-east-1')
-    )
-
-    response = client.invoke(
+    response = Jiki.lambda_client.invoke(
       function_name: function_name,
       invocation_type: 'RequestResponse', # Synchronous
       payload: JSON.generate(payload)

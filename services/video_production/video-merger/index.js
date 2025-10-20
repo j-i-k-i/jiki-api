@@ -14,7 +14,18 @@ const path = require('path');
 const { randomUUID } = require('crypto');
 const { Readable } = require('stream');
 
-const s3Client = new S3Client({ region: process.env.AWS_REGION || 'us-east-1' });
+// Configure S3 client with LocalStack support
+const s3ClientConfig = {
+  region: process.env.AWS_REGION || 'us-east-1'
+};
+
+// Use LocalStack endpoint if AWS_ENDPOINT_URL is set (for local development)
+if (process.env.AWS_ENDPOINT_URL) {
+  s3ClientConfig.endpoint = process.env.AWS_ENDPOINT_URL;
+  s3ClientConfig.forcePathStyle = true; // Required for LocalStack
+}
+
+const s3Client = new S3Client(s3ClientConfig);
 
 /**
  * Lambda handler
@@ -50,14 +61,14 @@ exports.handler = async (event) => {
   const concatFilePath = path.join(tempDir, `concat-${randomUUID()}.txt`);
 
   try {
-    console.log(`[VideoMerger] Processing ${input_videos.length} videos`);
+    console.error(`[VideoMerger] Processing ${input_videos.length} videos`);
 
     // 1. Download videos from S3
     for (let i = 0; i < input_videos.length; i++) {
       const s3Url = input_videos[i];
       const localPath = path.join(tempDir, `input-${i}-${randomUUID()}.mp4`);
 
-      console.log(`[VideoMerger] Downloading ${s3Url} to ${localPath}`);
+      console.error(`[VideoMerger] Downloading ${s3Url} to ${localPath}`);
       await downloadFromS3(s3Url, localPath);
       inputPaths.push(localPath);
     }
@@ -65,18 +76,18 @@ exports.handler = async (event) => {
     // 2. Create FFmpeg concat file
     const concatContent = inputPaths.map(p => `file '${p}'`).join('\n');
     await fs.writeFile(concatFilePath, concatContent, 'utf-8');
-    console.log(`[VideoMerger] Created concat file with ${inputPaths.length} videos`);
+    console.error(`[VideoMerger] Created concat file with ${inputPaths.length} videos`);
 
     // 3. Run FFmpeg to merge videos
     const duration = await mergeVideosWithFFmpeg(concatFilePath, outputPath);
-    console.log(`[VideoMerger] Merge completed, duration: ${duration}s`);
+    console.error(`[VideoMerger] Merge completed, duration: ${duration}s`);
 
     // 4. Get output file stats
     const stats = await fs.stat(outputPath);
     const size = stats.size;
 
     // 5. Upload to S3
-    console.log(`[VideoMerger] Uploading to s3://${output_bucket}/${output_key}`);
+    console.error(`[VideoMerger] Uploading to s3://${output_bucket}/${output_key}`);
     await uploadToS3(outputPath, output_bucket, output_key);
 
     // 6. Clean up temp files
@@ -167,7 +178,7 @@ function mergeVideosWithFFmpeg(concatFilePath, outputPath) {
       outputPath
     ];
 
-    console.log(`[FFmpeg] Running: ffmpeg ${args.join(' ')}`);
+    console.error(`[FFmpeg] Running: ffmpeg ${args.join(' ')}`);
 
     const ffmpeg = spawn('ffmpeg', args);
     let stderr = '';
