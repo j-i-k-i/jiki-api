@@ -10,9 +10,15 @@ if [ ! -f Procfile.dev ]; then
   exit 1
 fi
 
-# Start LocalStack
+# Start LocalStack (stop existing containers first)
 echo "Starting LocalStack..."
-docker run -dp 3042:8080 -p 3040:4566 -p 3041:4566 $(jq -r '.localstack' .dockerimages.json)
+EXISTING_CONTAINER=$(docker ps -aq --filter "publish=3065")
+if [ -n "$EXISTING_CONTAINER" ]; then
+  echo "Stopping existing LocalStack container(s)..."
+  docker stop $EXISTING_CONTAINER > /dev/null 2>&1
+  docker rm $EXISTING_CONTAINER > /dev/null 2>&1
+fi
+docker run -dp 3067:8080 -p 3065:4566 -p 3066:4566 --name localstack-jiki $(jq -r '.localstack' .dockerimages.json)
 
 # Initialize LocalStack (create S3 buckets)
 echo "Initializing LocalStack..."

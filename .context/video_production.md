@@ -308,7 +308,7 @@ bin/dev
 ```
 
 This command:
-1. Starts LocalStack container on port 3040
+1. Starts LocalStack container on port 3065
 2. Initializes S3 bucket from `Jiki.config.s3_bucket_video_production`
 3. Starts Rails server and Sidekiq via hivemind
 
@@ -337,8 +337,8 @@ This script:
 ### LocalStack Configuration
 
 **Endpoints** (from `jiki-config` gem):
-- Development: `http://localhost:3040`
-- Test: `http://localhost:3040`
+- Development: `http://localhost:3065`
+- Test: `http://localhost:3065`
 - Production: Real AWS endpoints
 
 **S3 Bucket** (from `../config/settings/local.yml`):
@@ -378,8 +378,8 @@ Jiki.lambda_client.invoke(function_name: 'jiki-video-merger-development', ...)
 
 **LocalStack not starting:**
 ```bash
-# Check if port 3040 is already in use
-lsof -i :3040
+# Check if port 3065 is already in use
+lsof -i :3065
 
 # Restart LocalStack container
 docker ps | grep localstack
@@ -389,7 +389,7 @@ docker restart <container-id>
 **Lambda deployment fails:**
 ```bash
 # Ensure LocalStack is running
-curl http://localhost:3040/_localstack/health
+curl http://localhost:3065/_localstack/health
 
 # Re-run setup
 bin/setup-video-production
