@@ -16,7 +16,7 @@
       "inputs": {},
       "config": {},
       "asset": {
-        "source": "s3://jiki-video-production/test-assets/video1.mp4",
+        "source": "test-assets/video1.mp4",
         "type": "video"
       }
     },
@@ -27,7 +27,7 @@
       "inputs": {},
       "config": {},
       "asset": {
-        "source": "s3://jiki-video-production/test-assets/video2.mp4",
+        "source": "test-assets/video2.mp4",
         "type": "video"
       }
     },
