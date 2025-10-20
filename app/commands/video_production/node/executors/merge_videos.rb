@@ -13,31 +13,12 @@ class VideoProduction::Node::Executors::MergeVideos
     process_uuid = VideoProduction::Node::ExecutionStarted.(node, {})
 
     # 2. Validate inputs
-    segment_ids = node.inputs['segments'] || []
-    raise "No segments specified" if segment_ids.empty?
-    raise "At least 2 segments required" if segment_ids.length < 2
+    validate_inputs!
 
-    # 3. Get input nodes and their S3 keys
-    input_nodes = VideoProduction::Node.where(uuid: segment_ids).index_by(&:uuid)
+    # 3. Invoke Lambda to merge videos (locally or via AWS)
+    lambda_result = invoke_lambda!
 
-    # Preserve order from inputs array
-    ordered_inputs = segment_ids.map { |uuid| input_nodes[uuid] }
-
-    # Validate all inputs have outputs
-    ordered_inputs.each do |input_node|
-      raise "Input node #{input_node&.id || 'unknown'} has no output" unless input_node&.output&.dig('s3_key')
-    end
-
-    # 4. Build S3 URLs for Lambda
-    bucket = Jiki.config.s3_bucket_video_production
-    input_urls = ordered_inputs.map do |input_node|
-      "s3://#{bucket}/#{input_node.output['s3_key']}"
-    end
-
-    # 5. Invoke Lambda to merge videos (locally or via AWS)
-    lambda_result = invoke_lambda(bucket, input_urls)
-
-    # 6. Update node with output
+    # 4. Update node with output
     output = build_output(lambda_result)
     VideoProduction::Node::ExecutionSucceeded.(node, output, process_uuid)
   rescue StandardError => e
@@ -46,8 +27,19 @@ class VideoProduction::Node::Executors::MergeVideos
   end
 
   private
-  def invoke_lambda(bucket, input_urls)
-    payload = build_payload(bucket, input_urls)
+  def validate_inputs!
+    segment_ids = node.inputs['segments'] || []
+    raise "No segments specified" if segment_ids.empty?
+    raise "At least 2 segments required" if segment_ids.length < 2
+
+    # Validate all inputs have outputs
+    ordered_inputs.each do |input_node|
+      raise "Input node #{input_node&.id || 'unknown'} has no output" unless input_node&.output&.dig('s3_key')
+    end
+  end
+
+  def invoke_lambda!
+    payload = build_payload
 
     if ENV['INVOKE_LAMBDA_LOCALLY']
       # Development: Execute Lambda handler locally via Node.js
@@ -58,7 +50,7 @@ class VideoProduction::Node::Executors::MergeVideos
     end
   end
 
-  def build_payload(bucket, input_urls)
+  def build_payload
     output_key = "pipelines/#{node.pipeline.uuid}/nodes/#{node.uuid}/output.mp4"
 
     {
@@ -75,6 +67,27 @@ class VideoProduction::Node::Executors::MergeVideos
       duration: lambda_result[:duration],
       size: lambda_result[:size]
     }
+  end
+
+  memoize
+  def bucket
+    Jiki.config.s3_bucket_video_production
+  end
+
+  memoize
+  def ordered_inputs
+    segment_ids = node.inputs['segments'] || []
+    input_nodes = VideoProduction::Node.where(uuid: segment_ids).index_by(&:uuid)
+
+    # Preserve order from inputs array
+    segment_ids.map { |uuid| input_nodes[uuid] }
+  end
+
+  memoize
+  def input_urls
+    ordered_inputs.map do |input_node|
+      "s3://#{bucket}/#{input_node.output['s3_key']}"
+    end
   end
 
   def lambda_function_name
