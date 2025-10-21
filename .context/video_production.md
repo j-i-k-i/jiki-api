@@ -244,9 +244,23 @@ Location: `app/commands/video_production/node/executors/`
 
 ### Lambda Integration
 
-`VideoProduction::InvokeLambda` - Synchronous Lambda invocation wrapper. Currently used by MergeVideos executor.
+Lambda functions are invoked **asynchronously** with callback-based completion following the llm-proxy pattern.
 
-**Lambda Functions:** `video-merger` for FFmpeg video concatenation (Node.js 20, 3008 MB, 15 min timeout). See `services/video_production/README.md` for deployment.
+**Commands:**
+- `VideoProduction::InvokeLambda` - Asynchronous Lambda invocation (`invocation_type: 'Event'`), returns `{ status: 'invoked' }` immediately
+- `VideoProduction::InvokeLambdaLocal` - Local development alternative using `Process.spawn`, executes handler via Node.js in background process with 1-second delay, Lambda handler calls back to SPI endpoint
+- `VideoProduction::ProcessExecutorCallback` - Processes callbacks from Lambda, calls ExecutionSucceeded or ExecutionFailed
+
+**Async Flow:**
+1. Executor invokes Lambda with `Event` type (returns 202 immediately)
+2. Node stays in `in_progress` status (not completed)
+3. Lambda executes asynchronously, processes video/audio
+4. Lambda POSTs result to SPI callback endpoint (`/spi/video_production/executor_callback`)
+5. `ProcessExecutorCallback` marks node as `completed` or `failed` with output
+
+**Lambda Functions:** `video-merger` for FFmpeg video concatenation (Node.js 20, 3008 MB, 15 min timeout). Accepts `callback_url`, `node_uuid`, `executor_type` in payload. See `services/video_production/README.md` for deployment.
+
+**SPI Callbacks:** Lambda callbacks use network-guarded SPI endpoints (no authentication required). Callback URL built from `Jiki.config.spi_base_url`. See `.context/spi.md` for SPI pattern details.
 
 ### External API Integration
 
@@ -417,11 +431,19 @@ services/video_production/
 
 **Pattern:** Use `INVOKE_LAMBDA_LOCALLY=true` to run Lambda handler directly via Node.js instead of deploying to LocalStack (~5s vs ~2min).
 
-**Implementation:** `VideoProduction::InvokeLambdaLocal` (`app/commands/video_production/invoke_lambda_local.rb`) executes handler via `node -e`, passes AWS config as env vars, still uses LocalStack S3 for full integration testing.
+**Implementation:** `VideoProduction::InvokeLambdaLocal` (`app/commands/video_production/invoke_lambda_local.rb`):
+- Spawns detached background process using `Process.spawn`
+- Sleeps 1 second before executing (allows parent request to complete)
+- Executes Lambda handler via Node.js with AWS env vars
+- Lambda handler calls back to SPI endpoint via `fetch()`
+- Returns `{ status: 'invoked' }` immediately (matching real Lambda async behavior)
+- Logs output to `log/lambda_local.log`
 
 **Usage:** `INVOKE_LAMBDA_LOCALLY=true bin/test-video-merge` or set `ENV['INVOKE_LAMBDA_LOCALLY'] = 'true'` in console.
 
 **When to use:** Developing/debugging Lambda functions, rapid iteration. Don't use in production.
+
+**Async Behavior:** Even in local mode, execution is asynchronous. Rails must be running to receive callbacks. Node transitions to `completed` via SPI callback, not directly from executor.
 
 ### Important Notes
 

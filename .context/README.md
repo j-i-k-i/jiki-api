@@ -24,6 +24,7 @@ Context files help AI assistants:
 - **[mailers.md](./mailers.md)** - Email system with MJML, HAML, and i18n patterns
 - **[jobs.md](./jobs.md)** - Background jobs with Sidekiq, Mandate integration, and queue management
 - **[video_production.md](./video_production.md)** - Video production pipeline system for AI-generated content
+- **[spi.md](./spi.md)** - Service Provider Interface pattern for network-guarded service-to-service communication
 - **[typescript_generation.md](./typescript_generation.md)** - TypeScript type generation from Rails schemas for frontend type safety
 
 ## How to Use These Files
@@ -40,7 +41,8 @@ Context files help AI assistants:
 8. **Mailers** - Reference `mailers.md` for email templates, MJML/HAML patterns, and i18n
 9. **Jobs** - Reference `jobs.md` for background job patterns, Sidekiq configuration, and queue management
 10. **Video Production** - Reference `video_production.md` for video pipeline system implementation
-11. **TypeScript Generation** - Reference `typescript_generation.md` for type generation from Rails schemas
+11. **SPI** - Reference `spi.md` for service-to-service communication patterns and network-guarded endpoints
+12. **TypeScript Generation** - Reference `typescript_generation.md` for type generation from Rails schemas
 
 ### When to Update
 

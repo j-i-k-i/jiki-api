@@ -15,12 +15,12 @@ class VideoProduction::Node::Executors::MergeVideos
     # 2. Validate inputs
     validate_inputs!
 
-    # 3. Invoke Lambda to merge videos (locally or via AWS)
-    lambda_result = invoke_lambda!
+    # 3. Invoke Lambda asynchronously
+    # Lambda will callback to SPI endpoint when complete
+    invoke_lambda!
 
-    # 4. Update node with output
-    output = build_output(lambda_result)
-    VideoProduction::Node::ExecutionSucceeded.(node, output, process_uuid)
+    # NOTE: ExecutionSucceeded will be called via SPI callback
+    # No need to wait for Lambda result here
   rescue StandardError => e
     VideoProduction::Node::ExecutionFailed.(node, e.message, process_uuid)
     raise
@@ -56,17 +56,18 @@ class VideoProduction::Node::Executors::MergeVideos
     {
       input_videos: input_urls,
       output_bucket: bucket,
-      output_key: output_key
+      output_key: output_key,
+      callback_url: callback_url,
+      node_uuid: node.uuid,
+      executor_type: 'merge-videos'
     }
   end
 
-  def build_output(lambda_result)
-    {
-      'type' => 'video',
-      's3Key' => lambda_result[:s3_key],
-      'duration' => lambda_result[:duration],
-      'size' => lambda_result[:size]
-    }
+  def callback_url
+    # Use spi_base_url from config (already includes /spi base path)
+    # Development: http://local.jiki.io:3061/spi (configured via --add-host in bin/dev)
+    # Production: actual SPI base URL
+    "#{Jiki.config.spi_base_url}/video_production/executor_callback"
   end
 
   memoize

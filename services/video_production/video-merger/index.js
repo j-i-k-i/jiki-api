@@ -35,11 +35,14 @@ const s3Client = new S3Client(s3ClientConfig);
  * {
  *   input_videos: ["s3://bucket/path1.mp4", "s3://bucket/path2.mp4"],
  *   output_bucket: "jiki-videos",
- *   output_key: "pipelines/123/nodes/456/output.mp4"
+ *   output_key: "pipelines/123/nodes/456/output.mp4",
+ *   callback_url: "http://local.jiki.io:3061/spi/video_production/executor_callback",
+ *   node_uuid: "...",
+ *   executor_type: "merge-videos"
  * }
  */
 exports.handler = async (event) => {
-  const { input_videos, output_bucket, output_key } = event;
+  const { input_videos, output_bucket, output_key, callback_url, node_uuid, executor_type } = event;
 
   // Validate inputs
   if (!Array.isArray(input_videos) || input_videos.length < 2) {
@@ -94,12 +97,20 @@ exports.handler = async (event) => {
     // 6. Clean up temp files
     await cleanupFiles([...inputPaths, outputPath, concatFilePath]);
 
-    return {
-      s3_key: output_key,
-      duration: duration,
-      size: size,
-      statusCode: 200
-    };
+    // 7. Callback with success
+    if (callback_url) {
+      await sendCallback(callback_url, {
+        node_uuid: node_uuid,
+        executor_type: executor_type,
+        result: {
+          s3_key: output_key,
+          duration: duration,
+          size: size
+        }
+      });
+    }
+
+    return { statusCode: 200 };
 
   } catch (error) {
     console.error('[VideoMerger] Error:', error);
@@ -111,10 +122,17 @@ exports.handler = async (event) => {
       console.warn('[VideoMerger] Cleanup error:', cleanupError);
     }
 
-    return {
-      error: error.message,
-      statusCode: 500
-    };
+    // Callback with error
+    if (callback_url) {
+      await sendCallback(callback_url, {
+        node_uuid: node_uuid,
+        executor_type: executor_type,
+        error: error.message,
+        error_type: 'ffmpeg_error'
+      });
+    }
+
+    return { statusCode: 500 };
   }
 };
 
@@ -231,5 +249,36 @@ async function cleanupFiles(paths) {
     } catch (error) {
       // Ignore errors (file might not exist)
     }
+  }
+}
+
+/**
+ * Send callback to Rails SPI endpoint
+ * @param {string} url - Callback URL
+ * @param {object} payload - Callback payload
+ */
+async function sendCallback(url, payload) {
+  try {
+    console.error(`[VideoMerger] Sending callback to ${url}`);
+    console.error(`[VideoMerger] Payload: ${JSON.stringify(payload)}`);
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+      console.error(`[VideoMerger] Callback failed with status ${response.status}`);
+      const text = await response.text();
+      console.error(`[VideoMerger] Response: ${text}`);
+    } else {
+      console.error(`[VideoMerger] Callback successful`);
+    }
+  } catch (error) {
+    console.error(`[VideoMerger] Failed to send callback: ${error.message}`);
+    // Don't throw - callback failure shouldn't crash Lambda
   }
 }

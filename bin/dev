@@ -27,6 +27,7 @@ else
   fi
   docker run -dp 3067:8080 -p 3065:4566 -p 3066:4566 \
     -v /var/run/docker.sock:/var/run/docker.sock \
+    --add-host=local.jiki.io:host-gateway \
     --name localstack-jiki $(jq -r '.localstack' .dockerimages.json)
 
   # Initialize LocalStack (create S3 buckets)

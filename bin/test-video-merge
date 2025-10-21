@@ -101,10 +101,10 @@ puts "Input 2: s3://#{bucket}/test-assets/video2.mp4 (red, 3s)"
 puts "Expected output: 6 second video (blue then red)"
 puts ""
 
-print "Running executor... "
+print "Invoking executor... "
 begin
   VideoProduction::Node::Executors::MergeVideos.new(merge_node).call
-  puts "✓"
+  puts "✓ (async invocation)"
 rescue StandardError => e
   puts "✗"
   puts "Error: #{e.message}"
@@ -112,9 +112,33 @@ rescue StandardError => e
   exit 1
 end
 
-# Step 6: Check results
-merge_node.reload
+# Step 6: Poll for completion (async execution)
+print "Waiting for Lambda callback"
+max_wait = 30 # seconds
+wait_interval = 0.5 # seconds
+elapsed = 0
+
+loop do
+  merge_node.reload
+  break if merge_node.status == 'completed' || merge_node.status == 'failed'
+
+  if elapsed >= max_wait
+    puts " ✗"
+    puts ""
+    puts "Timeout: Node still in status '#{merge_node.status}' after #{max_wait}s"
+    puts "Metadata: #{merge_node.metadata.inspect}"
+    exit 1
+  end
+
+  print "."
+  sleep wait_interval
+  elapsed += wait_interval
+end
+
+puts " ✓ (#{elapsed.round(1)}s)"
 puts ""
+
+# Step 7: Check results
 puts "=== Results ==="
 puts ""
 puts "Status: #{merge_node.status}"

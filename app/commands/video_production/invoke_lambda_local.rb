@@ -4,31 +4,63 @@ class VideoProduction::InvokeLambdaLocal
   initialize_with :function_name, :payload
 
   def call
-    # Execute Node.js with the handler
-    stdout, stderr, = Open3.capture3(
+    # Spawn background process to execute Lambda handler asynchronously
+    # This mimics AWS Lambda's async 'Event' invocation type
+    pid = Process.spawn(
       aws_env,
-      'node',
-      '-e', node_script,
-      JSON.generate(payload),
-      chdir: Rails.root
+      'ruby',
+      '-e', background_script,
+      chdir: Rails.root,
+      out: '/dev/null',
+      err: Rails.root.join('log', 'lambda_local.log').to_s
     )
 
-    # Log stderr for debugging (ffmpeg output, console.error, etc.)
-    Rails.logger.info("[Lambda Local #{function_name}] #{stderr}") if stderr.present?
+    # Detach process so it runs independently
+    Process.detach(pid)
 
-    # Parse response
-    result = JSON.parse(stdout, symbolize_names: true)
-
-    # Check for application-level errors (same as InvokeLambda)
-    raise "Lambda returned error: #{result[:error]}" if result[:error]
-    raise "Lambda failed with status #{result[:statusCode]}" if result[:statusCode] != 200
-
-    result
-  rescue JSON::ParserError => e
-    raise "Failed to parse Lambda response. stdout: #{stdout}, stderr: #{stderr}, error: #{e.message}"
+    # Return immediately, matching InvokeLambda async behavior
+    # Lambda will callback to SPI endpoint when complete
+    { status: 'invoked' }
   end
 
   private
+  # Background Ruby script that executes Lambda and sends callback
+  memoize
+  def background_script
+    <<~RUBY
+        require 'bundler/setup'
+        require 'jiki-config'
+        require 'open3'
+        require 'json'
+
+        # Sleep 1 second to ensure parent request completes
+        sleep 1
+
+        # Execute Node.js handler
+        # The Lambda handler will call the callback URL itself via fetch()
+        stdout, stderr, status = Open3.capture3(
+          #{aws_env.to_json},
+          'node',
+          '-e', #{node_script.to_json},
+          #{JSON.generate(payload).to_json},
+          chdir: #{Rails.root.to_s.to_json}
+        )
+
+        # Log execution results
+        if status.success?
+          puts "[Lambda Local] Lambda execution completed successfully"
+          puts "[Lambda Local] stdout: \#{stdout}" if stdout && !stdout.empty?
+        else
+          puts "[Lambda Local] Lambda execution failed with exit code \#{status.exitstatus}"
+          puts "[Lambda Local] stdout: \#{stdout}" if stdout && !stdout.empty?
+          puts "[Lambda Local] stderr: \#{stderr}" if stderr && !stderr.empty?
+        end
+      rescue => e
+        puts "[Lambda Local] Background execution failed: \#{e.message}"
+        puts e.backtrace.first(5).join("\\n")
+    RUBY
+  end
+
   # Map function name to handler path
   memoize
   def handler_path
