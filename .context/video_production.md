@@ -328,19 +328,23 @@ This command:
 
 ### Deploying Lambda to LocalStack
 
-After starting `bin/dev`, deploy the video-merger Lambda function:
+`bin/dev` automatically deploys missing Lambdas at startup. To manually deploy or redeploy:
 
 ```bash
-bin/setup-video-production
+# Deploy only missing Lambdas (skip if already deployed)
+bin/deploy-lambdas --deploy-missing
+
+# Force redeploy all Lambdas (use after modifying Lambda code)
+bin/deploy-lambdas --deploy-all
 ```
 
-This script:
-1. Installs Node.js dependencies for video-merger
+**Note**: `--deploy-all` deletes and recreates all Lambdas, ensuring latest code is deployed. Use this after updating `services/video_production/video-merger/index.js` or other Lambda code.
+
+The deployment process:
+1. Installs Node.js dependencies for video-merger (`bin/setup-video-production`)
 2. Downloads FFmpeg static binary (~50MB, one-time)
 3. Creates deployment ZIP package
 4. Deploys function to LocalStack as `jiki-video-merger-development`
-
-**Note**: Only needs to be run once after starting LocalStack, or after modifying Lambda code.
 
 ### Quick Test: End-to-End Video Merge
 
@@ -405,8 +409,8 @@ docker restart <container-id>
 # Ensure LocalStack is running
 curl http://localhost:3065/_localstack/health
 
-# Re-run setup
-bin/setup-video-production
+# Force redeploy
+bin/deploy-lambdas --deploy-all
 ```
 
 **FFmpeg download fails:**
@@ -447,7 +451,8 @@ services/video_production/
 
 ### Important Notes
 
-- **LocalStack resets on restart** - Re-run `bin/setup-video-production` if you restart LocalStack
+- **LocalStack resets on restart** - Re-run `bin/deploy-lambdas --deploy-all` if you restart LocalStack
+- **Lambda code changes** - Always run `bin/deploy-lambdas --deploy-all` after modifying Lambda handler code
 - **S3 bucket auto-created** - `bin/init-localstack` creates bucket on every `bin/dev` run
 - **No production impact** - All local dev uses LocalStack, production uses real AWS
 - **Bucket name from config** - Never hardcode bucket names, always use `Jiki.config.s3_bucket_video_production`
@@ -476,4 +481,5 @@ services/video_production/
 - `.context/testing.md` - Testing guidelines
 - `bin/dev` - Starts LocalStack and initializes S3 buckets
 - `bin/init-localstack` - S3 bucket initialization script
-- `bin/setup-video-production` - Lambda deployment script for LocalStack
+- `bin/deploy-lambdas` - Lambda deployment script (use `--deploy-missing` or `--deploy-all`)
+- `bin/setup-video-production` - Lambda packaging and deployment (called by bin/deploy-lambdas)

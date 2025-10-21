@@ -37,6 +37,6 @@ fi
 
 # Deploy Lambda functions (only if missing)
 echo "Checking Lambda functions..."
-bin/deploy-lambdas
+bin/deploy-lambdas --deploy-missing
 
 hivemind Procfile.dev
