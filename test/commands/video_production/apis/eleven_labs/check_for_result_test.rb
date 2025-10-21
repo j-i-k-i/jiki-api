@@ -129,7 +129,7 @@ class VideoProduction::APIs::ElevenLabs::CheckForResultTest < ActiveSupport::Tes
       )
 
     # Simulate webhook already processed and marked node as completed
-    node.update!(status: 'completed', output: { s3_key: 'from-webhook.mp3' })
+    node.update!(status: 'completed', output: { 's3Key' => 'from-webhook.mp3' })
 
     # ProcessResult should NOT be called because node is already completed
     VideoProduction::APIs::ElevenLabs::ProcessResult.expects(:call).never
@@ -138,7 +138,7 @@ class VideoProduction::APIs::ElevenLabs::CheckForResultTest < ActiveSupport::Tes
     VideoProduction::APIs::ElevenLabs::CheckForResult.(node, 'test-uuid', 'audio-123', 1)
 
     # Node output should still be from webhook (not overwritten)
-    assert_equal 'from-webhook.mp3', node.reload.output['s3_key']
+    assert_equal 'from-webhook.mp3', node.reload.output['s3Key']
   end
 
   test "does not process result when node failed during polling" do

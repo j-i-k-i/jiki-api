@@ -185,6 +185,52 @@ end
 
 puts "✓ Created email templates for level-1 in English and Hungarian"
 
+# Create test videos for video production
+puts "\nCreating test videos for video production..."
+
+# Check if ffmpeg is available
+unless system("which ffmpeg > /dev/null 2>&1")
+  abort "Error: ffmpeg not found. Install with: brew install ffmpeg"
+end
+
+# Create temporary directory for test videos
+temp_dir = Dir.mktmpdir
+video1_path = File.join(temp_dir, "video1.mp4")
+video2_path = File.join(temp_dir, "video2.mp4")
+
+begin
+  # Create 3-second blue video
+  puts "  Creating blue test video (3 seconds)..."
+  system("ffmpeg -f lavfi -i color=c=blue:s=1280x720:d=3 -c:v libx264 -pix_fmt yuv420p #{video1_path} -y > /dev/null 2>&1")
+
+  # Create 3-second red video
+  puts "  Creating red test video (3 seconds)..."
+  system("ffmpeg -f lavfi -i color=c=red:s=1280x720:d=3 -c:v libx264 -pix_fmt yuv420p #{video2_path} -y > /dev/null 2>&1")
+
+  # Upload to S3
+  bucket = Jiki.config.s3_bucket_video_production
+
+  puts "  Uploading test videos to S3..."
+  Jiki.s3_client.put_object(
+    bucket: bucket,
+    key: 'test-assets/video1.mp4',
+    body: File.read(video1_path),
+    content_type: 'video/mp4'
+  )
+
+  Jiki.s3_client.put_object(
+    bucket: bucket,
+    key: 'test-assets/video2.mp4',
+    body: File.read(video2_path),
+    content_type: 'video/mp4'
+  )
+
+  puts "  ✓ Test videos created and uploaded to s3://#{bucket}/test-assets/"
+ensure
+  # Clean up temporary files
+  FileUtils.rm_rf(temp_dir)
+end
+
 # Load video production pipelines
 puts "\nLoading video production pipelines..."
 
@@ -225,11 +271,19 @@ if Dir.exist?(video_production_seeds_dir)
       # Config stays as-is (provider is inside config JSONB)
       config_hash = node_data[:config] || {}
 
-      # For asset nodes with S3 URLs, populate output field
+      # For asset nodes with S3 paths, populate output field
       output = nil
-      if node_data[:type] == 'asset' && node_data[:asset] && node_data[:asset][:source]&.start_with?('s3://')
-        # Parse S3 URL to extract key (remove s3://bucket/)
-        s3_key = node_data[:asset][:source].sub(%r{^s3://[^/]+/}, '')
+      if node_data[:type] == 'asset' && node_data[:asset] && node_data[:asset][:source]
+        source = node_data[:asset][:source]
+        # Handle both S3 URLs (s3://bucket/key) and relative paths (key)
+        s3_key = if source.start_with?('s3://')
+          # Parse S3 URL to extract key (remove s3://bucket/)
+          source.sub(%r{^s3://[^/]+/}, '')
+        else
+          # Use as-is (relative path)
+          source
+        end
+
         output = {
           'type' => node_data[:asset][:type],
           's3Key' => s3_key

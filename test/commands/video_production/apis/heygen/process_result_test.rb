@@ -6,7 +6,7 @@ class VideoProduction::APIs::Heygen::ProcessResultTest < ActiveSupport::TestCase
     audio_node = create(:video_production_node,
       pipeline:,
       type: 'generate-voiceover',
-      output: { 's3_key' => 'audio.mp3' })
+      output: { 's3Key' => 'audio.mp3' })
     node = create(:video_production_node,
       pipeline:,
       status: 'in_progress',
@@ -37,7 +37,7 @@ class VideoProduction::APIs::Heygen::ProcessResultTest < ActiveSupport::TestCase
 
     node.reload
     assert_equal 'completed', node.status
-    assert_match(%r{\Apipelines/#{Regexp.escape(pipeline.uuid)}/nodes/#{Regexp.escape(node.uuid)}/[a-f0-9-]+\.mp4\z}, node.output['s3_key'])
+    assert_match(%r{\Apipelines/#{Regexp.escape(pipeline.uuid)}/nodes/#{Regexp.escape(node.uuid)}/[a-f0-9-]+\.mp4\z}, node.output['s3Key'])
     assert_equal 'video', node.output['type']
     assert_equal video_data.bytesize, node.output['size']
     refute_nil node.metadata['completed_at']

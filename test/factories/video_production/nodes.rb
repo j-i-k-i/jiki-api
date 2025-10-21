@@ -53,7 +53,7 @@ FactoryBot.define do
       output do
         {
           'type' => 'video',
-          's3_key' => 'output/test.mp4',
+          's3Key' => 'output/test.mp4',
           'duration' => 60.0,
           'size' => 5_242_880
         }

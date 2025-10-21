@@ -1,16 +1,16 @@
 require "test_helper"
 
 class VideoProduction::Node::Executors::MergeVideosTest < ActiveSupport::TestCase
-  test "successfully merges videos and updates node" do
+  test "successfully invokes Lambda asynchronously" do
     pipeline = create(:video_production_pipeline)
 
     # Create input nodes with outputs
     input1 = create(:video_production_node,
       pipeline:,
-      output: { 's3_key' => 'path/to/video1.mp4', 'type' => 'video' })
+      output: { 's3Key' => 'path/to/video1.mp4', 'type' => 'video' })
     input2 = create(:video_production_node,
       pipeline:,
-      output: { 's3_key' => 'path/to/video2.mp4', 'type' => 'video' })
+      output: { 's3Key' => 'path/to/video2.mp4', 'type' => 'video' })
 
     node = create(:video_production_node,
       pipeline:,
@@ -19,34 +19,31 @@ class VideoProduction::Node::Executors::MergeVideosTest < ActiveSupport::TestCas
       inputs: { 'segments' => [input1.uuid, input2.uuid] },
       status: 'pending')
 
-    # Mock Lambda invocation
+    # Mock async Lambda invocation (returns immediately, no result)
     bucket = Jiki.config.s3_bucket_video_production
-    expected_result = {
-      s3_key: "pipelines/#{pipeline.uuid}/nodes/#{node.uuid}/output.mp4",
-      duration: 10.5,
-      size: 1_024_000
-    }
-    VideoProduction::InvokeLambda.expects(:call).with(
-      "jiki-video-merger-test",
-      {
-        input_videos: [
+    VideoProduction::InvokeLambda.expects(:call).with do |function_name, payload|
+      function_name == "jiki-video-merger-test" &&
+        payload[:input_videos] == [
           "s3://#{bucket}/path/to/video1.mp4",
           "s3://#{bucket}/path/to/video2.mp4"
-        ],
-        output_bucket: bucket,
-        output_key: "pipelines/#{pipeline.uuid}/nodes/#{node.uuid}/output.mp4"
-      }
-    ).returns(expected_result)
+        ] &&
+        payload[:output_bucket] == bucket &&
+        payload[:output_key] == "pipelines/#{pipeline.uuid}/nodes/#{node.uuid}/output.mp4" &&
+        payload[:callback_url] == "#{Jiki.config.spi_base_url}/video_production/executor_callback" &&
+        payload[:node_uuid] == node.uuid &&
+        payload[:executor_type] == 'merge-videos' &&
+        payload[:process_uuid].present? # Verify process_uuid is included
+    end.returns({ status: 'invoked' })
 
     VideoProduction::Node::Executors::MergeVideos.(node)
 
     node.reload
-    assert_equal 'completed', node.status
-    assert_equal 'video', node.output['type']
-    assert_equal expected_result[:s3_key], node.output['s3_key']
-    assert_equal expected_result[:duration], node.output['duration']
-    assert_equal expected_result[:size], node.output['size']
-    refute_nil node.metadata['completed_at']
+    # After async invocation, node should be in_progress (not completed)
+    assert_equal 'in_progress', node.status
+    refute_nil node.metadata['started_at']
+    refute_nil node.metadata['process_uuid']
+    # Output will be set via callback, not here
+    assert_nil node.output
   end
 
   test "raises error when no segments specified" do
@@ -113,13 +110,13 @@ class VideoProduction::Node::Executors::MergeVideosTest < ActiveSupport::TestCas
 
     input1 = create(:video_production_node,
       pipeline:,
-      output: { 's3_key' => 'path/to/video1.mp4' })
+      output: { 's3Key' => 'path/to/video1.mp4' })
     input2 = create(:video_production_node,
       pipeline:,
-      output: { 's3_key' => 'path/to/video2.mp4' })
+      output: { 's3Key' => 'path/to/video2.mp4' })
     input3 = create(:video_production_node,
       pipeline:,
-      output: { 's3_key' => 'path/to/video3.mp4' })
+      output: { 's3Key' => 'path/to/video3.mp4' })
 
     # Intentionally put them in a different order
     node = create(:video_production_node,
@@ -137,11 +134,7 @@ class VideoProduction::Node::Executors::MergeVideosTest < ActiveSupport::TestCas
         "s3://#{bucket}/path/to/video1.mp4",
         "s3://#{bucket}/path/to/video2.mp4"
       ]
-    end.returns({
-      s3_key: "output.mp4",
-      duration: 15.0,
-      size: 2_048_000
-    })
+    end.returns({ status: 'invoked' })
 
     VideoProduction::Node::Executors::MergeVideos.(node)
   end
@@ -150,10 +143,10 @@ class VideoProduction::Node::Executors::MergeVideosTest < ActiveSupport::TestCas
     pipeline = create(:video_production_pipeline)
     input1 = create(:video_production_node,
       pipeline:,
-      output: { 's3_key' => 'video1.mp4' })
+      output: { 's3Key' => 'video1.mp4' })
     input2 = create(:video_production_node,
       pipeline:,
-      output: { 's3_key' => 'video2.mp4' })
+      output: { 's3Key' => 'video2.mp4' })
 
     node = create(:video_production_node,
       pipeline:,
@@ -168,11 +161,7 @@ class VideoProduction::Node::Executors::MergeVideosTest < ActiveSupport::TestCas
     VideoProduction::InvokeLambda.expects(:call).with(
       'custom-lambda-name',
       anything
-    ).returns({
-      s3_key: "output.mp4",
-      duration: 10.0,
-      size: 1_024_000
-    })
+    ).returns({ status: 'invoked' })
 
     VideoProduction::Node::Executors::MergeVideos.(node)
   end
@@ -181,10 +170,10 @@ class VideoProduction::Node::Executors::MergeVideosTest < ActiveSupport::TestCas
     pipeline = create(:video_production_pipeline)
     input1 = create(:video_production_node,
       pipeline:,
-      output: { 's3_key' => 'video1.mp4' })
+      output: { 's3Key' => 'video1.mp4' })
     input2 = create(:video_production_node,
       pipeline:,
-      output: { 's3_key' => 'video2.mp4' })
+      output: { 's3Key' => 'video2.mp4' })
 
     node = create(:video_production_node,
       pipeline:,
@@ -193,11 +182,7 @@ class VideoProduction::Node::Executors::MergeVideosTest < ActiveSupport::TestCas
       inputs: { 'segments' => [input1.uuid, input2.uuid] },
       status: 'pending')
 
-    VideoProduction::InvokeLambda.stubs(:call).returns({
-      s3_key: "output.mp4",
-      duration: 10.0,
-      size: 1_024_000
-    })
+    VideoProduction::InvokeLambda.stubs(:call).returns({ status: 'invoked' })
 
     VideoProduction::Node::Executors::MergeVideos.(node)
 

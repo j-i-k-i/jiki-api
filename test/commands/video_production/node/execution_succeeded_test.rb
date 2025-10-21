@@ -70,13 +70,13 @@ class VideoProduction::Node::ExecutionSucceededTest < ActiveSupport::TestCase
       status: 'in_progress',
       metadata: { process_uuid: 'matching-uuid', started_at: 1.minute.ago.iso8601 })
 
-    output = { type: 'audio', s3_key: 'correct-output.mp3', duration: 10.5 }
+    output = { 'type' => 'audio', 's3Key' => 'correct-output.mp3', 'duration' => 10.5 }
 
     # This should succeed because UUID matches
     VideoProduction::Node::ExecutionSucceeded.(node, output, 'matching-uuid')
 
     node.reload
     assert_equal 'completed', node.status
-    assert_equal 'correct-output.mp3', node.output['s3_key']
+    assert_equal 'correct-output.mp3', node.output['s3Key']
   end
 end

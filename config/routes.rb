@@ -61,9 +61,23 @@ Rails.application.routes.draw do
 
       namespace :video_production do
         resources :pipelines, only: %i[index show create update destroy], param: :uuid do
-          resources :nodes, only: %i[index show create update destroy], param: :uuid
+          resources :nodes, only: %i[index show create update destroy], param: :uuid do
+            member do
+              post :execute
+              get :output
+            end
+          end
         end
       end
+    end
+  end
+
+  # SPI (Service Provider Interface) endpoints
+  # Network-guarded endpoints for service-to-service communication
+  # No authentication required - security handled at network level
+  namespace :spi do
+    namespace :video_production do
+      post :executor_callback
     end
   end
 

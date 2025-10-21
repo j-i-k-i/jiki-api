@@ -54,64 +54,22 @@ All Ruby code (executors, API clients, utilities) remains in `app/commands/video
 
 ## Database Schema
 
-### Shared PostgreSQL Database
+**Schema files:** See `db/migrate/*_create_video_production_*.rb`
+
+### Shared Database Pattern
 
 Both Next.js (code-videos) and Rails connect to the same database. Column ownership prevents conflicts:
 
 - **Next.js writes**: `type`, `inputs`, `config`, `asset`, `title`
 - **Rails writes**: `status`, `metadata`, `output`, `is_valid`, `validation_errors`
 
-### video_production_pipelines
+### Tables Overview
 
-```ruby
-create_table :video_production_pipelines, id: :uuid do |t|
-  t.string :version, null: false, default: '1.0'
-  t.string :title, null: false
-  t.jsonb :config, null: false, default: {}
-  t.jsonb :metadata, null: false, default: {}
-  t.timestamps
-end
-```
+**video_production_pipelines:** UUID primary key, JSONB columns for `config` (storage/directory settings) and `metadata` (cost tracking, progress statistics)
 
-**JSONB Columns:**
-- `config`: Storage and working directory settings
-- `metadata`: Cost tracking and progress statistics
+**video_production_nodes:** UUID primary key with pipeline foreign key. Structure columns (Next.js), execution state columns (Rails), validation state columns (Rails).
 
-### video_production_nodes
-
-```ruby
-create_table :video_production_nodes, id: :uuid do |t|
-  t.uuid :pipeline_id, null: false, foreign_key: true
-  t.string :title, null: false
-
-  # Structure (Next.js writes)
-  t.string :type, null: false
-  t.jsonb :inputs, null: false, default: {}
-  t.jsonb :config, null: false, default: {}
-  t.jsonb :asset
-
-  # Execution state (Rails writes)
-  t.string :status, null: false, default: 'pending'
-  t.jsonb :metadata
-  t.jsonb :output
-
-  # Validation state (Rails writes)
-  t.boolean :is_valid, null: false, default: false
-  t.jsonb :validation_errors, null: false, default: {}
-
-  t.timestamps
-end
-```
-
-**Node Types:**
-- `asset` - Static file references
-- `generate-talking-head` - HeyGen talking head videos
-- `generate-animation` - Veo 3 / Runway animations
-- `generate-voiceover` - ElevenLabs text-to-speech
-- `render-code` - Remotion code screen animations
-- `mix-audio` - FFmpeg audio replacement
-- `merge-videos` - FFmpeg video concatenation
-- `compose-video` - FFmpeg picture-in-picture overlays
+**Node Types:** `asset`, `generate-talking-head`, `generate-animation`, `generate-voiceover`, `render-code`, `mix-audio`, `merge-videos`, `compose-video`
 
 **Status Values:** `pending`, `in_progress`, `completed`, `failed`
 
@@ -286,9 +244,23 @@ Location: `app/commands/video_production/node/executors/`
 
 ### Lambda Integration
 
-`VideoProduction::InvokeLambda` - Synchronous Lambda invocation wrapper. Currently used by MergeVideos executor.
+Lambda functions are invoked **asynchronously** with callback-based completion following the llm-proxy pattern.
 
-**Lambda Functions:** `video-merger` for FFmpeg video concatenation (Node.js 20, 3008 MB, 15 min timeout). See `services/video_production/README.md` for deployment.
+**Commands:**
+- `VideoProduction::InvokeLambda` - Asynchronous Lambda invocation (`invocation_type: 'Event'`), returns `{ status: 'invoked' }` immediately
+- `VideoProduction::InvokeLambdaLocal` - Local development alternative using `Process.spawn`, executes handler via Node.js in background process with 1-second delay, Lambda handler calls back to SPI endpoint
+- `VideoProduction::ProcessExecutorCallback` - Processes callbacks from Lambda, calls ExecutionSucceeded or ExecutionFailed
+
+**Async Flow:**
+1. Executor invokes Lambda with `Event` type (returns 202 immediately)
+2. Node stays in `in_progress` status (not completed)
+3. Lambda executes asynchronously, processes video/audio
+4. Lambda POSTs result to SPI callback endpoint (`/spi/video_production/executor_callback`)
+5. `ProcessExecutorCallback` marks node as `completed` or `failed` with output
+
+**Lambda Functions:** `video-merger` for FFmpeg video concatenation (Node.js 20, 3008 MB, 15 min timeout). Accepts `callback_url`, `node_uuid`, `executor_type` in payload. See `services/video_production/README.md` for deployment.
+
+**SPI Callbacks:** Lambda callbacks use network-guarded SPI endpoints (no authentication required). Callback URL built from `Jiki.config.spi_base_url`. See `.context/spi.md` for SPI pattern details.
 
 ### External API Integration
 
@@ -307,23 +279,7 @@ External APIs use a **three-command pattern** (submit → poll → process) with
 
 ### Node Metadata Fields
 
-**Process Tracking:**
-- `process_uuid` - Unique identifier for this execution (prevents race conditions)
-- `started_at` - ISO8601 timestamp when execution started
-- `completed_at` - ISO8601 timestamp when execution finished
-
-**External API Integration:**
-- `audio_id` - ElevenLabs job ID
-- `video_id` - HeyGen job ID
-- `stage` - Current processing stage (e.g., 'submitted', 'processing')
-- `job_id` - Generic external job identifier
-
-**Error Tracking:**
-- `error` - Error message if execution failed
-
-**Other:**
-- `cost` - Estimated cost for this execution
-- `retries` - Number of retry attempts
+Common JSONB metadata fields: `process_uuid` (execution tracking), `started_at`/`completed_at` (timestamps), `audio_id`/`video_id`/`job_id` (external API tracking), `stage` (processing stage), `error` (failure message), `cost`, `retries`. See execution lifecycle commands for usage.
 
 ### Database Concurrency
 
@@ -340,6 +296,171 @@ Column ownership prevents conflicts:
 
 Both systems can safely write to their columns simultaneously without conflicts.
 
+## Usage Patterns
+
+**Creating pipelines and nodes:** Use `VideoProduction::Pipeline::Create` and `VideoProduction::Node::Create` commands. See command files in `app/commands/video_production/`.
+
+**Updating nodes:** `VideoProduction::Node::Update` automatically resets status to `pending` when structure fields (`inputs`, `config`, `asset`) change.
+
+**Deleting nodes with references:** `VideoProduction::Node::Destroy` automatically cleans up references (removes UUID from array inputs, removes slot for single inputs).
+
+## Local Development Setup
+
+### Prerequisites
+
+- **LocalStack**: AWS service emulation (S3, Lambda)
+- **Docker**: For running LocalStack container
+- **jq**: JSON processor for reading `.dockerimages.json`
+- **Node.js**: For Lambda function dependencies
+- **curl** and **zip**: For FFmpeg download and packaging
+
+### Starting Development Environment
+
+```bash
+# Start all services (Rails, Sidekiq, LocalStack)
+bin/dev
+```
+
+This command:
+1. Starts LocalStack container on port 3065
+2. Initializes S3 bucket from `Jiki.config.s3_bucket_video_production`
+3. Starts Rails server and Sidekiq via hivemind
+
+### Deploying Lambda to LocalStack
+
+`bin/dev` automatically deploys missing Lambdas at startup. To manually deploy or redeploy:
+
+```bash
+# Deploy only missing Lambdas (skip if already deployed)
+bin/deploy-lambdas --deploy-missing
+
+# Force redeploy all Lambdas (use after modifying Lambda code)
+bin/deploy-lambdas --deploy-all
+```
+
+**Note**: `--deploy-all` deletes and recreates all Lambdas, ensuring latest code is deployed. Use this after updating `services/video_production/video-merger/index.js` or other Lambda code.
+
+The deployment process:
+1. Installs Node.js dependencies for video-merger (`bin/setup-video-production`)
+2. Downloads FFmpeg static binary (~50MB, one-time)
+3. Creates deployment ZIP package
+4. Deploys function to LocalStack as `jiki-video-merger-development`
+
+### Quick Test: End-to-End Video Merge
+
+**Run test:** `bin/test-video-merge` (requires FFmpeg, LocalStack running, Lambda deployed)
+
+**What it tests:** Creates test videos, uploads to S3, creates pipeline with merge-videos node, executes merge via Lambda, verifies output. See script for details.
+
+### LocalStack Configuration
+
+**Endpoints** (from `jiki-config` gem):
+- Development: `http://localhost:3065`
+- Test: `http://localhost:3065`
+- Production: Real AWS endpoints
+
+**S3 Bucket** (from `../config/settings/local.yml`):
+- Bucket name: `Jiki.config.s3_bucket_video_production` → `jiki-videos-dev`
+
+**Lambda Function**:
+- Function name: `jiki-video-merger-development`
+- Runtime: Node.js 20.x
+- Memory: 3008 MB
+- Timeout: 15 minutes
+
+**Network Configuration** (for Lambda callbacks):
+LocalStack is configured with `LAMBDA_DOCKER_FLAGS=--add-host=local.jiki.io:host-gateway` to allow spawned Lambda containers to reach Rails server for SPI callbacks. See `.context/spi.md` for details.
+
+### AWS Client Configuration
+
+All AWS clients use the `Jiki.*_client` pattern from `jiki-config` gem:
+
+```ruby
+# S3 client (auto-configured for LocalStack in dev/test)
+Jiki.s3_client.put_object(bucket: Jiki.config.s3_bucket_video_production, ...)
+
+# Lambda client (auto-configured for LocalStack in dev/test)
+Jiki.lambda_client.invoke(function_name: 'jiki-video-merger-development', ...)
+```
+
+**No environment variables needed** - configuration handled by `JikiConfig::GenerateAwsSettings`.
+
+### Testing Video Merge Manually
+
+**Quick approach:** Use `bin/test-video-merge` for automated end-to-end testing.
+
+**Manual testing:**
+1. Upload test videos to S3 (`Jiki.s3_client.put_object`)
+2. Create pipeline and nodes (see `VideoProduction::Pipeline::Create`, `VideoProduction::Node::Create`)
+3. Execute merge (`VideoProduction::Node::Executors::MergeVideos.perform_now(node)`)
+4. Check output (node status and output fields)
+
+### Troubleshooting
+
+**LocalStack not starting:**
+```bash
+# Check if port 3065 is already in use
+lsof -i :3065
+
+# Restart LocalStack container
+docker ps | grep localstack
+docker restart <container-id>
+```
+
+**Lambda deployment fails:**
+```bash
+# Ensure LocalStack is running
+curl http://localhost:3065/_localstack/health
+
+# Force redeploy
+bin/deploy-lambdas --deploy-all
+```
+
+**FFmpeg download fails:**
+- Download manually from: https://johnvansickle.com/ffmpeg/builds/ffmpeg-git-amd64-static.tar.xz
+- Extract and place `ffmpeg` binary in `services/video_production/video-merger/bin/`
+
+### Directory Structure
+
+```
+services/video_production/
+├── video-merger/              # Lambda function code
+│   ├── index.js               # Lambda handler
+│   ├── package.json           # Node.js dependencies
+│   ├── bin/                   # FFmpeg binary (downloaded by setup script)
+│   │   └── ffmpeg
+│   └── node_modules/          # Installed by setup script
+├── template.yaml              # AWS SAM deployment (production)
+└── README.md                  # Lambda function documentation
+```
+
+### Local Lambda Execution (Fast Development)
+
+**Pattern:** Use `INVOKE_LAMBDA_LOCALLY=true` to run Lambda handler directly via Node.js instead of deploying to LocalStack (~5s vs ~2min).
+
+**Implementation:** `VideoProduction::InvokeLambdaLocal` (`app/commands/video_production/invoke_lambda_local.rb`):
+- Spawns detached background process using `Process.spawn`
+- Sleeps 1 second before executing (allows parent request to complete)
+- Executes Lambda handler via Node.js with AWS env vars
+- Lambda handler calls back to SPI endpoint via `fetch()`
+- Returns `{ status: 'invoked' }` immediately (matching real Lambda async behavior)
+- Logs output to `log/lambda_local.log`
+
+**Usage:** `INVOKE_LAMBDA_LOCALLY=true bin/test-video-merge` or set `ENV['INVOKE_LAMBDA_LOCALLY'] = 'true'` in console.
+
+**When to use:** Developing/debugging Lambda functions, rapid iteration. Don't use in production.
+
+**Async Behavior:** Even in local mode, execution is asynchronous. Rails must be running to receive callbacks. Node transitions to `completed` via SPI callback, not directly from executor.
+
+### Important Notes
+
+- **LocalStack resets on restart** - Re-run `bin/deploy-lambdas --deploy-all` if you restart LocalStack
+- **Lambda code changes** - Always run `bin/deploy-lambdas --deploy-all` after modifying Lambda handler code
+- **S3 bucket auto-created** - `bin/init-localstack` creates bucket on every `bin/dev` run
+- **No production impact** - All local dev uses LocalStack, production uses real AWS
+- **Bucket name from config** - Never hardcode bucket names, always use `Jiki.config.s3_bucket_video_production`
+- **Fast iteration** - Use `INVOKE_LAMBDA_LOCALLY=true` to skip Lambda deployment and run handler directly
+
 ## Key Architecture Points
 
 1. **STI Prevention**: Models use `disable_sti!` to allow `type` column without Rails STI
@@ -350,6 +471,9 @@ Both systems can safely write to their columns simultaneously without conflicts.
 6. **Shared Database**: Next.js (writes structure) and Rails (writes execution state/validation) have distinct column ownership
 7. **Race Condition Protection**: process_uuid tracking + database locks prevent concurrent execution conflicts
 8. **Admin Only**: All API endpoints require admin authentication
+9. **LocalStack for Dev**: Use LocalStack for S3 and Lambda in development - see "Local Development Setup" above
+10. **Config-driven**: All AWS configuration comes from `Jiki.config` and `Jiki.*_client` - never hardcode
+11. **Fast iteration**: Use `INVOKE_LAMBDA_LOCALLY=true` to skip Lambda deployment and run handler directly via Node.js
 
 ## Related Files
 
@@ -358,3 +482,7 @@ Both systems can safely write to their columns simultaneously without conflicts.
 - `.context/architecture.md` - Rails patterns and Mandate usage
 - `.context/controllers.md` - Controller patterns
 - `.context/testing.md` - Testing guidelines
+- `bin/dev` - Starts LocalStack and initializes S3 buckets
+- `bin/init-localstack` - S3 bucket initialization script
+- `bin/deploy-lambdas` - Lambda deployment script (use `--deploy-missing` or `--deploy-all`)
+- `bin/setup-video-production` - Lambda packaging and deployment (called by bin/deploy-lambdas)

@@ -66,6 +66,9 @@ gem "httparty"
 gem "aws-sdk-s3"
 
 group :development, :test do
+  # AWS SDK for Lambda (local development with LocalStack)
+  gem "aws-sdk-lambda"
+
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem
   gem "debug", platforms: %i[mri windows], require: "debug/prelude"
 

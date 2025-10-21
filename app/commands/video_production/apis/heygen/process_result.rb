@@ -15,9 +15,9 @@ class VideoProduction::APIs::Heygen::ProcessResult
 
     # 4. Build output hash
     output = {
-      type: 'video',
-      s3_key: s3_key,
-      size: video_size
+      'type' => 'video',
+      's3Key' => s3_key,
+      'size' => video_size
     }
 
     # 5. Update node with output

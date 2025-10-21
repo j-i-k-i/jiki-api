@@ -39,7 +39,7 @@ class VideoProduction::APIs::ElevenLabs::ProcessResultTest < ActiveSupport::Test
 
     node.reload
     assert_equal 'completed', node.status
-    assert_match(%r{\Apipelines/#{Regexp.escape(pipeline.uuid)}/nodes/#{Regexp.escape(node.uuid)}/[a-f0-9-]+\.mp3\z}, node.output['s3_key'])
+    assert_match(%r{\Apipelines/#{Regexp.escape(pipeline.uuid)}/nodes/#{Regexp.escape(node.uuid)}/[a-f0-9-]+\.mp3\z}, node.output['s3Key'])
     assert_equal 'audio', node.output['type']
     assert_equal audio_data.bytesize, node.output['size']
     refute_nil node.metadata['completed_at']

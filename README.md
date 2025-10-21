@@ -521,14 +521,42 @@ Ruby 3.4.4
 
 ### Prerequisites
 
-- Ruby 3.4.4 (see `.ruby-version`)
-- PostgreSQL
-- Bundler
-- Redis (for Sidekiq background jobs)
-- Hivemind (for running multiple processes)
+**Core Dependencies:**
+
+- **Ruby 3.4.4** (see `.ruby-version`)
+  - **macOS/Linux**: Use [rbenv](https://github.com/rbenv/rbenv) or [asdf](https://asdf-vm.com/)
+- **PostgreSQL**
+  - **macOS**: `brew install postgresql`
+  - **Linux**: `sudo apt-get install postgresql postgresql-contrib`
+- **Bundler**
+  - Install: `gem install bundler`
+- **Redis** (for Sidekiq background jobs)
+  - **macOS**: `brew install redis`
+  - **Linux**: `sudo apt-get install redis-server`
+  - Start: `brew services start redis` (macOS) or `sudo service redis-server start` (Linux)
+- **Hivemind** (for running multiple processes)
   - **macOS**: `brew install hivemind`
   - **Linux**: Download from [releases](https://github.com/DarthSim/hivemind/releases)
   - **Alternative**: Use `foreman` gem (`gem install foreman` and run `foreman start -f Procfile.dev`)
+
+**Video Production Dependencies** (optional, only needed for video production features):
+
+- **Docker** (for running LocalStack container)
+  - **macOS**: [Docker Desktop for Mac](https://docs.docker.com/desktop/install/mac-install/)
+  - **Linux**: `sudo apt-get install docker.io`
+  - **Note**: LocalStack image is automatically pulled by Docker when running `bin/dev` - no separate installation needed
+- **jq** (JSON processor for reading `.dockerimages.json`)
+  - **macOS**: `brew install jq`
+  - **Linux**: `sudo apt-get install jq`
+- **Node.js** (for Lambda function dependencies)
+  - **macOS/Linux**: Use [nvm](https://github.com/nvm-sh/nvm) or [asdf](https://asdf-vm.com/)
+  - Recommended: Node.js 20.x or later
+- **curl** and **zip** (for FFmpeg download and packaging)
+  - Usually pre-installed on macOS/Linux
+  - **Linux**: `sudo apt-get install curl zip` if missing
+- **FFmpeg** (optional, for creating test videos)
+  - **macOS**: `brew install ffmpeg`
+  - **Linux**: `sudo apt-get install ffmpeg`
 
 ### Installation
 
@@ -568,6 +596,18 @@ bin/dev
 This starts both the Rails server (port 3061) and Sidekiq worker using Hivemind.
 
 **Note:** Redis must be running for Sidekiq. Start Redis with `brew services start redis` if needed.
+
+### Stopping LocalStack
+
+If you're working with video production features, `bin/dev` also starts a LocalStack container. To stop and remove all LocalStack containers:
+
+```bash
+bin/local/teardown-localstack
+```
+
+This will:
+- Stop the main LocalStack container
+- Remove all LocalStack containers (including Lambda execution containers)
 
 ## Tests
 
