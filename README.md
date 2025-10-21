@@ -597,6 +597,18 @@ This starts both the Rails server (port 3061) and Sidekiq worker using Hivemind.
 
 **Note:** Redis must be running for Sidekiq. Start Redis with `brew services start redis` if needed.
 
+### Stopping LocalStack
+
+If you're working with video production features, `bin/dev` also starts a LocalStack container. To stop and remove all LocalStack containers:
+
+```bash
+bin/local/teardown-localstack
+```
+
+This will:
+- Stop the main LocalStack container
+- Remove all LocalStack containers (including Lambda execution containers)
+
 ## Tests
 
 ### Running Tests
