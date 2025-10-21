@@ -147,10 +147,16 @@ Lambda containers in LocalStack need to reach Rails server at `local.jiki.io`.
 
 **File:** `bin/dev`
 ```bash
-docker run --add-host=local.jiki.io:host-gateway ...
+docker run \
+  -e LAMBDA_DOCKER_FLAGS=--add-host=local.jiki.io:host-gateway \
+  --add-host=local.jiki.io:host-gateway \
+  ...
 ```
 
-This maps `local.jiki.io` to host machine's IP from within Lambda container.
+This configuration:
+- `--add-host=local.jiki.io:host-gateway` - Maps hostname for LocalStack container itself
+- `-e LAMBDA_DOCKER_FLAGS=--add-host=local.jiki.io:host-gateway` - Passes same flag to spawned Lambda containers (without quotes!)
+- `host-gateway` resolves to host machine's IP from within containers
 
 ### Rails Server
 

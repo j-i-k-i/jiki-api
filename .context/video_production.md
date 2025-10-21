@@ -368,6 +368,9 @@ The deployment process:
 - Memory: 3008 MB
 - Timeout: 15 minutes
 
+**Network Configuration** (for Lambda callbacks):
+LocalStack is configured with `LAMBDA_DOCKER_FLAGS=--add-host=local.jiki.io:host-gateway` to allow spawned Lambda containers to reach Rails server for SPI callbacks. See `.context/spi.md` for details.
+
 ### AWS Client Configuration
 
 All AWS clients use the `Jiki.*_client` pattern from `jiki-config` gem:
