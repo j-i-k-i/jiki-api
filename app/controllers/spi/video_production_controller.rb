@@ -10,14 +10,15 @@ module Spi
       node = VideoProduction::Node.find_by(uuid: params[:node_uuid])
       return render json: { error: "Node not found: #{params[:node_uuid]}" }, status: :not_found unless node
 
-      # Process the callback (positional: node, executor_type; keyword: result, error, error_type)
+      # Process the callback (positional: node, executor_type; keyword: result, error, error_type, process_uuid)
       # Convert params to hash - permit all keys since this is an internal SPI endpoint
       VideoProduction::ProcessExecutorCallback.(
         node,
         params[:executor_type],
         result: params[:result]&.permit!&.to_h,
         error: params[:error],
-        error_type: params[:error_type]
+        error_type: params[:error_type],
+        process_uuid: params[:process_uuid]
       )
 
       render json: { status: 'ok' }, status: :ok

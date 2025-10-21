@@ -30,6 +30,7 @@ interface LambdaEvent {
   callback_url?: string;
   node_uuid?: string;
   executor_type?: string;
+  process_uuid?: string;
 }
 
 /**
@@ -55,7 +56,7 @@ interface LambdaResponse {
  * }
  */
 export const handler = async (event: LambdaEvent): Promise<LambdaResponse> => {
-  const { input_videos, output_bucket, output_key, callback_url, node_uuid, executor_type } = event;
+  const { input_videos, output_bucket, output_key, callback_url, node_uuid, executor_type, process_uuid } = event;
 
   // Validate inputs
   if (!Array.isArray(input_videos) || input_videos.length < 2) {
@@ -115,6 +116,7 @@ export const handler = async (event: LambdaEvent): Promise<LambdaResponse> => {
       await sendCallback(callback_url, {
         node_uuid: node_uuid,
         executor_type: executor_type,
+        process_uuid: process_uuid,
         result: {
           s3_key: output_key,
           duration: duration,
@@ -140,6 +142,7 @@ export const handler = async (event: LambdaEvent): Promise<LambdaResponse> => {
       await sendCallback(callback_url, {
         node_uuid: node_uuid,
         executor_type: executor_type,
+        process_uuid: process_uuid,
         error: error instanceof Error ? error.message : String(error),
         error_type: 'ffmpeg_error'
       });

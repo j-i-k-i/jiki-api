@@ -59,7 +59,8 @@ class VideoProduction::Node::Executors::MergeVideos
       output_key: output_key,
       callback_url: callback_url,
       node_uuid: node.uuid,
-      executor_type: 'merge-videos'
+      executor_type: 'merge-videos',
+      process_uuid: node.metadata&.dig('process_uuid')
     }
   end
 

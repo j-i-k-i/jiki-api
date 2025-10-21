@@ -92,6 +92,7 @@ export async function cleanupFiles(paths: string[]): Promise<void> {
 export interface CallbackPayload {
   node_uuid?: string;
   executor_type?: string;
+  process_uuid?: string;
   result?: {
     s3_key: string;
     duration: number;

@@ -25,9 +25,9 @@ rescue StandardError => e
 end
 
 # Configuration
-LAMBDA_FUNCTION_NAME = "jiki-video-merger-development"
+LAMBDA_FUNCTION_NAME = "jiki-video-merger-development".freeze
 LAMBDA_SOURCE_DIR = File.expand_path("..", __dir__)
-FFMPEG_URL = "https://johnvansickle.com/ffmpeg/builds/ffmpeg-git-amd64-static.tar.xz"
+FFMPEG_URL = "https://johnvansickle.com/ffmpeg/builds/ffmpeg-git-amd64-static.tar.xz".freeze
 
 puts ""
 puts "Configuration:"
@@ -38,7 +38,7 @@ puts ""
 # Step 1: Install Node dependencies (including dev dependencies for build)
 print "Installing Node.js dependencies... "
 Dir.chdir(LAMBDA_SOURCE_DIR) do
-  stdout, stderr, status = Open3.capture3("npm install")
+  _stdout, stderr, status = Open3.capture3("npm install")
   unless status.success?
     puts "✗"
     puts "Error installing dependencies:"
@@ -51,7 +51,7 @@ puts "✓"
 # Step 1.5: Build TypeScript
 print "Building TypeScript... "
 Dir.chdir(LAMBDA_SOURCE_DIR) do
-  stdout, stderr, status = Open3.capture3("npm run build")
+  _stdout, stderr, status = Open3.capture3("npm run build")
   unless status.success?
     puts "✗"
     puts "Error building TypeScript:"
@@ -72,7 +72,7 @@ else
     tarball = File.join(tmpdir, "ffmpeg.tar.xz")
 
     # Download FFmpeg
-    stdout, stderr, status = Open3.capture3("curl", "-L", "-o", tarball, FFMPEG_URL)
+    _stdout, stderr, status = Open3.capture3("curl", "-L", "-o", tarball, FFMPEG_URL)
     unless status.success?
       puts "✗"
       puts "Error downloading FFmpeg:"
@@ -81,7 +81,7 @@ else
     end
 
     # Extract FFmpeg
-    stdout, stderr, status = Open3.capture3("tar", "xf", tarball, "-C", tmpdir)
+    _stdout, stderr, status = Open3.capture3("tar", "xf", tarball, "-C", tmpdir)
     unless status.success?
       puts "✗"
       puts "Error extracting FFmpeg:"
@@ -100,7 +100,7 @@ else
     # Copy ffmpeg to Lambda source
     FileUtils.mkdir_p(File.join(LAMBDA_SOURCE_DIR, "bin"))
     FileUtils.cp(File.join(ffmpeg_dir, "ffmpeg"), ffmpeg_binary)
-    FileUtils.chmod(0755, ffmpeg_binary)
+    FileUtils.chmod(0o755, ffmpeg_binary)
   end
 
   puts "✓"
@@ -118,7 +118,7 @@ Dir.chdir(LAMBDA_SOURCE_DIR) do
     "bin/ffmpeg"
   ]
 
-  stdout, stderr, status = Open3.capture3("zip", "-r", package_file, *files_to_zip, "-q")
+  _stdout, stderr, status = Open3.capture3("zip", "-r", package_file, *files_to_zip, "-q")
   unless status.success?
     puts "✗"
     puts "Error creating ZIP package:"

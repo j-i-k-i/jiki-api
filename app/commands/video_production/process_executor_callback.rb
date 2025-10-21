@@ -1,7 +1,7 @@
 class VideoProduction::ProcessExecutorCallback
   include Mandate
 
-  initialize_with :node, :executor_type, result: nil, error: nil, error_type: nil
+  initialize_with :node, :executor_type, result: nil, error: nil, error_type: nil, process_uuid: nil
 
   class StaleCallbackError < StandardError; end
 
@@ -21,27 +21,28 @@ class VideoProduction::ProcessExecutorCallback
 
   private
   memoize
-  def process_uuid
+  def current_process_uuid
     node.metadata&.dig('process_uuid')
   end
 
   def process_uuid_matches?
     # No process_uuid in metadata means execution never started - stale
-    return false unless process_uuid.present?
+    return false unless current_process_uuid.present?
 
-    # For now, we don't send process_uuid in the callback, so we assume it matches
-    # if the node is in_progress. This is safe because:
-    # 1. If node is not in_progress, handle_stale_callback catches it
-    # 2. Execution lifecycle commands use with_lock for atomicity
+    # If callback includes process_uuid, validate it matches current execution
+    return false if process_uuid.present? && process_uuid != current_process_uuid
+
+    # Node must be in_progress (not completed/failed by another execution)
     node.status == 'in_progress'
   end
 
   def handle_stale_callback
     Rails.logger.warn(
       "[VideoProduction] Stale callback ignored for node #{node.uuid}: " \
-      "current status=#{node.status}, current process_uuid=#{process_uuid}"
+      "current status=#{node.status}, current process_uuid=#{current_process_uuid}, " \
+      "callback process_uuid=#{process_uuid || 'not provided'}"
     )
-    raise StaleCallbackError, "Callback ignored - node status is #{node.status}"
+    raise StaleCallbackError, "Callback ignored - node status is #{node.status} or process_uuid mismatch"
   end
 
   def handle_success
@@ -50,7 +51,7 @@ class VideoProduction::ProcessExecutorCallback
     VideoProduction::Node::ExecutionSucceeded.(
       node,
       build_output(result),
-      process_uuid # Pass current process_uuid for validation
+      current_process_uuid # Pass current process_uuid for validation
     )
   end
 
@@ -63,7 +64,7 @@ class VideoProduction::ProcessExecutorCallback
     VideoProduction::Node::ExecutionFailed.(
       node,
       error,
-      process_uuid # Pass current process_uuid for validation
+      current_process_uuid # Pass current process_uuid for validation
     )
   end
 

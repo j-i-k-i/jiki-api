@@ -21,20 +21,19 @@ class VideoProduction::Node::Executors::MergeVideosTest < ActiveSupport::TestCas
 
     # Mock async Lambda invocation (returns immediately, no result)
     bucket = Jiki.config.s3_bucket_video_production
-    VideoProduction::InvokeLambda.expects(:call).with(
-      "jiki-video-merger-test",
-      {
-        input_videos: [
+    VideoProduction::InvokeLambda.expects(:call).with do |function_name, payload|
+      function_name == "jiki-video-merger-test" &&
+        payload[:input_videos] == [
           "s3://#{bucket}/path/to/video1.mp4",
           "s3://#{bucket}/path/to/video2.mp4"
-        ],
-        output_bucket: bucket,
-        output_key: "pipelines/#{pipeline.uuid}/nodes/#{node.uuid}/output.mp4",
-        callback_url: "#{Jiki.config.spi_base_url}/video_production/executor_callback",
-        node_uuid: node.uuid,
-        executor_type: 'merge-videos'
-      }
-    ).returns({ status: 'invoked' })
+        ] &&
+        payload[:output_bucket] == bucket &&
+        payload[:output_key] == "pipelines/#{pipeline.uuid}/nodes/#{node.uuid}/output.mp4" &&
+        payload[:callback_url] == "#{Jiki.config.spi_base_url}/video_production/executor_callback" &&
+        payload[:node_uuid] == node.uuid &&
+        payload[:executor_type] == 'merge-videos' &&
+        payload[:process_uuid].present? # Verify process_uuid is included
+    end.returns({ status: 'invoked' })
 
     VideoProduction::Node::Executors::MergeVideos.(node)
 

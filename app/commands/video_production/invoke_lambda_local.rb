@@ -6,6 +6,7 @@ class VideoProduction::InvokeLambdaLocal
   def call
     # Spawn background process to execute Lambda handler asynchronously
     # This mimics AWS Lambda's async 'Event' invocation type
+
     pid = Process.spawn(
       aws_env,
       'ruby',
@@ -21,6 +22,10 @@ class VideoProduction::InvokeLambdaLocal
     # Return immediately, matching InvokeLambda async behavior
     # Lambda will callback to SPI endpoint when complete
     { status: 'invoked' }
+  rescue StandardError => e
+    Rails.logger.error("[Lambda Local] Failed to spawn process: #{e.message}")
+    Rails.logger.error(e.backtrace.join("\n"))
+    raise "Failed to invoke Lambda locally: #{e.message}"
   end
 
   private
