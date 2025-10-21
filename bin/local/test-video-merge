@@ -1,11 +1,27 @@
 #!/usr/bin/env ruby
 
+ENV['RAILS_ENV'] ||= 'development'
+
 require 'bundler/setup'
 require 'jiki-config'
-require_relative '../config/environment'
+require_relative '../../config/environment'
 
 puts "=== Testing Video Merge Locally ==="
 puts ""
+
+# Build TypeScript if using local execution
+if ENV['INVOKE_LAMBDA_LOCALLY']
+  print "Building TypeScript... "
+  Dir.chdir(File.join(__dir__, '..', '..', 'services', 'video_production', 'video-merger')) do
+    result = system('npm run build > /dev/null 2>&1')
+    unless result
+      puts "✗"
+      puts "Error: Failed to build TypeScript"
+      exit 1
+    end
+  end
+  puts "✓"
+end
 
 bucket = Jiki.config.s3_bucket_video_production
 

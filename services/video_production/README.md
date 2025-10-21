@@ -13,14 +13,22 @@ The video production system uses a hybrid architecture:
 ## Directory Structure
 
 ```
-services/video_production/
-├── README.md                    # This file
-├── template.yaml                # AWS SAM deployment configuration
+services/
+├── shared/                      # Shared TypeScript utilities
+│   ├── src/utils.ts            # S3, callback, and file utilities
+│   ├── package.json
+│   └── tsconfig.json
 │
-└── video-merger/                # Lambda: FFmpeg video concatenation
-    ├── index.js                # Lambda handler
-    ├── package.json            # Dependencies
-    └── README.md               # Function-specific docs
+└── video_production/
+    ├── README.md                # This file
+    ├── template.yaml            # AWS SAM deployment configuration
+    │
+    └── video-merger/            # Lambda: FFmpeg video concatenation
+        ├── src/index.ts         # Lambda handler (TypeScript)
+        ├── dist/index.js        # Compiled handler
+        ├── scripts/deploy.rb    # Local deployment script
+        ├── package.json
+        └── tsconfig.json
 ```
 
 ## Lambda Functions
@@ -29,10 +37,11 @@ services/video_production/
 
 Concatenates multiple video files using FFmpeg's concat demuxer.
 
-**Technology:** Node.js 20.x + FFmpeg layer
+**Technology:** TypeScript → Node.js 20.x + FFmpeg layer
 **Memory:** 3008 MB
 **Timeout:** 15 minutes
 **Ephemeral Storage:** 10 GB
+**Shared Utilities:** Uses `@jiki/shared` for S3 and callback operations
 
 See [video-merger/README.md](./video-merger/README.md) for details.
 
@@ -106,12 +115,14 @@ result = VideoProduction::InvokeLambda.(
 For rapid development iteration, you can execute Lambda handlers **locally without deployment** using `VideoProduction::InvokeLambdaLocal`:
 
 ```bash
-# Enable local execution mode
-INVOKE_LAMBDA_LOCALLY=true bin/rails runner bin/test-video-merge
+# Enable local execution mode (automatically builds TypeScript)
+INVOKE_LAMBDA_LOCALLY=true bin/local/test-video-merge
 ```
 
 **How it works:**
-- Runs Lambda handler via Node.js: `node -e "require('./index.js').handler(event)"`
+- Compiles TypeScript to JavaScript automatically
+- Runs Lambda handler via Node.js: `node -e "require('./dist/index.js').handler(event)"`
+- Uses system FFmpeg on macOS, bundled FFmpeg on Linux
 - No deployment needed - instant feedback (~5 seconds vs ~2 minutes)
 - Still uses LocalStack S3 for full integration testing
 - AWS configuration passed as environment variables
@@ -290,11 +301,19 @@ tail -f log/development.log | grep VideoProduction
 
 ## Development Workflow
 
-1. **Make changes** to Lambda code in `video-merger/index.js`
-2. **Test locally** with `sam local invoke`
-3. **Deploy** with `sam build && sam deploy`
-4. **Update Rails** environment variables if function name changed
-5. **Test integration** with Rails executor
+### Local Development (TypeScript)
+
+1. **Make changes** to Lambda code in `video-merger/src/index.ts`
+2. **Test locally** with `INVOKE_LAMBDA_LOCALLY=true bin/local/test-video-merge` (auto-builds TypeScript)
+3. **Deploy to LocalStack** with `bin/deploy-lambdas --deploy-all`
+4. **Test deployed version** with `bin/local/test-video-merge`
+
+### Production Deployment (AWS)
+
+1. **Build** with `cd services/video_production && sam build`
+2. **Deploy** with `sam deploy`
+3. **Update Rails** environment variables if function name changed
+4. **Test integration** with Rails executor
 
 ## Security
 

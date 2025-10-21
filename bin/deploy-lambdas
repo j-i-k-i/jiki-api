@@ -1,22 +1,22 @@
-#!/usr/bin/env bash
+#!/usr/bin/env ruby
+
+ENV['RAILS_ENV'] ||= 'development'
+
+require 'bundler/setup'
+require 'jiki-config'
 
 # Validate required flag
-if [ "$1" != "--deploy-missing" ] && [ "$1" != "--deploy-all" ]; then
-  echo "Error: Required flag missing"
-  echo ""
-  echo "Usage: bin/deploy-lambdas [--deploy-missing|--deploy-all]"
-  echo ""
-  echo "  --deploy-missing  Deploy only missing Lambda functions (skips existing)"
-  echo "  --deploy-all      Force redeploy all Lambda functions (deletes and recreates)"
-  echo ""
-  exit 1
-fi
-
-DEPLOY_MODE="$1"
-
-# Run the Lambda deployment via Rails runner
-bin/rails runner "$(cat <<'RUBY'
 deploy_mode = ARGV[0]
+unless ['--deploy-missing', '--deploy-all'].include?(deploy_mode)
+  puts "Error: Required flag missing"
+  puts ""
+  puts "Usage: bin/deploy-lambdas [--deploy-missing|--deploy-all]"
+  puts ""
+  puts "  --deploy-missing  Deploy only missing Lambda functions (skips existing)"
+  puts "  --deploy-all      Force redeploy all Lambda functions (deletes and recreates)"
+  puts ""
+  exit 1
+end
 
 puts "=== Lambda Deployment (#{deploy_mode}) ==="
 puts ""
@@ -32,16 +32,17 @@ rescue StandardError => e
 end
 
 # Define all Lambda functions that should be deployed
+# Each Lambda's deploy script is expected at: services/video_production/{path}/scripts/deploy.rb
 LAMBDAS = [
   {
     name: 'jiki-video-merger-development',
-    setup_script: 'bin/setup-video-production',
+    path: 'video-merger',
     description: 'Video merger (FFmpeg)'
   }
   # Add more Lambda functions here as needed:
   # {
   #   name: 'jiki-audio-mixer-development',
-  #   setup_script: 'bin/setup-audio-production',
+  #   path: 'audio-mixer',
   #   description: 'Audio mixer (FFmpeg)'
   # }
 ]
@@ -54,8 +55,9 @@ force_deploy = (deploy_mode == '--deploy-all')
 
 LAMBDAS.each do |lambda_config|
   name = lambda_config[:name]
+  path = lambda_config[:path]
   description = lambda_config[:description]
-  setup_script = lambda_config[:setup_script]
+  setup_script = "services/video_production/#{path}/scripts/deploy.rb"
 
   # Check if Lambda function exists
   lambda_exists = false
@@ -127,5 +129,3 @@ if failed
 else
   puts "✓ All Lambda functions ready"
 end
-RUBY
-)" "$DEPLOY_MODE"

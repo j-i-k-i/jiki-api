@@ -28,18 +28,19 @@ class VideoProduction::InvokeLambdaLocal
   memoize
   def background_script
     <<~RUBY
-        require 'bundler/setup'
-        require 'jiki-config'
-        require 'open3'
-        require 'json'
+      require 'bundler/setup'
+      require 'jiki-config'
+      require 'open3'
+      require 'json'
 
+      begin
         # Sleep 1 second to ensure parent request completes
         sleep 1
 
         # Execute Node.js handler
         # The Lambda handler will call the callback URL itself via fetch()
         stdout, stderr, status = Open3.capture3(
-          #{aws_env.to_json},
+          #{aws_env.inspect},
           'node',
           '-e', #{node_script.to_json},
           #{JSON.generate(payload).to_json},
@@ -58,6 +59,7 @@ class VideoProduction::InvokeLambdaLocal
       rescue => e
         puts "[Lambda Local] Background execution failed: \#{e.message}"
         puts e.backtrace.first(5).join("\\n")
+      end
     RUBY
   end
 
@@ -66,7 +68,7 @@ class VideoProduction::InvokeLambdaLocal
   def handler_path
     case function_name
     when /video-merger/
-      'services/video_production/video-merger/index.js'
+      'services/video_production/video-merger/dist/index.js'
     else
       raise "Unknown Lambda function: #{function_name}"
     end
