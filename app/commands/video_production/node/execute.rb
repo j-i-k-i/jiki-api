@@ -4,6 +4,10 @@ class VideoProduction::Node::Execute
   initialize_with :node
 
   def call
+    # Run validation to update is_valid and validation_errors
+    node.assign_attributes(VideoProduction::Node::Validate.(node))
+    node.save!
+
     # Validate node is ready to execute
     raise VideoProductionBadInputsError, build_error_message unless node.ready_to_execute?
 
@@ -33,7 +37,7 @@ class VideoProduction::Node::Execute
   def build_error_message
     errors = []
 
-    errors << "Node must be in 'pending' status" unless node.status == 'pending'
+    errors << "Node must be in 'pending' or 'failed' status" unless node.status.in?(%w[pending failed])
     errors << "Node has validation errors: #{node.validation_errors}" unless node.is_valid?
     errors << "Input nodes are not all completed" unless node.inputs_satisfied?
 

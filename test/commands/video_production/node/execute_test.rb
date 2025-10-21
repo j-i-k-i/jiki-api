@@ -8,9 +8,9 @@ class VideoProduction::Node::ExecuteTest < ActiveSupport::TestCase
     node = create(:video_production_node,
       pipeline: pipeline,
       type: 'merge-videos',
+      config: { 'provider' => 'ffmpeg' },
       inputs: { 'segments' => [input1.uuid, input2.uuid] },
-      status: 'pending',
-      is_valid: true)
+      status: 'pending')
 
     VideoProduction::Node::Executors::MergeVideos.expects(:defer).with(node)
 
@@ -24,8 +24,8 @@ class VideoProduction::Node::ExecuteTest < ActiveSupport::TestCase
     node = create(:video_production_node,
       pipeline: pipeline,
       type: 'generate-voiceover',
-      status: 'pending',
-      is_valid: true)
+      config: { 'provider' => 'elevenlabs' },
+      status: 'pending')
 
     VideoProduction::Node::Executors::GenerateVoiceover.expects(:defer).with(node)
 
@@ -36,11 +36,13 @@ class VideoProduction::Node::ExecuteTest < ActiveSupport::TestCase
 
   test "executes generate-talking-head node and queues GenerateTalkingHead executor" do
     pipeline = create(:video_production_pipeline)
+    audio_node = create(:video_production_node, :completed, pipeline: pipeline, type: 'asset')
     node = create(:video_production_node,
       pipeline: pipeline,
       type: 'generate-talking-head',
-      status: 'pending',
-      is_valid: true)
+      config: { 'provider' => 'heygen', 'avatarId' => 'test-avatar' },
+      inputs: { 'audio' => audio_node.uuid },
+      status: 'pending')
 
     VideoProduction::Node::Executors::GenerateTalkingHead.expects(:defer).with(node)
 

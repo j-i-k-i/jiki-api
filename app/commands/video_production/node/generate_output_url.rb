@@ -19,7 +19,7 @@ class VideoProduction::Node::GenerateOutputUrl
   private
   def extract_s3_key
     # For completed nodes with output
-    return node.output['s3_key'] if node.output&.dig('s3_key')
+    return node.output['s3Key'] if node.output&.dig('s3Key')
 
     # For asset nodes with source
     return node.asset['source'] if node.type == 'asset' && node.asset&.dig('source')

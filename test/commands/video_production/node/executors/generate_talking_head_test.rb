@@ -5,7 +5,7 @@ class VideoProduction::Node::Executors::GenerateTalkingHeadTest < ActiveSupport:
     pipeline = create(:video_production_pipeline)
     audio_node = create(:video_production_node,
       pipeline:,
-      output: { 's3_key' => 'audio.mp3' })
+      output: { 's3Key' => 'audio.mp3' })
     node = create(:video_production_node,
       pipeline:,
       type: 'generate-talking-head',

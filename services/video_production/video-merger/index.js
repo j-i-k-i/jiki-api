@@ -10,6 +10,7 @@
 const { S3Client, GetObjectCommand, PutObjectCommand } = require('@aws-sdk/client-s3');
 const { spawn } = require('child_process');
 const fs = require('fs').promises;
+const fsSync = require('fs');
 const path = require('path');
 const { randomUUID } = require('crypto');
 const { Readable } = require('stream');
@@ -169,6 +170,11 @@ async function uploadToS3(localPath, bucket, key) {
  */
 function mergeVideosWithFFmpeg(concatFilePath, outputPath) {
   return new Promise((resolve, reject) => {
+    // Use bundled FFmpeg binary if available (Lambda), otherwise use system ffmpeg
+    const ffmpegPath = fsSync.existsSync(path.join(__dirname, 'bin', 'ffmpeg'))
+      ? path.join(__dirname, 'bin', 'ffmpeg')
+      : 'ffmpeg';
+
     const args = [
       '-f', 'concat',
       '-safe', '0',
@@ -178,9 +184,9 @@ function mergeVideosWithFFmpeg(concatFilePath, outputPath) {
       outputPath
     ];
 
-    console.error(`[FFmpeg] Running: ffmpeg ${args.join(' ')}`);
+    console.error(`[FFmpeg] Running: ${ffmpegPath} ${args.join(' ')}`);
 
-    const ffmpeg = spawn('ffmpeg', args);
+    const ffmpeg = spawn(ffmpegPath, args);
     let stderr = '';
 
     ffmpeg.stderr.on('data', (data) => {

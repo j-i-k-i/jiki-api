@@ -34,7 +34,7 @@ class VideoProduction::Node::Executors::MergeVideos
 
     # Validate all inputs have outputs
     ordered_inputs.each do |input_node|
-      raise "Input node #{input_node&.id || 'unknown'} has no output" unless input_node&.output&.dig('s3_key')
+      raise "Input node #{input_node&.id || 'unknown'} has no output" unless input_node&.output&.dig('s3Key')
     end
   end
 
@@ -62,10 +62,10 @@ class VideoProduction::Node::Executors::MergeVideos
 
   def build_output(lambda_result)
     {
-      type: 'video',
-      s3_key: lambda_result[:s3_key],
-      duration: lambda_result[:duration],
-      size: lambda_result[:size]
+      'type' => 'video',
+      's3Key' => lambda_result[:s3_key],
+      'duration' => lambda_result[:duration],
+      'size' => lambda_result[:size]
     }
   end
 
@@ -86,7 +86,7 @@ class VideoProduction::Node::Executors::MergeVideos
   memoize
   def input_urls
     ordered_inputs.map do |input_node|
-      "s3://#{bucket}/#{input_node.output['s3_key']}"
+      "s3://#{bucket}/#{input_node.output['s3Key']}"
     end
   end
 

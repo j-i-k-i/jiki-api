@@ -24,9 +24,11 @@ module VideoProduction
     validates :status, inclusion: { in: %w[pending in_progress completed failed] }
 
     # JSONB accessors
+    # Note: config, metadata, output, and asset use camelCase keys in JSON
+    # Access these directly via hash syntax: node.output['s3Key'], node.config['avatarId'], etc.
+    # Exception: 'provider' has a convenience accessor (common field used across all node types)
     store_accessor :config, :provider
-    store_accessor :metadata, :started_at, :completed_at, :job_id, :cost, :retries, :error, :process_uuid
-    store_accessor :output, :s3_key, :local_file, :duration, :size
+    store_accessor :metadata, :process_uuid # process_uuid needs accessor for locking logic
 
     # Scopes
     scope :pending, -> { where(status: 'pending') }
@@ -52,8 +54,9 @@ module VideoProduction
     end
 
     # Check if ready to execute
+    # Allows both initial execution (pending) and re-execution after failures (failed)
     def ready_to_execute?
-      status == 'pending' && is_valid? && inputs_satisfied?
+      status.in?(%w[pending failed]) && is_valid? && inputs_satisfied?
     end
   end
 end

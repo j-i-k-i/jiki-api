@@ -170,7 +170,7 @@ class VideoProduction::APIs::Heygen::CheckForResultTest < ActiveSupport::TestCas
     node = create(:video_production_node,
       pipeline:,
       status: 'completed',
-      output: { 's3_key' => 'from-webhook.mp4' },
+      output: { 's3Key' => 'from-webhook.mp4' },
       metadata: { 'process_uuid' => 'test-uuid' })
 
     stub_request(:get, "https://api.heygen.com/v1/video_status.get?video_id=video-123").
@@ -185,7 +185,7 @@ class VideoProduction::APIs::Heygen::CheckForResultTest < ActiveSupport::TestCas
     VideoProduction::APIs::Heygen::CheckForResult.(node, 'test-uuid', 'video-123', 1)
 
     # Output should remain unchanged
-    assert_equal 'from-webhook.mp4', node.reload.output['s3_key']
+    assert_equal 'from-webhook.mp4', node.reload.output['s3Key']
   end
 
   test "does not process result when process_uuid changed" do

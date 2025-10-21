@@ -14,7 +14,7 @@ class VideoProduction::InvokeLambdaTest < ActiveSupport::TestCase
     mock_response = mock('lambda_response')
     mock_response.stubs(:status_code).returns(200)
     mock_response.stubs(:function_error).returns(nil)
-    mock_payload = StringIO.new('{"s3_key":"output.mp4","duration":120,"size":1024,"statusCode":200}')
+    mock_payload = StringIO.new('{"s3Key":"output.mp4","duration":120,"size":1024,"statusCode":200}')
     mock_response.stubs(:payload).returns(mock_payload)
 
     Jiki.stubs(:lambda_client).returns(mock_client)
@@ -26,7 +26,7 @@ class VideoProduction::InvokeLambdaTest < ActiveSupport::TestCase
 
     result = VideoProduction::InvokeLambda.(function_name, payload)
 
-    assert_equal 'output.mp4', result[:s3_key]
+    assert_equal 'output.mp4', result[:s3Key]
     assert_equal 120, result[:duration]
     assert_equal 1024, result[:size]
   end

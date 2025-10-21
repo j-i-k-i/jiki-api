@@ -7,10 +7,10 @@ class VideoProduction::Node::Executors::MergeVideosTest < ActiveSupport::TestCas
     # Create input nodes with outputs
     input1 = create(:video_production_node,
       pipeline:,
-      output: { 's3_key' => 'path/to/video1.mp4', 'type' => 'video' })
+      output: { 's3Key' => 'path/to/video1.mp4', 'type' => 'video' })
     input2 = create(:video_production_node,
       pipeline:,
-      output: { 's3_key' => 'path/to/video2.mp4', 'type' => 'video' })
+      output: { 's3Key' => 'path/to/video2.mp4', 'type' => 'video' })
 
     node = create(:video_production_node,
       pipeline:,
@@ -43,7 +43,7 @@ class VideoProduction::Node::Executors::MergeVideosTest < ActiveSupport::TestCas
     node.reload
     assert_equal 'completed', node.status
     assert_equal 'video', node.output['type']
-    assert_equal expected_result[:s3_key], node.output['s3_key']
+    assert_equal expected_result[:s3_key], node.output['s3Key']
     assert_equal expected_result[:duration], node.output['duration']
     assert_equal expected_result[:size], node.output['size']
     refute_nil node.metadata['completed_at']
@@ -113,13 +113,13 @@ class VideoProduction::Node::Executors::MergeVideosTest < ActiveSupport::TestCas
 
     input1 = create(:video_production_node,
       pipeline:,
-      output: { 's3_key' => 'path/to/video1.mp4' })
+      output: { 's3Key' => 'path/to/video1.mp4' })
     input2 = create(:video_production_node,
       pipeline:,
-      output: { 's3_key' => 'path/to/video2.mp4' })
+      output: { 's3Key' => 'path/to/video2.mp4' })
     input3 = create(:video_production_node,
       pipeline:,
-      output: { 's3_key' => 'path/to/video3.mp4' })
+      output: { 's3Key' => 'path/to/video3.mp4' })
 
     # Intentionally put them in a different order
     node = create(:video_production_node,
@@ -150,10 +150,10 @@ class VideoProduction::Node::Executors::MergeVideosTest < ActiveSupport::TestCas
     pipeline = create(:video_production_pipeline)
     input1 = create(:video_production_node,
       pipeline:,
-      output: { 's3_key' => 'video1.mp4' })
+      output: { 's3Key' => 'video1.mp4' })
     input2 = create(:video_production_node,
       pipeline:,
-      output: { 's3_key' => 'video2.mp4' })
+      output: { 's3Key' => 'video2.mp4' })
 
     node = create(:video_production_node,
       pipeline:,
@@ -181,10 +181,10 @@ class VideoProduction::Node::Executors::MergeVideosTest < ActiveSupport::TestCas
     pipeline = create(:video_production_pipeline)
     input1 = create(:video_production_node,
       pipeline:,
-      output: { 's3_key' => 'video1.mp4' })
+      output: { 's3Key' => 'video1.mp4' })
     input2 = create(:video_production_node,
       pipeline:,
-      output: { 's3_key' => 'video2.mp4' })
+      output: { 's3Key' => 'video2.mp4' })
 
     node = create(:video_production_node,
       pipeline:,

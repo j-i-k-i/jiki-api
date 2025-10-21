@@ -6,7 +6,7 @@ class VideoProduction::APIs::Heygen::GenerateVideoTest < ActiveSupport::TestCase
     audio_node = create(:video_production_node,
       pipeline:,
       type: 'generate-voiceover',
-      output: { 's3_key' => 'pipelines/test/audio.mp3' })
+      output: { 's3Key' => 'pipelines/test/audio.mp3' })
     node = create(:video_production_node,
       pipeline:,
       type: 'generate-talking-head',
@@ -38,11 +38,11 @@ class VideoProduction::APIs::Heygen::GenerateVideoTest < ActiveSupport::TestCase
     audio_node = create(:video_production_node,
       pipeline:,
       type: 'generate-voiceover',
-      output: { 's3_key' => 'pipelines/test/audio.mp3' })
+      output: { 's3Key' => 'pipelines/test/audio.mp3' })
     background_node = create(:video_production_node,
       pipeline:,
       type: 'asset',
-      output: { 's3_key' => 'pipelines/test/background.jpg' })
+      output: { 's3Key' => 'pipelines/test/background.jpg' })
     node = create(:video_production_node,
       pipeline:,
       type: 'generate-talking-head',
@@ -74,7 +74,7 @@ class VideoProduction::APIs::Heygen::GenerateVideoTest < ActiveSupport::TestCase
     audio_node = create(:video_production_node,
       pipeline:,
       type: 'generate-voiceover',
-      output: { 's3_key' => 'audio.mp3' })
+      output: { 's3Key' => 'audio.mp3' })
     node = create(:video_production_node,
       pipeline:,
       type: 'generate-talking-head',
@@ -116,7 +116,7 @@ class VideoProduction::APIs::Heygen::GenerateVideoTest < ActiveSupport::TestCase
     pipeline = create(:video_production_pipeline)
     audio_node = create(:video_production_node,
       pipeline:,
-      output: { 's3_key' => 'audio.mp3' })
+      output: { 's3Key' => 'audio.mp3' })
     node = create(:video_production_node,
       pipeline:,
       type: 'generate-talking-head',
@@ -134,7 +134,7 @@ class VideoProduction::APIs::Heygen::GenerateVideoTest < ActiveSupport::TestCase
     pipeline = create(:video_production_pipeline)
     audio_node = create(:video_production_node,
       pipeline:,
-      output: { 's3_key' => 'audio.mp3' })
+      output: { 's3Key' => 'audio.mp3' })
     node = create(:video_production_node,
       pipeline:,
       type: 'generate-talking-head',

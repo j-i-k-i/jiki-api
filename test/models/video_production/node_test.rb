@@ -180,7 +180,21 @@ module VideoProduction
       assert node.ready_to_execute?
     end
 
-    test "ready_to_execute? returns false when not pending" do
+    test "ready_to_execute? returns true when failed and is_valid (allows retry)" do
+      pipeline = create(:video_production_pipeline)
+      input = create(:video_production_node, pipeline: pipeline, status: 'completed')
+
+      node = create(:video_production_node,
+        pipeline: pipeline,
+        status: 'failed',
+        is_valid: true,
+        inputs: { 'config' => [input.uuid] })
+
+      assert node.ready_to_execute?,
+        "Failed nodes with valid inputs should be ready to execute for retry"
+    end
+
+    test "ready_to_execute? returns false when not pending or failed" do
       node = create(:video_production_node, status: 'in_progress', inputs: {})
       refute node.ready_to_execute?
     end
@@ -242,7 +256,7 @@ module VideoProduction
     test "output accessor works" do
       node = create(:video_production_node, :completed)
       assert_equal 'video', node.output['type']
-      assert_equal 'output/test.mp4', node.output['s3_key']
+      assert_equal 'output/test.mp4', node.output['s3Key']
     end
   end
 end

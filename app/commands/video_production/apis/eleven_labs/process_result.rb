@@ -18,9 +18,9 @@ class VideoProduction::APIs::ElevenLabs::ProcessResult
 
     # 4. Build output hash
     output = {
-      type: 'audio',
-      s3_key: s3_key,
-      size: audio_size
+      'type' => 'audio',
+      's3Key' => s3_key,
+      'size' => audio_size
     }
 
     # 5. Update node with output

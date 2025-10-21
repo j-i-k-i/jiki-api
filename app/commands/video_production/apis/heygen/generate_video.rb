@@ -37,9 +37,9 @@ class VideoProduction::APIs::Heygen::GenerateVideo
 
     audio_node = VideoProduction::Node.find_by!(uuid: audio_node_ids.first)
 
-    # Audio node should have output with s3_key
-    s3_key = audio_node.output&.dig('s3_key')
-    raise "Audio node has no s3_key in output" unless s3_key
+    # Audio node should have output with s3Key
+    s3_key = audio_node.output&.dig('s3Key')
+    raise "Audio node has no s3Key in output" unless s3_key
 
     # Generate presigned URL for HeyGen to access the audio file
     Utils::S3::GeneratePresignedUrl.(s3_key, :video_production, expires_in: 1.hour)
@@ -53,8 +53,8 @@ class VideoProduction::APIs::Heygen::GenerateVideo
 
     background_node = VideoProduction::Node.find_by!(uuid: background_node_ids.first)
 
-    # Background node should have output with s3_key (for uploaded images)
-    s3_key = background_node.output&.dig('s3_key')
+    # Background node should have output with s3Key (for uploaded images)
+    s3_key = background_node.output&.dig('s3Key')
     return nil unless s3_key
 
     # Generate presigned URL for HeyGen to access the background image

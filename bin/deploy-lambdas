@@ -1,0 +1,89 @@
+#!/usr/bin/env bash
+
+# Run the Lambda deployment check via Rails runner
+bin/rails runner "$(cat <<'RUBY'
+puts "=== Lambda Deployment Check ==="
+puts ""
+
+# Check LocalStack is accessible
+begin
+  Jiki.lambda_client.list_functions
+rescue StandardError => e
+  puts "✗ LocalStack is not accessible"
+  puts "  Error: #{e.message}"
+  puts "  Make sure LocalStack is running"
+  exit 1
+end
+
+# Define all Lambda functions that should be deployed
+LAMBDAS = [
+  {
+    name: 'jiki-video-merger-development',
+    setup_script: 'bin/setup-video-production',
+    description: 'Video merger (FFmpeg)'
+  }
+  # Add more Lambda functions here as needed:
+  # {
+  #   name: 'jiki-audio-mixer-development',
+  #   setup_script: 'bin/setup-audio-production',
+  #   description: 'Audio mixer (FFmpeg)'
+  # }
+]
+
+deployed_count = 0
+skipped_count = 0
+failed = false
+
+LAMBDAS.each do |lambda_config|
+  name = lambda_config[:name]
+  description = lambda_config[:description]
+  setup_script = lambda_config[:setup_script]
+
+  print "Checking #{description}... "
+
+  # Check if Lambda function exists
+  begin
+    Jiki.lambda_client.get_function(function_name: name)
+    puts "✓ (already deployed)"
+    skipped_count += 1
+  rescue Aws::Lambda::Errors::ResourceNotFoundException
+    puts "missing"
+    puts ""
+    puts "Deploying #{description} (this may take ~2 minutes on first run)..."
+    puts ""
+
+    # Run the setup script
+    result = system(setup_script)
+
+    if result
+      puts ""
+      puts "✓ #{description} deployed successfully"
+      deployed_count += 1
+    else
+      puts ""
+      puts "✗ Failed to deploy #{description}"
+      failed = true
+      break
+    end
+  rescue StandardError => e
+    puts "✗"
+    puts "  Error checking Lambda function: #{e.message}"
+    failed = true
+    break
+  end
+end
+
+puts ""
+puts "=== Lambda Deployment Summary ==="
+puts "  Already deployed: #{skipped_count}"
+puts "  Newly deployed: #{deployed_count}"
+puts ""
+
+if failed
+  puts "✗ Lambda deployment failed"
+  exit 1
+else
+  puts "✓ All Lambda functions ready"
+end
+RUBY
+)"

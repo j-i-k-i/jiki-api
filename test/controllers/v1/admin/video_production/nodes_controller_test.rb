@@ -68,7 +68,7 @@ class V1::Admin::VideoProduction::NodesControllerTest < ApplicationControllerTes
       inputs: { 'segments' => [input1.uuid, input2.uuid] },
       config: { 'provider' => 'ffmpeg' },
       metadata: { 'cost' => 0.05 },
-      output: { 's3_key' => 'output.mp4' })
+      output: { 's3Key' => 'output.mp4' })
 
     Prosopite.scan
     get v1_admin_video_production_pipeline_nodes_path(@pipeline.uuid), headers: @headers, as: :json
@@ -86,7 +86,7 @@ class V1::Admin::VideoProduction::NodesControllerTest < ApplicationControllerTes
     assert_equal({ 'segments' => [input1.uuid, input2.uuid] }, node_data["inputs"])
     assert_equal({ 'provider' => 'ffmpeg' }, node_data["config"])
     assert_equal({ 'cost' => 0.05 }, node_data["metadata"])
-    assert_equal({ 's3_key' => 'output.mp4' }, node_data["output"])
+    assert_equal({ 's3Key' => 'output.mp4' }, node_data["output"])
     # Validation state fields are present (values depend on Create vs factory)
     assert node_data.key?("is_valid")
     assert node_data.key?("validation_errors")
@@ -189,7 +189,7 @@ class V1::Admin::VideoProduction::NodesControllerTest < ApplicationControllerTes
       },
       output: {
         'type' => 'video',
-        's3_key' => 'pipelines/xyz/nodes/abc/output.mp4',
+        's3Key' => 'pipelines/xyz/nodes/abc/output.mp4',
         'duration' => 120.5,
         'size' => 10_485_760
       })
@@ -204,7 +204,7 @@ class V1::Admin::VideoProduction::NodesControllerTest < ApplicationControllerTes
     assert json["node"]["metadata"]["completed_at"].present?
     assert_equal 0.15, json["node"]["metadata"]["cost"]
     assert_equal "video", json["node"]["output"]["type"]
-    assert_equal "pipelines/xyz/nodes/abc/output.mp4", json["node"]["output"]["s3_key"]
+    assert_equal "pipelines/xyz/nodes/abc/output.mp4", json["node"]["output"]["s3Key"]
   end
 
   test "GET show returns 404 for non-existent pipeline" do
@@ -677,7 +677,31 @@ class V1::Admin::VideoProduction::NodesControllerTest < ApplicationControllerTes
     assert_equal 'merge-videos', json['node']['type']
   end
 
-  test "POST execute returns 422 when node is not ready (not pending)" do
+  test "POST execute queues execution for failed node (retry)" do
+    input1 = create(:video_production_node, :completed, pipeline: @pipeline, type: 'asset')
+    input2 = create(:video_production_node, :completed, pipeline: @pipeline, type: 'asset')
+    node = create(:video_production_node,
+      pipeline: @pipeline,
+      type: 'merge-videos',
+      status: 'failed',
+      inputs: { 'segments' => [input1.uuid, input2.uuid] },
+      config: { 'provider' => 'ffmpeg' },
+      is_valid: true)
+
+    # Mock the defer call
+    VideoProduction::Node::Executors::MergeVideos.expects(:defer).with(node)
+
+    post execute_v1_admin_video_production_pipeline_node_path(@pipeline.uuid, node.uuid),
+      headers: @headers,
+      as: :json
+
+    assert_response :success
+    json = response.parsed_body
+    assert_equal node.uuid, json['node']['uuid']
+    assert_equal 'merge-videos', json['node']['type']
+  end
+
+  test "POST execute returns 422 when node is not ready (in_progress or completed)" do
     node = create(:video_production_node,
       pipeline: @pipeline,
       type: 'merge-videos',
@@ -690,7 +714,7 @@ class V1::Admin::VideoProduction::NodesControllerTest < ApplicationControllerTes
     assert_response :unprocessable_entity
     json = response.parsed_body
     assert_match(/not ready to execute/i, json['error'])
-    assert_match(/pending/i, json['error'])
+    assert_match(/pending.*failed/i, json['error'])
   end
 
   test "POST execute returns 422 when node is not valid" do
@@ -747,7 +771,7 @@ class V1::Admin::VideoProduction::NodesControllerTest < ApplicationControllerTes
     node = create(:video_production_node,
       pipeline: @pipeline,
       status: 'completed',
-      output: { 's3_key' => 'pipelines/test/nodes/abc/output.mp4' })
+      output: { 's3Key' => 'pipelines/test/nodes/abc/output.mp4' })
 
     get output_v1_admin_video_production_pipeline_node_path(@pipeline.uuid, node.uuid),
       headers: @headers,
@@ -810,7 +834,7 @@ class V1::Admin::VideoProduction::NodesControllerTest < ApplicationControllerTes
     node = create(:video_production_node,
       pipeline: other_pipeline,
       status: 'completed',
-      output: { 's3_key' => 'test.mp4' })
+      output: { 's3Key' => 'test.mp4' })
 
     get output_v1_admin_video_production_pipeline_node_path(@pipeline.uuid, node.uuid),
       headers: @headers,

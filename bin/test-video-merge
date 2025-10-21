@@ -64,7 +64,7 @@ video1 = VideoProduction::Node.create!(
   title: "Blue Video (3s)",
   type: "asset",
   asset: { type: "video", source: "s3://#{bucket}/test-assets/video1.mp4" },
-  output: { type: "video", s3_key: "test-assets/video1.mp4" },
+  output: { type: "video", s3Key: "test-assets/video1.mp4" },
   status: "completed"
 )
 
@@ -73,7 +73,7 @@ video2 = VideoProduction::Node.create!(
   title: "Red Video (3s)",
   type: "asset",
   asset: { type: "video", source: "s3://#{bucket}/test-assets/video2.mp4" },
-  output: { type: "video", s3_key: "test-assets/video2.mp4" },
+  output: { type: "video", s3Key: "test-assets/video2.mp4" },
   status: "completed"
 )
 puts "✓"
@@ -121,16 +121,16 @@ puts "Status: #{merge_node.status}"
 
 if merge_node.status == 'completed'
   puts "Output:"
-  puts "  S3 Key: #{merge_node.output['s3_key']}"
+  puts "  S3 Key: #{merge_node.output['s3Key']}"
   puts "  Duration: #{merge_node.output['duration']}s"
   puts "  Size: #{merge_node.output['size'] / 1024}KB"
   puts ""
   puts "✓ Video merge completed successfully!"
   puts ""
-  puts "Output location: s3://#{bucket}/#{merge_node.output['s3_key']}"
+  puts "Output location: s3://#{bucket}/#{merge_node.output['s3Key']}"
   puts ""
   puts "To download and verify:"
-  puts "  bin/rails runner \"File.write('merged.mp4', Jiki.s3_client.get_object(bucket: '#{bucket}', key: '#{merge_node.output['s3_key']}').body.read)\""
+  puts "  bin/rails runner \"File.write('merged.mp4', Jiki.s3_client.get_object(bucket: '#{bucket}', key: '#{merge_node.output['s3Key']}').body.read)\""
   puts "  open merged.mp4  # Should show blue video (3s) then red video (3s)"
 elsif merge_node.status == 'failed'
   puts "Error: #{merge_node.metadata['error']}"

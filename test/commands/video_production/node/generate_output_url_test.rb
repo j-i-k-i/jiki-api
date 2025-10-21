@@ -6,7 +6,7 @@ class VideoProduction::Node::GenerateOutputUrlTest < ActiveSupport::TestCase
     node = create(:video_production_node,
       pipeline: pipeline,
       status: 'completed',
-      output: { 's3_key' => 'pipelines/test/nodes/abc/output.mp4' })
+      output: { 's3Key' => 'pipelines/test/nodes/abc/output.mp4' })
 
     presigned_url = VideoProduction::Node::GenerateOutputUrl.(node)
 
@@ -65,7 +65,7 @@ class VideoProduction::Node::GenerateOutputUrlTest < ActiveSupport::TestCase
       pipeline: pipeline,
       type: 'asset',
       asset: { 'source' => 'test-assets/original.mp4', 'type' => 'video' },
-      output: { 's3_key' => 'processed/final.mp4' })
+      output: { 's3Key' => 'processed/final.mp4' })
 
     presigned_url = VideoProduction::Node::GenerateOutputUrl.(node)
 
