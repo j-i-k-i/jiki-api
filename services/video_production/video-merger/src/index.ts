@@ -7,26 +7,39 @@
  * Designed to run on AWS Lambda with FFmpeg layer.
  */
 
-const { S3Client, GetObjectCommand, PutObjectCommand } = require('@aws-sdk/client-s3');
-const { spawn } = require('child_process');
-const fs = require('fs').promises;
-const fsSync = require('fs');
-const path = require('path');
-const { randomUUID } = require('crypto');
-const { Readable } = require('stream');
+import { spawn, ChildProcess } from 'child_process';
+import { promises as fs } from 'fs';
+import * as fsSync from 'fs';
+import * as path from 'path';
+import { randomUUID } from 'crypto';
+import {
+  downloadFromS3,
+  uploadToS3,
+  cleanupFiles,
+  sendCallback,
+  type CallbackPayload
+} from '@jiki/shared/dist/utils';
 
-// Configure S3 client with LocalStack support
-const s3ClientConfig = {
-  region: process.env.AWS_REGION || 'us-east-1'
-};
-
-// Use LocalStack endpoint if AWS_ENDPOINT_URL is set (for local development)
-if (process.env.AWS_ENDPOINT_URL) {
-  s3ClientConfig.endpoint = process.env.AWS_ENDPOINT_URL;
-  s3ClientConfig.forcePathStyle = true; // Required for LocalStack
+/**
+ * Lambda event payload structure
+ */
+interface LambdaEvent {
+  input_videos: string[];
+  output_bucket: string;
+  output_key: string;
+  callback_url?: string;
+  node_uuid?: string;
+  executor_type?: string;
 }
 
-const s3Client = new S3Client(s3ClientConfig);
+/**
+ * Lambda response structure
+ */
+interface LambdaResponse {
+  statusCode: number;
+  error?: string;
+}
+
 
 /**
  * Lambda handler
@@ -41,7 +54,7 @@ const s3Client = new S3Client(s3ClientConfig);
  *   executor_type: "merge-videos"
  * }
  */
-exports.handler = async (event) => {
+export const handler = async (event: LambdaEvent): Promise<LambdaResponse> => {
   const { input_videos, output_bucket, output_key, callback_url, node_uuid, executor_type } = event;
 
   // Validate inputs
@@ -60,7 +73,7 @@ exports.handler = async (event) => {
   }
 
   const tempDir = '/tmp';
-  const inputPaths = [];
+  const inputPaths: string[] = [];
   const outputPath = path.join(tempDir, `output-${randomUUID()}.mp4`);
   const concatFilePath = path.join(tempDir, `concat-${randomUUID()}.txt`);
 
@@ -127,7 +140,7 @@ exports.handler = async (event) => {
       await sendCallback(callback_url, {
         node_uuid: node_uuid,
         executor_type: executor_type,
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
         error_type: 'ffmpeg_error'
       });
     }
@@ -137,60 +150,20 @@ exports.handler = async (event) => {
 };
 
 /**
- * Download file from S3
- * @param {string} s3Url - S3 URL (s3://bucket/key)
- * @param {string} localPath - Local file path
- */
-async function downloadFromS3(s3Url, localPath) {
-  const match = s3Url.match(/^s3:\/\/([^/]+)\/(.+)$/);
-  if (!match) {
-    throw new Error(`Invalid S3 URL: ${s3Url}`);
-  }
-
-  const [, bucket, key] = match;
-
-  const command = new GetObjectCommand({ Bucket: bucket, Key: key });
-  const response = await s3Client.send(command);
-
-  // Convert stream to buffer and write to file
-  const chunks = [];
-  for await (const chunk of response.Body) {
-    chunks.push(chunk);
-  }
-  const buffer = Buffer.concat(chunks);
-  await fs.writeFile(localPath, buffer);
-}
-
-/**
- * Upload file to S3
- * @param {string} localPath - Local file path
- * @param {string} bucket - S3 bucket name
- * @param {string} key - S3 key
- */
-async function uploadToS3(localPath, bucket, key) {
-  const fileBuffer = await fs.readFile(localPath);
-
-  const command = new PutObjectCommand({
-    Bucket: bucket,
-    Key: key,
-    Body: fileBuffer,
-    ContentType: 'video/mp4'
-  });
-
-  await s3Client.send(command);
-}
-
-/**
  * Merge videos using FFmpeg
  * @param {string} concatFilePath - Path to concat demuxer file
  * @param {string} outputPath - Output file path
  * @returns {Promise<number>} Duration in seconds
  */
-function mergeVideosWithFFmpeg(concatFilePath, outputPath) {
+function mergeVideosWithFFmpeg(concatFilePath: string, outputPath: string): Promise<number> {
   return new Promise((resolve, reject) => {
     // Use bundled FFmpeg binary if available (Lambda), otherwise use system ffmpeg
-    const ffmpegPath = fsSync.existsSync(path.join(__dirname, 'bin', 'ffmpeg'))
-      ? path.join(__dirname, 'bin', 'ffmpeg')
+    // Note: __dirname is 'dist' after compilation, so go up one level to find bin/ffmpeg
+    // Also check if we're on Linux (Lambda) vs macOS (local dev) - the bundled binary is Linux-only
+    const bundledFfmpeg = path.join(__dirname, '..', 'bin', 'ffmpeg');
+    const isLinux = process.platform === 'linux';
+    const ffmpegPath = (fsSync.existsSync(bundledFfmpeg) && isLinux)
+      ? bundledFfmpeg
       : 'ffmpeg';
 
     const args = [
@@ -204,14 +177,14 @@ function mergeVideosWithFFmpeg(concatFilePath, outputPath) {
 
     console.error(`[FFmpeg] Running: ${ffmpegPath} ${args.join(' ')}`);
 
-    const ffmpeg = spawn(ffmpegPath, args);
+    const ffmpeg: ChildProcess = spawn(ffmpegPath, args);
     let stderr = '';
 
-    ffmpeg.stderr.on('data', (data) => {
+    ffmpeg.stderr?.on('data', (data: Buffer) => {
       stderr += data.toString();
     });
 
-    ffmpeg.on('close', (code) => {
+    ffmpeg.on('close', (code: number | null) => {
       if (code !== 0) {
         console.error('[FFmpeg] stderr:', stderr);
         reject(new Error(`FFmpeg failed with code ${code}`));
@@ -232,53 +205,9 @@ function mergeVideosWithFFmpeg(concatFilePath, outputPath) {
       resolve(duration);
     });
 
-    ffmpeg.on('error', (error) => {
+    ffmpeg.on('error', (error: Error) => {
       reject(new Error(`FFmpeg spawn error: ${error.message}`));
     });
   });
 }
 
-/**
- * Clean up temporary files
- * @param {string[]} paths - Array of file paths to delete
- */
-async function cleanupFiles(paths) {
-  for (const filePath of paths) {
-    try {
-      await fs.unlink(filePath);
-    } catch (error) {
-      // Ignore errors (file might not exist)
-    }
-  }
-}
-
-/**
- * Send callback to Rails SPI endpoint
- * @param {string} url - Callback URL
- * @param {object} payload - Callback payload
- */
-async function sendCallback(url, payload) {
-  try {
-    console.error(`[VideoMerger] Sending callback to ${url}`);
-    console.error(`[VideoMerger] Payload: ${JSON.stringify(payload)}`);
-
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(payload)
-    });
-
-    if (!response.ok) {
-      console.error(`[VideoMerger] Callback failed with status ${response.status}`);
-      const text = await response.text();
-      console.error(`[VideoMerger] Response: ${text}`);
-    } else {
-      console.error(`[VideoMerger] Callback successful`);
-    }
-  } catch (error) {
-    console.error(`[VideoMerger] Failed to send callback: ${error.message}`);
-    // Don't throw - callback failure shouldn't crash Lambda
-  }
-}

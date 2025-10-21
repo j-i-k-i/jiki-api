@@ -1,5 +1,7 @@
 #!/usr/bin/env ruby
 
+ENV['RAILS_ENV'] ||= 'development'
+
 require 'bundler/setup'
 require 'jiki-config'
 require 'fileutils'
@@ -24,7 +26,7 @@ end
 
 # Configuration
 LAMBDA_FUNCTION_NAME = "jiki-video-merger-development"
-LAMBDA_SOURCE_DIR = File.expand_path("../services/video_production/video-merger", __dir__)
+LAMBDA_SOURCE_DIR = File.expand_path("..", __dir__)
 FFMPEG_URL = "https://johnvansickle.com/ffmpeg/builds/ffmpeg-git-amd64-static.tar.xz"
 
 puts ""
@@ -33,13 +35,26 @@ puts "  Function name: #{LAMBDA_FUNCTION_NAME}"
 puts "  Source directory: #{LAMBDA_SOURCE_DIR}"
 puts ""
 
-# Step 1: Install Node dependencies
+# Step 1: Install Node dependencies (including dev dependencies for build)
 print "Installing Node.js dependencies... "
 Dir.chdir(LAMBDA_SOURCE_DIR) do
-  stdout, stderr, status = Open3.capture3("npm install --production")
+  stdout, stderr, status = Open3.capture3("npm install")
   unless status.success?
     puts "✗"
     puts "Error installing dependencies:"
+    puts stderr
+    exit 1
+  end
+end
+puts "✓"
+
+# Step 1.5: Build TypeScript
+print "Building TypeScript... "
+Dir.chdir(LAMBDA_SOURCE_DIR) do
+  stdout, stderr, status = Open3.capture3("npm run build")
+  unless status.success?
+    puts "✗"
+    puts "Error building TypeScript:"
     puts stderr
     exit 1
   end
@@ -97,7 +112,7 @@ package_file = File.join(Dir.tmpdir, "video-merger-#{Time.now.to_i}.zip")
 
 Dir.chdir(LAMBDA_SOURCE_DIR) do
   files_to_zip = [
-    "index.js",
+    "dist",
     "package.json",
     "node_modules",
     "bin/ffmpeg"
@@ -131,7 +146,7 @@ begin
     function_name: LAMBDA_FUNCTION_NAME,
     runtime: 'nodejs20.x',
     role: 'arn:aws:iam::000000000000:role/lambda-role', # LocalStack doesn't validate roles
-    handler: 'index.handler',
+    handler: 'dist/index.handler',
     code: {
       zip_file: File.read(package_file)
     },

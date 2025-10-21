@@ -36,7 +36,7 @@ Resources:
     Properties:
       FunctionName: !Sub jiki-video-merger-${Environment}
       CodeUri: video-merger/
-      Handler: index.handler
+      Handler: dist/index.handler
       Description: Merges multiple video files using FFmpeg
       EphemeralStorage:
         Size: 10240  # 10 GB for large video files
