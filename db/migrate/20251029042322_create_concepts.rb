@@ -16,6 +16,7 @@ class CreateConcepts < ActiveRecord::Migration[8.1]
     end
 
     add_index :concepts, :slug, unique: true
+    add_foreign_key :concepts, :lessons, column: :unlocked_by_lesson_id
     add_index :concepts, :unlocked_by_lesson_id
   end
 end
