@@ -48,6 +48,7 @@ Rails.application.routes.draw do
 
     # Admin routes
     namespace :admin do
+      resources :concepts, only: %i[index show create update destroy]
       resources :email_templates, only: %i[index show create update destroy] do
         collection do
           get :types
