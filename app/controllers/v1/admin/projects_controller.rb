@@ -45,7 +45,7 @@ class V1::Admin::ProjectsController < V1::Admin::BaseController
 
   private
   def use_project
-    @project = Project.find_by!(slug: params[:id])
+    @project = Project.find(params[:id])
   rescue ActiveRecord::RecordNotFound
     render_not_found("Project not found")
   end

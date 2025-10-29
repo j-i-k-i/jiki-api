@@ -41,6 +41,15 @@ class ProjectTest < ActiveSupport::TestCase
     assert_equal "calculator", project.to_param
   end
 
+  test "does not auto-regenerate slug when title changes" do
+    project = create(:project, title: "Original Title", slug: "custom-slug")
+
+    project.update!(title: "Completely Different Title")
+
+    assert_equal "custom-slug", project.reload.slug
+    refute_equal "completely-different-title", project.slug
+  end
+
   test "can be unlocked by a lesson" do
     lesson = create(:lesson)
     project = create(:project, unlocked_by_lesson: lesson)

@@ -38,8 +38,10 @@ class Project::SearchTest < ActiveSupport::TestCase
   end
 
   test "returns paginated collection with correct metadata" do
+    Prosopite.finish # Stop scan before creating test data
     5.times { create :project }
 
+    Prosopite.scan # Resume scan for the actual search
     result = Project::Search.(page: 2, per: 2)
 
     assert_equal 2, result.current_page

@@ -140,7 +140,7 @@ class V1::Admin::ProjectsControllerTest < ApplicationControllerTest
   test "GET show returns project" do
     project = create(:project, title: "Calculator", exercise_slug: "calculator-project")
 
-    get v1_admin_project_path(project), headers: @headers, as: :json
+    get v1_admin_project_path(project.id), headers: @headers, as: :json
 
     assert_response :success
     json = JSON.parse(response.body, symbolize_names: true)
@@ -149,7 +149,7 @@ class V1::Admin::ProjectsControllerTest < ApplicationControllerTest
   end
 
   test "GET show returns 404 for non-existent project" do
-    get v1_admin_project_path(id: "non-existent"), headers: @headers, as: :json
+    get v1_admin_project_path(999_999), headers: @headers, as: :json
 
     assert_response :not_found
     assert_json_response({
@@ -170,7 +170,7 @@ class V1::Admin::ProjectsControllerTest < ApplicationControllerTest
       }
     }
 
-    patch v1_admin_project_path(project), params: update_params, headers: @headers, as: :json
+    patch v1_admin_project_path(project.id), params: update_params, headers: @headers, as: :json
 
     assert_response :success
     json = JSON.parse(response.body, symbolize_names: true)
@@ -186,7 +186,7 @@ class V1::Admin::ProjectsControllerTest < ApplicationControllerTest
       }
     }
 
-    patch v1_admin_project_path(project), params: update_params, headers: @headers, as: :json
+    patch v1_admin_project_path(project.id), params: update_params, headers: @headers, as: :json
 
     assert_response :unprocessable_entity
     json = JSON.parse(response.body, symbolize_names: true)
@@ -200,7 +200,7 @@ class V1::Admin::ProjectsControllerTest < ApplicationControllerTest
       }
     }
 
-    patch v1_admin_project_path(id: "non-existent"), params: update_params, headers: @headers, as: :json
+    patch v1_admin_project_path(999_999), params: update_params, headers: @headers, as: :json
 
     assert_response :not_found
     assert_json_response({
@@ -217,14 +217,14 @@ class V1::Admin::ProjectsControllerTest < ApplicationControllerTest
     project = create(:project)
 
     assert_difference "Project.count", -1 do
-      delete v1_admin_project_path(project), headers: @headers, as: :json
+      delete v1_admin_project_path(project.id), headers: @headers, as: :json
     end
 
     assert_response :no_content
   end
 
   test "DELETE destroy returns 404 for non-existent project" do
-    delete v1_admin_project_path(id: "non-existent"), headers: @headers, as: :json
+    delete v1_admin_project_path(999_999), headers: @headers, as: :json
 
     assert_response :not_found
     assert_json_response({

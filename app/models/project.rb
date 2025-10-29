@@ -1,6 +1,9 @@
 class Project < ApplicationRecord
   disable_sti!
 
+  extend FriendlyId
+  friendly_id :slug, use: [:history]
+
   # Associations
   belongs_to :unlocked_by_lesson, class_name: 'Lesson', optional: true
   has_many :user_projects, dependent: :destroy
@@ -21,7 +24,8 @@ class Project < ApplicationRecord
   private
   def generate_slug
     return if slug.present?
+    return if title.blank?
 
-    self.slug = title.to_s.parameterize
+    self.slug = title.parameterize
   end
 end

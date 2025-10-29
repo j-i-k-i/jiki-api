@@ -136,7 +136,7 @@ class V1::Admin::VideoProduction::PipelinesControllerTest < ApplicationControlle
   end
 
   test "GET show returns 404 for non-existent pipeline" do
-    get v1_admin_video_production_pipeline_path(uuid: 'non-existent-uuid'), headers: @headers, as: :json
+    get v1_admin_video_production_pipeline_path('non-existent-uuid'), headers: @headers, as: :json
 
     assert_response :not_found
     assert_json_response({
