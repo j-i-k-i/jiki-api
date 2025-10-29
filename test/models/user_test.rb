@@ -97,4 +97,18 @@ class UserTest < ActiveSupport::TestCase
     refute UserLevel.exists?(user_level_id)
     refute UserLesson.exists?(user_lesson_id)
   end
+
+  test "automatically creates data record on user creation" do
+    user = create(:user)
+
+    assert user.data.present?
+    assert_instance_of User::Data, user.data
+    assert user.data.persisted?
+  end
+
+  test "data record has empty unlocked_concept_ids by default" do
+    user = create(:user)
+
+    assert_empty user.data.unlocked_concept_ids
+  end
 end
