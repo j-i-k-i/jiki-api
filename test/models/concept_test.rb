@@ -81,4 +81,13 @@ class ConceptTest < ActiveSupport::TestCase
     concept = create(:concept, slug: "strings")
     assert_equal "strings", concept.to_param
   end
+
+  test "does not auto-regenerate slug when title changes" do
+    concept = create(:concept, title: "Original Title", slug: "custom-slug")
+
+    concept.update!(title: "Completely Different Title")
+
+    assert_equal "custom-slug", concept.reload.slug
+    refute_equal "completely-different-title", concept.slug
+  end
 end
