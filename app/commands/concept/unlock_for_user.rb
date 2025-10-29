@@ -4,9 +4,13 @@ class Concept::UnlockForUser
   initialize_with :concept, :user
 
   def call
-    return if user.data.unlocked_concept_ids.include?(concept.id)
+    # Use atomic array append to avoid race conditions
+    # The WHERE clause prevents duplicates
+    updated = User::Data.where(id: user.data.id).
+      where.not('? = ANY(unlocked_concept_ids)', concept.id).
+      update_all(["unlocked_concept_ids = array_append(unlocked_concept_ids, ?)", concept.id])
 
-    user.data.unlocked_concept_ids = (user.data.unlocked_concept_ids + [concept.id]).uniq
-    user.data.save!
+    # Reload only if a row was actually updated
+    user.data.reload if updated.positive?
   end
 end

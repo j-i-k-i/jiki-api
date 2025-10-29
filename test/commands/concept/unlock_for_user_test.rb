@@ -12,18 +12,16 @@ class Concept::UnlockForUserTest < ActiveSupport::TestCase
     assert_includes user.data.unlocked_concept_ids, concept.id
   end
 
-  test "is idempotent - calling twice doesn't add duplicate" do
+  test "is idempotent - calling multiple times doesn't add duplicates" do
     user = create :user
     concept = create :concept
 
-    Concept::UnlockForUser.(concept, user)
-    initial_count = user.data.unlocked_concept_ids.length
+    # Call multiple times
+    5.times { Concept::UnlockForUser.(concept, user) }
 
-    assert_no_difference -> { user.data.reload.unlocked_concept_ids.length } do
-      Concept::UnlockForUser.(concept, user)
-    end
-
-    assert_equal initial_count, user.data.unlocked_concept_ids.length
+    # Should only have one entry
+    assert_equal 1, user.data.unlocked_concept_ids.count(concept.id)
+    assert_equal [concept.id], user.data.unlocked_concept_ids
   end
 
   test "multiple users can unlock same concept" do
@@ -49,5 +47,20 @@ class Concept::UnlockForUserTest < ActiveSupport::TestCase
     assert_includes user.data.unlocked_concept_ids, concept1.id
     assert_includes user.data.unlocked_concept_ids, concept2.id
     assert_equal 2, user.data.unlocked_concept_ids.length
+  end
+
+  test "reloads user data after unlocking" do
+    user = create :user
+    concept = create :concept
+
+    # Store reference to data object before unlocking
+    data_before = user.data
+    initial_array = data_before.unlocked_concept_ids.dup
+
+    Concept::UnlockForUser.(concept, user)
+
+    # The same object should have updated array
+    assert_includes data_before.unlocked_concept_ids, concept.id
+    refute_equal initial_array, data_before.unlocked_concept_ids
   end
 end

@@ -207,9 +207,11 @@ ActiveRecord::Schema[8.1].define(version: 2025_10_29_045646) do
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "concepts", "lessons", column: "unlocked_by_lesson_id"
   add_foreign_key "exercise_submission_files", "exercise_submissions"
   add_foreign_key "exercise_submissions", "user_lessons"
   add_foreign_key "lessons", "levels"
+  add_foreign_key "user_data", "users"
   add_foreign_key "user_lessons", "lessons"
   add_foreign_key "user_lessons", "users"
   add_foreign_key "user_levels", "levels"
