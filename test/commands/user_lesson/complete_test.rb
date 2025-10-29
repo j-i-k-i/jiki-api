@@ -152,4 +152,43 @@ class UserLesson::CompleteTest < ActiveSupport::TestCase
 
     assert_equal initial_count, user.data.unlocked_concept_ids.length
   end
+
+  test "unlocks project when lesson has unlocked_project" do
+    user = create(:user)
+    project = create(:project)
+    lesson = create(:lesson)
+    project.update!(unlocked_by_lesson: lesson)
+
+    assert_difference -> { user.user_projects.count }, 1 do
+      UserLesson::Complete.(user, lesson)
+    end
+
+    assert_includes user.projects, project
+  end
+
+  test "does not unlock project when lesson has no unlocked_project" do
+    user = create(:user)
+    lesson = create(:lesson)
+
+    assert_no_difference -> { user.user_projects.count } do
+      UserLesson::Complete.(user, lesson)
+    end
+  end
+
+  test "project unlocking is idempotent" do
+    user = create(:user)
+    project = create(:project)
+    lesson = create(:lesson)
+    project.update!(unlocked_by_lesson: lesson)
+
+    # Complete lesson twice
+    UserLesson::Complete.(user, lesson)
+    initial_count = user.user_projects.count
+
+    assert_no_difference -> { user.user_projects.count } do
+      UserLesson::Complete.(user, lesson)
+    end
+
+    assert_equal initial_count, user.user_projects.count
+  end
 end
