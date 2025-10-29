@@ -47,4 +47,22 @@ class Concept::SearchTest < ActiveSupport::TestCase
     assert_equal 3, result.total_pages
     assert_equal 2, result.size
   end
+
+  test "sanitizes SQL wildcards in title search" do
+    concept1 = create :concept, title: "100% Complete"
+    create :concept, title: "Arrays"
+    concept3 = create :concept, title: "String_Manipulation"
+
+    # Search for "%" should match literal "%" not act as wildcard
+    result = Concept::Search.(title: "%").to_a
+    assert_equal [concept1], result
+
+    # Search for "_" should match literal "_" not act as single-character wildcard
+    result = Concept::Search.(title: "_").to_a
+    assert_equal [concept3], result
+
+    # Wildcards should not match everything
+    result = Concept::Search.(title: "%%").to_a
+    assert_empty result
+  end
 end

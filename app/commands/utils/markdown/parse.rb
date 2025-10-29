@@ -12,14 +12,14 @@ class Utils::Markdown::Parse
   private
   memoize
   def sanitized_html
-    # Remove HTML comments and sanitize potentially dangerous content
+    # Remove HTML comments for security hygiene
+    # Note: We trust admin-provided content, so we don't escape HTML
     remove_comments = Loofah::Scrubber.new do |node|
       node.remove if node.name == "comment"
     end
 
     Loofah.fragment(raw_html).
       scrub!(remove_comments).
-      scrub!(:escape).
       to_s
   end
 

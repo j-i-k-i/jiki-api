@@ -28,6 +28,6 @@ class Concept::Search
   def apply_title_filter!
     return if title.blank?
 
-    @collection = @collection.where("title ILIKE ?", "%#{title}%")
+    @collection = @collection.where("title ILIKE ?", "%#{ActiveRecord::Base.sanitize_sql_like(title)}%")
   end
 end
