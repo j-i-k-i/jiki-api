@@ -2,13 +2,11 @@ class V1::ConceptsController < ApplicationController
   before_action :use_concept, only: [:show]
 
   def index
-    user = params[:unscoped] == "true" ? nil : current_user
-
     concepts = Concept::Search.(
       title: params[:title],
       page: params[:page],
       per: params[:per],
-      user:
+      user: params[:unscoped] == "true" ? nil : current_user
     )
 
     render json: SerializePaginatedCollection.(
