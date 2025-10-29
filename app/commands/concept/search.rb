@@ -4,9 +4,7 @@ class Concept::Search
   DEFAULT_PAGE = 1
   DEFAULT_PER = 24
 
-  def self.default_per
-    DEFAULT_PER
-  end
+  def self.default_per = DEFAULT_PER
 
   def initialize(title: nil, page: nil, per: nil)
     @title = title
@@ -15,11 +13,11 @@ class Concept::Search
   end
 
   def call
-    @collection = Concept.all
+    @concepts = Concept.all
 
     apply_title_filter!
 
-    @collection.page(page).per(per)
+    @concepts.page(page).per(per)
   end
 
   private
@@ -28,6 +26,6 @@ class Concept::Search
   def apply_title_filter!
     return if title.blank?
 
-    @collection = @collection.where("title ILIKE ?", "%#{ActiveRecord::Base.sanitize_sql_like(title)}%")
+    @concepts = @concepts.where("title ILIKE ?", "%#{ActiveRecord::Base.sanitize_sql_like(title)}%")
   end
 end
