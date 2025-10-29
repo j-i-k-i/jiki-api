@@ -81,11 +81,12 @@ ActiveRecord::Schema[8.1].define(version: 2025_10_29_055915) do
   end
 
   create_table "exercise_submissions", force: :cascade do |t|
+    t.bigint "context_id", null: false
+    t.string "context_type", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.bigint "user_lesson_id", null: false
     t.string "uuid", null: false
-    t.index ["user_lesson_id"], name: "index_exercise_submissions_on_user_lesson_id"
+    t.index ["context_type", "context_id"], name: "index_exercise_submissions_on_context"
     t.index ["uuid"], name: "index_exercise_submissions_on_uuid", unique: true
   end
 
@@ -243,7 +244,6 @@ ActiveRecord::Schema[8.1].define(version: 2025_10_29_055915) do
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "concepts", "lessons", column: "unlocked_by_lesson_id"
   add_foreign_key "exercise_submission_files", "exercise_submissions"
-  add_foreign_key "exercise_submissions", "user_lessons"
   add_foreign_key "lessons", "levels"
   add_foreign_key "projects", "lessons", column: "unlocked_by_lesson_id"
   add_foreign_key "user_data", "users"

@@ -2,6 +2,7 @@ class UserProject < ApplicationRecord
   # Associations
   belongs_to :user
   belongs_to :project
+  has_many :exercise_submissions, as: :context, dependent: :destroy
 
   # Validations
   validates :project_id, uniqueness: { scope: :user_id }

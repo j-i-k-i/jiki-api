@@ -39,6 +39,11 @@ Rails.application.routes.draw do
       resources :exercise_submissions, only: [:create]
     end
 
+    # Projects with exercise submissions
+    resources :projects, only: [], param: :slug do
+      resources :exercise_submissions, only: [:create], controller: 'projects/exercise_submissions'
+    end
+
     resources :user_lessons, only: [:show], param: :lesson_slug do
       member do
         post :start

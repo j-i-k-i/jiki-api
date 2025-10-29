@@ -42,8 +42,8 @@ class UserLessonTest < ActiveSupport::TestCase
     user_lesson = create(:user_lesson, user:, lesson:)
 
     # Create exercise submissions for this user_lesson
-    submission1 = create(:exercise_submission, user_lesson:)
-    submission2 = create(:exercise_submission, user_lesson:)
+    submission1 = create(:exercise_submission, context: user_lesson)
+    submission2 = create(:exercise_submission, context: user_lesson)
 
     submission1_id = submission1.id
     submission2_id = submission2.id

@@ -29,6 +29,17 @@ class ApplicationController < ActionController::API
     }, status: :not_found
   end
 
+  def use_project!
+    @project = Project.find_by!(slug: params[:project_slug])
+  rescue ActiveRecord::RecordNotFound
+    render json: {
+      error: {
+        type: "not_found",
+        message: "Project not found"
+      }
+    }, status: :not_found
+  end
+
   def render_not_found(message)
     render json: {
       error: {

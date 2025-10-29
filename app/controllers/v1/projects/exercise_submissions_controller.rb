@@ -1,5 +1,5 @@
-class V1::ExerciseSubmissionsController < ApplicationController
-  before_action :use_lesson!
+class V1::Projects::ExerciseSubmissionsController < ApplicationController
+  before_action :use_project!
 
   rescue_from DuplicateFilenameError, with: :render_duplicate_filename_error
   rescue_from FileTooLargeError, with: :render_file_too_large_error
@@ -7,12 +7,12 @@ class V1::ExerciseSubmissionsController < ApplicationController
   rescue_from InvalidSubmissionError, with: :render_invalid_submission_error
 
   def create
-    # Find or create UserLesson for current user and lesson
-    user_lesson = UserLesson::FindOrCreate.(current_user, @lesson)
+    # Find or create UserProject for current user and project
+    user_project = UserProject::Create.(current_user, @project)
 
-    # Create submission with UserLesson as context
+    # Create submission with UserProject as context
     ExerciseSubmission::Create.(
-      user_lesson,
+      user_project,
       submission_params[:files]
     )
 
