@@ -1,10 +1,10 @@
 class Utils::Markdown::Parse
   include Mandate
 
-  initialize_with :text
+  initialize_with :markdown
 
   def call
-    return "" if text.blank?
+    return "" if markdown.blank?
 
     sanitized_html
   end
@@ -26,7 +26,7 @@ class Utils::Markdown::Parse
   memoize
   def raw_html
     # Parse markdown and render to HTML using CommonMarker
-    Commonmarker.to_html(text, options: {
+    Commonmarker.to_html(markdown, options: {
       parse: { smart: true },
       render: { unsafe: true }
     })
