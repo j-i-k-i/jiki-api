@@ -76,6 +76,14 @@ end
 - **Naming**: `*_test.rb` files with descriptive test method names
 - **Assertions**: Use Minitest assertions (`assert_equal`, `assert_raises`, etc.)
 
+### Command Tests
+- **Location**: `test/commands/`
+- **Purpose**: Test command objects that encapsulate business logic
+- **Coverage Rule**: **Every command MUST have a corresponding test file** with 1-1 mapping
+  - `app/commands/concept/create.rb` → `test/commands/concept/create_test.rb`
+  - `app/commands/utils/markdown/parse.rb` → `test/commands/utils/markdown/parse_test.rb`
+- **Testing**: Validate inputs, outputs, error handling, and side effects
+
 ### Integration Tests
 - **Location**: `test/integration/`
 - **Purpose**: Test feature workflows and cross-system interactions

@@ -65,6 +65,10 @@ gem "httparty"
 # AWS SDK for S3 storage
 gem "aws-sdk-s3"
 
+# Markdown parsing and HTML sanitization
+gem "commonmarker", "~> 1.0"
+gem "loofah", "~> 2.22"
+
 group :development, :test do
   # AWS SDK for Lambda (local development with LocalStack)
   gem "aws-sdk-lambda"
