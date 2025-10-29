@@ -3,11 +3,40 @@
 Rails 8 API-only application that serves as the backend for Jiki, a Learn to Code platform.
 
 This files contains:
+- Jiki Concepts
 - API Endpoints
 - Setup Instructions
 - Development Instructions
 - Testing Instructions
 - Additional Context
+
+---
+
+## Jiki Concepts
+
+Understanding the core models and concepts in Jiki:
+
+- **Level**: Top-level container for a group of related lessons (e.g., "Basics", "Advanced"). Levels contain multiple lessons and are presented to users sequentially.
+
+- **Lesson**: A single learning unit within a level. Can be different types (exercise, tutorial, video, etc.). Contains curriculum data and tracks user progress.
+
+- **UserLevel**: Tracks a user's progress through a specific level, including status of all lessons within that level.
+
+- **UserLesson**: Tracks a user's progress on a specific lesson. Stores status (started/completed) and links to exercise submissions if applicable.
+
+- **Project**: A larger, more comprehensive coding challenge that users can work on. Similar to lessons but typically more open-ended and complex. Can have associated exercise submissions.
+
+- **UserProject**: Tracks a user's progress on a specific project, similar to UserLesson but for projects.
+
+- **Concept**: Educational content explaining programming concepts. Includes markdown content and can have standard/premium video content from supported providers (YouTube or Mux).
+
+- **ExerciseSubmission**: Represents code submitted by a user for either a lesson or project exercise. Uses a polymorphic `context` association to link to either UserLesson or UserProject. Stores multiple files with deduplication via XXHash64 digests.
+
+- **EmailTemplate**: Admin-managed email templates for various system emails (e.g., level completion notifications). Supports MJML and plain text formats with internationalization.
+
+- **VideoProduction::Pipeline**: Container for video production workflows. Manages a DAG (directed acyclic graph) of nodes that process video content.
+
+- **VideoProduction::Node**: Individual processing step in a video production pipeline. Can represent assets, transformations (e.g., talking head generation, voiceovers, merging), and outputs.
 
 ---
 
@@ -35,7 +64,9 @@ These should have equivelent fe types.
   - **Params (required):** `email`
   - **Response:** 200 OK
 
-### Levels
+### User Endpoints
+
+#### Levels
 
 - **GET** `/v1/levels` - Get all levels with nested lessons (basic info only)
   - **Response:**
@@ -45,7 +76,7 @@ These should have equivelent fe types.
     }
     ```
 
-### Lessons
+#### Lessons
 
 - **GET** `/v1/lessons/:slug` - Get a single lesson with full data
   - **Params (required):** `slug` (in URL)
@@ -56,7 +87,7 @@ These should have equivelent fe types.
     }
     ```
 
-### User Levels
+#### User Levels
 
 - **GET** `/v1/user_levels` - Get current user's levels with progress
   - **Response:**
@@ -66,7 +97,7 @@ These should have equivelent fe types.
     }
     ```
 
-### User Lessons
+#### User Lessons
 
 - **GET** `/v1/user_lessons/:lesson_slug` - Get user's progress on a specific lesson
   - **Params (required):** `lesson_slug` (in URL)
@@ -86,10 +117,10 @@ These should have equivelent fe types.
   - **Params (required):** `lesson_slug` (in URL)
   - **Response:** `{}`
 
-### Exercise Submissions
+#### Exercise Submissions
 
-- **POST** `/v1/lessons/:slug/exercise_submissions` - Submit code for an exercise
-  - **Params (required):** `slug` (in URL), `submission` (object with `files` array)
+- **POST** `/v1/lessons/:slug/exercise_submissions` - Submit code for a lesson-based exercise
+  - **Params (required):** `slug` (lesson slug in URL), `submission` (object with `files` array)
   - **Request Body:**
     ```json
     {
@@ -101,12 +132,28 @@ These should have equivelent fe types.
       }
     }
     ```
-  - **Response:** `{}`
+  - **Response:** `{}` (201 Created)
   - **Notes:**
-    - Files are stored using Active Storage
-    - Each file gets a digest calculated using XXHash64 for deduplication
-    - UTF-8 encoding is automatically sanitized
+    - Creates ExerciseSubmission with UserLesson as polymorphic context
     - Creates or updates the UserLesson for the current user
+
+- **POST** `/v1/projects/:slug/exercise_submissions` - Submit code for a project-based exercise
+  - **Params (required):** `slug` (project slug in URL), `submission` (object with `files` array)
+  - **Request Body:** Same format as lesson submissions
+  - **Response:** `{}` (201 Created)
+  - **Notes:**
+    - Creates ExerciseSubmission with UserProject as polymorphic context
+    - Creates or updates the UserProject for the current user
+
+**Common features for both endpoints:**
+- Files are stored using Active Storage
+- Each file gets a digest calculated using XXHash64 for deduplication
+- UTF-8 encoding is automatically sanitized
+- **Error responses** (422 Unprocessable Entity):
+  - `duplicate_filename` - Multiple files with same filename
+  - `file_too_large` - File exceeds size limit
+  - `too_many_files` - Exceeds maximum file count
+  - `invalid_submission` - Invalid submission format
 
 ### Admin
 
@@ -290,13 +337,136 @@ Admin endpoints for managing video production pipelines and nodes. See `.context
   - **Response:** 204 No Content
   - **Notes:** Removes references from other nodes' inputs
 
+#### Projects
+
+- **GET** `/v1/admin/projects` - List all projects with pagination
+  - **Query Params (optional):** `title` (filter), `page`, `per` (default: 25)
+  - **Response:**
+    ```json
+    {
+      "results": [Project, Project, ...],
+      "meta": {
+        "current_page": 1,
+        "total_pages": 5,
+        "total_count": 120
+      }
+    }
+    ```
+
+- **GET** `/v1/admin/projects/:id` - Get a single project
+  - **Params (required):** `id` (in URL)
+  - **Response:**
+    ```json
+    {
+      "project": Project
+    }
+    ```
+
+- **POST** `/v1/admin/projects` - Create a new project
+  - **Params (required):** `project` object with fields
+  - **Request Body:**
+    ```json
+    {
+      "project": {
+        "title": "Build a Todo App",
+        "slug": "build-todo-app",
+        "description": "Create a full-featured todo application",
+        "exercise_slug": "todo-app",
+        "unlocked_by_lesson_id": 42
+      }
+    }
+    ```
+  - **Response:** Created project (same format as GET single)
+  - **Status:** 201 Created
+
+- **PATCH** `/v1/admin/projects/:id` - Update a project
+  - **Params (required):** `id` (in URL), `project` object with fields to update
+  - **Request Body:**
+    ```json
+    {
+      "project": {
+        "title": "Updated Title",
+        "description": "Updated description"
+      }
+    }
+    ```
+  - **Response:** Updated project (same format as GET single)
+
+- **DELETE** `/v1/admin/projects/:id` - Delete a project
+  - **Params (required):** `id` (in URL)
+  - **Response:** 204 No Content
+
+#### Concepts
+
+- **GET** `/v1/admin/concepts` - List all concepts with pagination
+  - **Query Params (optional):** `title` (filter), `page`, `per` (default: 25)
+  - **Response:**
+    ```json
+    {
+      "results": [Concept, Concept, ...],
+      "meta": {
+        "current_page": 1,
+        "total_pages": 3,
+        "total_count": 60
+      }
+    }
+    ```
+
+- **GET** `/v1/admin/concepts/:id` - Get a single concept
+  - **Params (required):** `id` (in URL)
+  - **Response:**
+    ```json
+    {
+      "concept": Concept
+    }
+    ```
+
+- **POST** `/v1/admin/concepts` - Create a new concept
+  - **Params (required):** `concept` object with fields
+  - **Request Body:**
+    ```json
+    {
+      "concept": {
+        "title": "Variables in Ruby",
+        "slug": "variables-ruby",
+        "description": "Learn about variables and data types",
+        "content_markdown": "# Variables\n\nVariables store data...",
+        "standard_video_provider": "youtube",
+        "standard_video_id": "abc123",
+        "premium_video_provider": "mux",
+        "premium_video_id": "xyz789"
+      }
+    }
+    ```
+  - **Response:** Created concept (same format as GET single)
+  - **Status:** 201 Created
+
+- **PATCH** `/v1/admin/concepts/:id` - Update a concept
+  - **Params (required):** `id` (in URL), `concept` object with fields to update
+  - **Request Body:**
+    ```json
+    {
+      "concept": {
+        "title": "Updated Title",
+        "content_markdown": "# Updated Content"
+      }
+    }
+    ```
+  - **Response:** Updated concept (same format as GET single)
+
+- **DELETE** `/v1/admin/concepts/:id` - Delete a concept
+  - **Params (required):** `id` (in URL)
+  - **Response:** 204 No Content
+
 ---
 
 ## Serializers
 
 All API responses use serializers to format data consistently. Below are the data shapes for each serializer.
 
-### Level
+### User Serializers
+
+#### Level
 
 ```json
 {
@@ -313,7 +483,7 @@ All API responses use serializers to format data consistently. Below are the dat
 
 **Note:** Level serialization only includes basic lesson info (slug and type). Use `GET /v1/lessons/:slug` to fetch full lesson data including the `data` field.
 
-### Lesson
+#### Lesson
 
 ```json
 {
@@ -325,7 +495,7 @@ All API responses use serializers to format data consistently. Below are the dat
 }
 ```
 
-### UserLesson
+#### UserLesson
 
 The UserLesson serializer returns different data based on the lesson type:
 
@@ -368,7 +538,7 @@ The UserLesson serializer returns different data based on the lesson type:
 }
 ```
 
-### UserLevel
+#### UserLevel
 
 The UserLevel serializer inlines lesson data for optimal query performance:
 
@@ -390,7 +560,35 @@ The UserLevel serializer inlines lesson data for optimal query performance:
 
 **Note:** UserLevel only includes basic lesson progress (slug and status). Use `GET /v1/user_lessons/:lesson_slug` to fetch detailed progress including submission data.
 
-### EmailTemplate (Admin only)
+#### ExerciseSubmission
+
+```json
+{
+  "uuid": "abc-123-def-456",
+  "context_type": "UserLesson",
+  "context_slug": "hello-world",
+  "files": [
+    {
+      "filename": "solution.rb",
+      "digest": "a1b2c3d4e5f6"
+    },
+    {
+      "filename": "helper.rb",
+      "digest": "f6e5d4c3b2a1"
+    }
+  ]
+}
+```
+
+**Notes:**
+- `context_type` can be either `"UserLesson"` or `"UserProject"` (polymorphic association)
+- `context_slug` is the slug of the associated lesson or project
+- `files` array contains metadata only (filename and digest), not full content
+- File content can be retrieved separately via Active Storage
+
+### Admin Serializers
+
+#### EmailTemplate
 
 **List View (SerializeEmailTemplates):**
 ```json
@@ -421,7 +619,7 @@ The UserLevel serializer inlines lesson data for optimal query performance:
 - `type` must be one of the available types (see `GET /types` endpoint)
 - `slug` + `locale` + `type` combination must be unique
 
-### VideoProduction::Pipeline (Admin only)
+#### VideoProduction::Pipeline
 
 **List View (SerializeAdminVideoProductionPipelines):**
 ```json
@@ -461,7 +659,7 @@ Same as list view plus:
 }
 ```
 
-### VideoProduction::Node (Admin only)
+#### VideoProduction::Node
 
 **SerializeAdminVideoProductionNode:**
 ```json
@@ -510,6 +708,72 @@ Same as list view plus:
 - `in_progress` - Currently executing
 - `completed` - Successfully finished
 - `failed` - Execution failed (see metadata.error)
+
+#### Project
+
+**List View (SerializeAdminProjects):**
+```json
+{
+  "id": 1,
+  "title": "Build a Todo App",
+  "slug": "build-todo-app",
+  "description": "Create a full-featured todo application",
+  "exercise_slug": "todo-app"
+}
+```
+
+**Detail View (SerializeAdminProject):**
+```json
+{
+  "id": 1,
+  "title": "Build a Todo App",
+  "slug": "build-todo-app",
+  "description": "Create a full-featured todo application",
+  "exercise_slug": "todo-app"
+}
+```
+
+**Notes:**
+- Both list and detail views return the same fields for Projects
+- `exercise_slug` references the exercise definition in the curriculum
+- `unlocked_by_lesson_id` is accepted on create/update but not serialized in responses
+
+#### Concept
+
+**List View (SerializeAdminConcepts):**
+```json
+{
+  "id": 1,
+  "title": "Variables in Ruby",
+  "slug": "variables-ruby",
+  "description": "Learn about variables and data types",
+  "standard_video_provider": "youtube",
+  "standard_video_id": "abc123",
+  "premium_video_provider": "mux",
+  "premium_video_id": "xyz789"
+}
+```
+
+**Detail View (SerializeAdminConcept):**
+```json
+{
+  "id": 1,
+  "title": "Variables in Ruby",
+  "slug": "variables-ruby",
+  "description": "Learn about variables and data types",
+  "content_markdown": "# Variables\n\nVariables are used to store data...",
+  "standard_video_provider": "youtube",
+  "standard_video_id": "abc123",
+  "premium_video_provider": "mux",
+  "premium_video_id": "xyz789"
+}
+```
+
+**Notes:**
+- The detail view includes `content_markdown` which is not present in the list view
+- Video providers must be either `"youtube"` or `"mux"` (validated by model)
+- Video IDs are provider-specific identifiers
+- Standard vs premium videos allow different access levels for users
 
 ---
 
