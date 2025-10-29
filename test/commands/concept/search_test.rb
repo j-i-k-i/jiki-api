@@ -38,6 +38,7 @@ class Concept::SearchTest < ActiveSupport::TestCase
   end
 
   test "returns paginated collection with correct metadata" do
+    Prosopite.finish # Disable N+1 detection for this test due to FriendlyId slug checks
     5.times { create :concept }
 
     result = Concept::Search.(page: 2, per: 2)

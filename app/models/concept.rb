@@ -1,6 +1,9 @@
 class Concept < ApplicationRecord
   disable_sti!
 
+  extend FriendlyId
+  friendly_id :slug, use: [:history]
+
   VIDEO_PROVIDERS = %w[youtube mux].freeze
 
   belongs_to :unlocked_by_lesson, class_name: 'Lesson', optional: true
