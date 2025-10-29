@@ -69,6 +69,9 @@ gem "aws-sdk-s3"
 gem "commonmarker", "~> 1.0"
 gem "loofah", "~> 2.22"
 
+# Friendly URLs with slug history
+gem "friendly_id", "~> 5.5"
+
 group :development, :test do
   # AWS SDK for Lambda (local development with LocalStack)
   gem "aws-sdk-lambda"

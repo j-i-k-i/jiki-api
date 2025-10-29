@@ -45,7 +45,7 @@ class V1::Admin::ConceptsController < V1::Admin::BaseController
 
   private
   def use_concept
-    @concept = Concept.find_by!(slug: params[:id])
+    @concept = Concept.friendly.find(params[:id])
   rescue ActiveRecord::RecordNotFound
     render_not_found("Concept not found")
   end
