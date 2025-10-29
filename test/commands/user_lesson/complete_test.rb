@@ -113,4 +113,43 @@ class UserLesson::CompleteTest < ActiveSupport::TestCase
     user_level.reload
     assert_nil user_level.current_user_lesson_id
   end
+
+  test "unlocks concept when lesson has unlocked_concept" do
+    user = create(:user)
+    concept = create(:concept)
+    lesson = create(:lesson)
+    concept.update!(unlocked_by_lesson: lesson)
+
+    assert_difference -> { user.data.reload.unlocked_concept_ids.length }, 1 do
+      UserLesson::Complete.(user, lesson)
+    end
+
+    assert_includes user.data.unlocked_concept_ids, concept.id
+  end
+
+  test "does not unlock concept when lesson has no unlocked_concept" do
+    user = create(:user)
+    lesson = create(:lesson)
+
+    assert_no_difference -> { user.data.reload.unlocked_concept_ids.length } do
+      UserLesson::Complete.(user, lesson)
+    end
+  end
+
+  test "concept unlocking is idempotent" do
+    user = create(:user)
+    concept = create(:concept)
+    lesson = create(:lesson)
+    concept.update!(unlocked_by_lesson: lesson)
+
+    # Complete lesson twice
+    UserLesson::Complete.(user, lesson)
+    initial_count = user.data.unlocked_concept_ids.length
+
+    assert_no_difference -> { user.data.reload.unlocked_concept_ids.length } do
+      UserLesson::Complete.(user, lesson)
+    end
+
+    assert_equal initial_count, user.data.unlocked_concept_ids.length
+  end
 end

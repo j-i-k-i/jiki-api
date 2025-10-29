@@ -7,12 +7,18 @@ class User < ApplicationRecord
     :recoverable, :rememberable, :validatable,
     :jwt_authenticatable, jwt_revocation_strategy: self
 
+  has_one :data, dependent: :destroy, class_name: "User::Data", autosave: true
+
   has_many :user_lessons, dependent: :destroy
   has_many :lessons, through: :user_lessons
   has_many :user_levels, dependent: :destroy
   has_many :levels, through: :user_levels
 
   belongs_to :current_user_level, class_name: "UserLevel", optional: true
+
+  after_initialize do
+    build_data if new_record? && !data
+  end
 
   validates :locale, presence: true, inclusion: { in: %w[en hu] }
 
