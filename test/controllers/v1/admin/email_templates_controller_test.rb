@@ -233,7 +233,7 @@ class V1::Admin::EmailTemplatesControllerTest < ApplicationControllerTest
   end
 
   test "GET show returns 404 for non-existent template" do
-    get v1_admin_email_template_path(id: 99_999), headers: @headers, as: :json
+    get v1_admin_email_template_path(99_999), headers: @headers, as: :json
 
     assert_response :not_found
     assert_json_response({
@@ -291,7 +291,7 @@ class V1::Admin::EmailTemplatesControllerTest < ApplicationControllerTest
   end
 
   test "PATCH update returns 404 for non-existent template" do
-    patch v1_admin_email_template_path(id: 99_999),
+    patch v1_admin_email_template_path(99_999),
       params: { email_template: { subject: "New" } },
       headers: @headers,
       as: :json
@@ -377,7 +377,7 @@ class V1::Admin::EmailTemplatesControllerTest < ApplicationControllerTest
   end
 
   test "DELETE destroy returns 404 for non-existent template" do
-    delete v1_admin_email_template_path(id: 99_999), headers: @headers, as: :json
+    delete v1_admin_email_template_path(99_999), headers: @headers, as: :json
 
     assert_response :not_found
     assert_json_response({

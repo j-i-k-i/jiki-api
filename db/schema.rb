@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_10_29_055355) do
+ActiveRecord::Schema[8.1].define(version: 2025_10_29_055915) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -127,6 +127,18 @@ ActiveRecord::Schema[8.1].define(version: 2025_10_29_055355) do
     t.index ["slug"], name: "index_levels_on_slug", unique: true
   end
 
+  create_table "projects", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.text "description", null: false
+    t.string "exercise_slug", null: false
+    t.string "slug", null: false
+    t.string "title", null: false
+    t.bigint "unlocked_by_lesson_id"
+    t.datetime "updated_at", null: false
+    t.index ["slug"], name: "index_projects_on_slug", unique: true
+    t.index ["unlocked_by_lesson_id"], name: "index_projects_on_unlocked_by_lesson_id"
+  end
+
   create_table "user_data", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.bigint "unlocked_concept_ids", default: [], null: false, array: true
@@ -161,6 +173,17 @@ ActiveRecord::Schema[8.1].define(version: 2025_10_29_055355) do
     t.index ["level_id"], name: "index_user_levels_on_level_id"
     t.index ["user_id", "level_id"], name: "index_user_levels_on_user_id_and_level_id", unique: true
     t.index ["user_id"], name: "index_user_levels_on_user_id"
+  end
+
+  create_table "user_projects", force: :cascade do |t|
+    t.datetime "completed_at"
+    t.datetime "created_at", null: false
+    t.bigint "project_id", null: false
+    t.datetime "started_at"
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["project_id"], name: "index_user_projects_on_project_id"
+    t.index ["user_id", "project_id"], name: "index_user_projects_on_user_id_and_project_id", unique: true
   end
 
   create_table "users", force: :cascade do |t|
@@ -222,12 +245,15 @@ ActiveRecord::Schema[8.1].define(version: 2025_10_29_055355) do
   add_foreign_key "exercise_submission_files", "exercise_submissions"
   add_foreign_key "exercise_submissions", "user_lessons"
   add_foreign_key "lessons", "levels"
+  add_foreign_key "projects", "lessons", column: "unlocked_by_lesson_id"
   add_foreign_key "user_data", "users"
   add_foreign_key "user_lessons", "lessons"
   add_foreign_key "user_lessons", "users"
   add_foreign_key "user_levels", "levels"
   add_foreign_key "user_levels", "user_lessons", column: "current_user_lesson_id"
   add_foreign_key "user_levels", "users"
+  add_foreign_key "user_projects", "projects"
+  add_foreign_key "user_projects", "users"
   add_foreign_key "users", "user_levels", column: "current_user_level_id"
   add_foreign_key "video_production_nodes", "video_production_pipelines", column: "pipeline_id", on_delete: :cascade
 end

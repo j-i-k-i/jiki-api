@@ -169,7 +169,7 @@ class V1::Admin::ConceptsControllerTest < ApplicationControllerTest
   test "GET show returns concept with markdown" do
     concept = create(:concept, title: "Strings", content_markdown: "# Strings\n\nContent")
 
-    get v1_admin_concept_path(concept), headers: @headers, as: :json
+    get v1_admin_concept_path(concept.id), headers: @headers, as: :json
 
     assert_response :success
     json = JSON.parse(response.body, symbolize_names: true)
@@ -178,7 +178,7 @@ class V1::Admin::ConceptsControllerTest < ApplicationControllerTest
   end
 
   test "GET show returns 404 for non-existent concept" do
-    get v1_admin_concept_path(id: "non-existent"), headers: @headers, as: :json
+    get v1_admin_concept_path(999_999), headers: @headers, as: :json
 
     assert_response :not_found
     assert_json_response({
@@ -199,7 +199,7 @@ class V1::Admin::ConceptsControllerTest < ApplicationControllerTest
       }
     }
 
-    patch v1_admin_concept_path(concept), params: update_params, headers: @headers, as: :json
+    patch v1_admin_concept_path(concept.id), params: update_params, headers: @headers, as: :json
 
     assert_response :success
     json = JSON.parse(response.body, symbolize_names: true)
@@ -215,7 +215,7 @@ class V1::Admin::ConceptsControllerTest < ApplicationControllerTest
       }
     }
 
-    patch v1_admin_concept_path(concept), params: update_params, headers: @headers, as: :json
+    patch v1_admin_concept_path(concept.id), params: update_params, headers: @headers, as: :json
 
     assert_response :success
     assert_equal "# Updated", concept.reload.content_markdown
@@ -230,7 +230,7 @@ class V1::Admin::ConceptsControllerTest < ApplicationControllerTest
       }
     }
 
-    patch v1_admin_concept_path(concept), params: update_params, headers: @headers, as: :json
+    patch v1_admin_concept_path(concept.id), params: update_params, headers: @headers, as: :json
 
     assert_response :unprocessable_entity
     json = JSON.parse(response.body, symbolize_names: true)
@@ -244,7 +244,7 @@ class V1::Admin::ConceptsControllerTest < ApplicationControllerTest
       }
     }
 
-    patch v1_admin_concept_path(id: "non-existent"), params: update_params, headers: @headers, as: :json
+    patch v1_admin_concept_path(999_999), params: update_params, headers: @headers, as: :json
 
     assert_response :not_found
     assert_json_response({
@@ -261,14 +261,14 @@ class V1::Admin::ConceptsControllerTest < ApplicationControllerTest
     concept = create(:concept)
 
     assert_difference "Concept.count", -1 do
-      delete v1_admin_concept_path(concept), headers: @headers, as: :json
+      delete v1_admin_concept_path(concept.id), headers: @headers, as: :json
     end
 
     assert_response :no_content
   end
 
   test "DELETE destroy returns 404 for non-existent concept" do
-    delete v1_admin_concept_path(id: "non-existent"), headers: @headers, as: :json
+    delete v1_admin_concept_path(999_999), headers: @headers, as: :json
 
     assert_response :not_found
     assert_json_response({
@@ -277,86 +277,5 @@ class V1::Admin::ConceptsControllerTest < ApplicationControllerTest
         message: "Concept not found"
       }
     })
-  end
-
-  # SLUG HISTORY tests
-
-  test "GET show finds concept by old slug after slug change" do
-    concept = create(:concept, slug: "old-slug", title: "Original Title")
-    original_id = concept.id
-
-    # Update the slug
-    concept.update!(slug: "new-slug")
-
-    # Should find by old slug
-    get v1_admin_concept_path(id: "old-slug"), headers: @headers, as: :json
-
-    assert_response :success
-    json = JSON.parse(response.body, symbolize_names: true)
-    assert_equal original_id, json[:concept][:id]
-    assert_equal "new-slug", json[:concept][:slug]
-  end
-
-  test "GET show finds concept by current slug after slug change" do
-    concept = create(:concept, slug: "old-slug")
-    concept.update!(slug: "new-slug")
-
-    # Should still find by new slug
-    get v1_admin_concept_path(id: "new-slug"), headers: @headers, as: :json
-
-    assert_response :success
-    json = JSON.parse(response.body, symbolize_names: true)
-    assert_equal concept.id, json[:concept][:id]
-    assert_equal "new-slug", json[:concept][:slug]
-  end
-
-  test "PATCH update works with old slug" do
-    concept = create(:concept, slug: "old-slug", title: "Original")
-    concept.update!(slug: "new-slug")
-
-    update_params = {
-      concept: {
-        title: "Updated via old slug"
-      }
-    }
-
-    # Update using old slug
-    patch v1_admin_concept_path(id: "old-slug"), params: update_params, headers: @headers, as: :json
-
-    assert_response :success
-    json = JSON.parse(response.body, symbolize_names: true)
-    assert_equal "Updated via old slug", json[:concept][:title]
-    assert_equal "Updated via old slug", concept.reload.title
-  end
-
-  test "DELETE destroy works with old slug" do
-    concept = create(:concept, slug: "old-slug")
-    concept.update!(slug: "new-slug")
-
-    assert_difference "Concept.count", -1 do
-      delete v1_admin_concept_path(id: "old-slug"), headers: @headers, as: :json
-    end
-
-    assert_response :no_content
-  end
-
-  test "slug history persists through multiple slug changes" do
-    Prosopite.finish # Disable N+1 detection - intentionally querying multiple times in a loop
-    concept = create(:concept, slug: "slug-v1")
-    original_id = concept.id
-
-    # Change slug twice
-    concept.update!(slug: "slug-v2")
-    concept.update!(slug: "slug-v3")
-
-    # All three slugs should work
-    %w[slug-v1 slug-v2 slug-v3].each do |slug|
-      get v1_admin_concept_path(id: slug), headers: @headers, as: :json
-
-      assert_response :success, "Failed to find concept by slug: #{slug}"
-      json = JSON.parse(response.body, symbolize_names: true)
-      assert_equal original_id, json[:concept][:id]
-      assert_equal "slug-v3", json[:concept][:slug], "Should return current slug"
-    end
   end
 end

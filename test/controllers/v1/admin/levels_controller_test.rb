@@ -411,7 +411,7 @@ class V1::Admin::LevelsControllerTest < ApplicationControllerTest
   end
 
   test "PATCH update returns 404 for non-existent level" do
-    patch v1_admin_level_path(id: 99_999),
+    patch v1_admin_level_path(99_999),
       params: { level: { title: "New" } },
       headers: @headers,
       as: :json

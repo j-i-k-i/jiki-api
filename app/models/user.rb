@@ -13,6 +13,8 @@ class User < ApplicationRecord
   has_many :lessons, through: :user_lessons
   has_many :user_levels, dependent: :destroy
   has_many :levels, through: :user_levels
+  has_many :user_projects, dependent: :destroy
+  has_many :projects, through: :user_projects
 
   belongs_to :current_user_level, class_name: "UserLevel", optional: true
 

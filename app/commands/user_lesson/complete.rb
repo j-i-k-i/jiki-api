@@ -11,6 +11,9 @@ class UserLesson::Complete
 
       # Unlock concept if this lesson unlocks one
       Concept::UnlockForUser.(lesson.unlocked_concept, user) if lesson.unlocked_concept
+
+      # Unlock project if this lesson unlocks one
+      UserProject::Create.(user, lesson.unlocked_project) if lesson.unlocked_project
     end
 
     user_lesson
