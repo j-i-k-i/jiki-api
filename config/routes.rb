@@ -51,6 +51,8 @@ Rails.application.routes.draw do
       end
     end
 
+    resources :concepts, only: %i[index show], param: :slug
+
     # Admin routes
     namespace :admin do
       resources :concepts, only: %i[index show create update destroy]

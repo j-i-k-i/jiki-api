@@ -91,11 +91,11 @@ Concepts support two tiers of video content:
 - **youtube**: YouTube videos
 - **mux**: Mux video platform
 
-## Admin API Endpoints
+## API Endpoints
 
-All concept management is done through admin-only endpoints.
+Concepts are accessible via both admin and user-facing endpoints.
 
-### Routes
+### Admin Routes
 
 **Namespace**: `v1/admin/concepts`
 
@@ -109,7 +109,7 @@ All concept management is done through admin-only endpoints.
 
 **Note**: The `:id` parameter accepts slugs (e.g., `/v1/admin/concepts/strings`)
 
-### Controller: `app/controllers/v1/admin/concepts_controller.rb`
+#### Admin Controller: `app/controllers/v1/admin/concepts_controller.rb`
 
 **Authorization**: Requires admin privileges (inherits from `V1::Admin::BaseController`)
 
@@ -123,18 +123,67 @@ All concept management is done through admin-only endpoints.
 - Returns `content_markdown` (NOT `content_html`) in admin responses
 - Collection serializer excludes `content_markdown` to reduce payload size
 
+### User-Facing Routes
+
+**Namespace**: `v1/concepts`
+
+| Method | Path | Action | Description |
+|--------|------|--------|-------------|
+| GET | `/v1/concepts` | index | List unlocked concepts (paginated, searchable) |
+| GET | `/v1/concepts/:slug` | show | Show unlocked concept by slug (includes HTML) |
+
+**Note**: Uses `:slug` parameter (e.g., `/v1/concepts/strings`)
+
+#### User Controller: `app/controllers/v1/concepts_controller.rb`
+
+**Authentication**: Requires authenticated user (inherits from `ApplicationController`)
+
+**Access Control**:
+- By default, only unlocked concepts are returned
+- Pass `unscoped=true` query parameter to bypass unlock filtering (for admin/preview purposes)
+
+**Search/Filtering** (`index` action):
+- `title`: Partial, case-insensitive title search
+- `page`: Page number for pagination (default: 1)
+- `per`: Results per page (default: 24)
+- `unscoped`: Set to "true" to return all concepts regardless of unlock status
+
+**Show Action Behavior**:
+- Returns 403 Forbidden if concept is locked for the user
+- Use `unscoped=true` to bypass lock checking
+- Supports slug history (old slugs redirect to current concept)
+
+**Response Format**:
+- Uses `SerializePaginatedCollection` for index
+- Returns `content_html` (NOT `content_markdown`) in user responses
+- Collection serializer excludes `content_html` to reduce payload size
+- All responses exclude the `id` field (uses slugs for identification)
+
 ## Commands
 
 ### Concept::Search
 
-**Purpose**: Search and paginate concepts for admin listing
+**Purpose**: Search and paginate concepts with optional user-based filtering
 
 **Parameters**:
 - `title` (optional): Filter by title (partial match, case-insensitive)
 - `page` (optional): Page number (default: 1)
 - `per` (optional): Results per page (default: 24)
+- `user` (optional): User instance for filtering to unlocked concepts only
 
 **Returns**: Kaminari-paginated collection
+
+**Usage**:
+```ruby
+# Admin: Get all concepts
+Concept::Search.(title: "String", page: 1)
+
+# User: Get only unlocked concepts
+Concept::Search.(title: "String", user: current_user)
+
+# User: Get all concepts (unscoped)
+Concept::Search.(title: "String", user: nil)
+```
 
 ### Concept::Create
 
@@ -161,16 +210,18 @@ All concept management is done through admin-only endpoints.
 
 ## Serializers
 
-### SerializeAdminConcept
+### Admin Serializers
+
+#### SerializeAdminConcept
 
 **Purpose**: Serialize a single concept for admin view/edit
 
 **Includes**:
-- All concept fields
+- All concept fields including `id`
 - `content_markdown` (for editing)
 - Does NOT include `content_html` (generated on save)
 
-### SerializeAdminConcepts
+#### SerializeAdminConcepts
 
 **Purpose**: Serialize concepts for admin list view
 
@@ -178,6 +229,30 @@ All concept management is done through admin-only endpoints.
 - Basic fields (id, title, slug, description)
 - Video provider information
 - Does NOT include `content_markdown` (too large for lists)
+
+### User-Facing Serializers
+
+#### SerializeConcept
+
+**Purpose**: Serialize a single concept for user viewing
+
+**Includes**:
+- Basic fields (title, slug, description)
+- `content_html` (for display)
+- Video provider information
+- Does NOT include `id` (uses slug for identification)
+- Does NOT include `content_markdown` (internal only)
+
+#### SerializeConcepts
+
+**Purpose**: Serialize concepts for user list view
+
+**Includes**:
+- Basic fields (title, slug, description)
+- Video provider information
+- Does NOT include `id` (uses slug for identification)
+- Does NOT include `content_html` (too large for lists)
+- Does NOT include `content_markdown` (internal only)
 
 ## Usage Examples
 
@@ -219,8 +294,11 @@ Concept::Update.(concept, {
 
 - Model: `test/models/concept_test.rb`
 - Commands: `test/commands/concept/*_test.rb`
+  - `test/commands/concept/search_test.rb` - Includes user filtering tests
 - Markdown Parser: `test/commands/utils/markdown/parse_test.rb`
-- Controller: `test/controllers/v1/admin/concepts_controller_test.rb`
+- Controllers:
+  - Admin: `test/controllers/v1/admin/concepts_controller_test.rb`
+  - User: `test/controllers/v1/concepts_controller_test.rb`
 - Factory: `test/factories/concepts.rb`
 
 ## Design Decisions
