@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_10_29_042322) do
+ActiveRecord::Schema[8.1].define(version: 2025_10_29_045646) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -53,8 +53,10 @@ ActiveRecord::Schema[8.1].define(version: 2025_10_29_042322) do
     t.string "standard_video_id"
     t.string "standard_video_provider"
     t.string "title", null: false
+    t.bigint "unlocked_by_lesson_id"
     t.datetime "updated_at", null: false
     t.index ["slug"], name: "index_concepts_on_slug", unique: true
+    t.index ["unlocked_by_lesson_id"], name: "index_concepts_on_unlocked_by_lesson_id"
   end
 
   create_table "email_templates", force: :cascade do |t|
@@ -112,6 +114,15 @@ ActiveRecord::Schema[8.1].define(version: 2025_10_29_042322) do
     t.datetime "updated_at", null: false
     t.index ["position"], name: "index_levels_on_position", unique: true
     t.index ["slug"], name: "index_levels_on_slug", unique: true
+  end
+
+  create_table "user_data", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.bigint "unlocked_concept_ids", default: [], null: false, array: true
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["unlocked_concept_ids"], name: "index_user_data_on_unlocked_concept_ids", using: :gin
+    t.index ["user_id"], name: "index_user_data_on_user_id", unique: true
   end
 
   create_table "user_lessons", force: :cascade do |t|
@@ -196,9 +207,11 @@ ActiveRecord::Schema[8.1].define(version: 2025_10_29_042322) do
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "concepts", "lessons", column: "unlocked_by_lesson_id"
   add_foreign_key "exercise_submission_files", "exercise_submissions"
   add_foreign_key "exercise_submissions", "user_lessons"
   add_foreign_key "lessons", "levels"
+  add_foreign_key "user_data", "users"
   add_foreign_key "user_lessons", "lessons"
   add_foreign_key "user_lessons", "users"
   add_foreign_key "user_levels", "levels"

@@ -3,6 +3,8 @@ class Concept < ApplicationRecord
 
   VIDEO_PROVIDERS = %w[youtube mux].freeze
 
+  belongs_to :unlocked_by_lesson, class_name: 'Lesson', optional: true
+
   validates :title, presence: true
   validates :slug, presence: true, uniqueness: true
   validates :description, presence: true

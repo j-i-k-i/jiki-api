@@ -10,10 +10,13 @@ class CreateConcepts < ActiveRecord::Migration[8.1]
       t.string :standard_video_id
       t.string :premium_video_provider
       t.string :premium_video_id
+      t.bigint :unlocked_by_lesson_id
 
       t.timestamps
     end
 
     add_index :concepts, :slug, unique: true
+    add_foreign_key :concepts, :lessons, column: :unlocked_by_lesson_id
+    add_index :concepts, :unlocked_by_lesson_id
   end
 end
