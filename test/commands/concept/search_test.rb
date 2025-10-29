@@ -66,4 +66,58 @@ class Concept::SearchTest < ActiveSupport::TestCase
     result = Concept::Search.(title: "%%").to_a
     assert_empty result
   end
+
+  test "user: filters to only unlocked concepts" do
+    concept_1 = create :concept
+    create :concept
+    concept_3 = create :concept
+    user = create :user
+
+    Concept::UnlockForUser.(concept_1, user)
+    Concept::UnlockForUser.(concept_3, user)
+
+    result = Concept::Search.(user:).to_a
+    assert_equal [concept_1, concept_3], result
+  end
+
+  test "user: nil returns all concepts" do
+    concept_1 = create :concept
+    concept_2 = create :concept
+    user = create :user
+
+    Concept::UnlockForUser.(concept_1, user)
+
+    result = Concept::Search.(user: nil).to_a
+    assert_equal [concept_1, concept_2], result
+  end
+
+  test "user: with title filter returns only unlocked matching concepts" do
+    concept_1 = create :concept, title: "Strings"
+    create :concept, title: "String Arrays"
+    concept_3 = create :concept, title: "Arrays"
+    user = create :user
+
+    Concept::UnlockForUser.(concept_1, user)
+    Concept::UnlockForUser.(concept_3, user)
+
+    result = Concept::Search.(user:, title: "String").to_a
+    assert_equal [concept_1], result
+  end
+
+  test "user: respects pagination" do
+    concept_1 = create :concept
+    concept_2 = create :concept
+    concept_3 = create :concept
+    user = create :user
+
+    Concept::UnlockForUser.(concept_1, user)
+    Concept::UnlockForUser.(concept_2, user)
+    Concept::UnlockForUser.(concept_3, user)
+
+    result = Concept::Search.(user:, page: 1, per: 2).to_a
+    assert_equal [concept_1, concept_2], result
+
+    result = Concept::Search.(user:, page: 2, per: 2).to_a
+    assert_equal [concept_3], result
+  end
 end
