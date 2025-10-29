@@ -4,6 +4,7 @@ class Lesson < ApplicationRecord
   belongs_to :level
   has_many :user_lessons, dependent: :destroy
   has_many :users, through: :user_lessons
+  has_one :unlocked_concept, class_name: 'Concept', foreign_key: :unlocked_by_lesson_id, inverse_of: :unlocked_by_lesson
 
   serialize :data, coder: JSONWithIndifferentAccess
 
