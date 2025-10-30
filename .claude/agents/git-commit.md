@@ -1,6 +1,6 @@
 ---
 name: git-commit
-description: MUST BE USED when creating git commits. Use PROACTIVELY after code changes are complete to handle the full commit workflow including validation, code quality review, and commit execution.
+description: MUST BE USED when running git commit. Use PROACTIVELY after code changes are complete to handle the full commit workflow including validation, code quality review, and commit execution.
 tools: Read, Grep, Bash
 model: haiku
 ---
