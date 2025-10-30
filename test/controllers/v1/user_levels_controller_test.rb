@@ -27,21 +27,7 @@ class V1::UserLevelsControllerTest < ApplicationControllerTest
 
     assert_response :success
     assert_json_response({
-      user_levels: [
-        {
-          level_slug: "basics",
-          user_lessons: [
-            { lesson_slug: "lesson-1", status: "completed" },
-            { lesson_slug: "lesson-2", status: "started" }
-          ]
-        },
-        {
-          level_slug: "advanced",
-          user_lessons: [
-            { lesson_slug: "lesson-3", status: "completed" }
-          ]
-        }
-      ]
+      user_levels: SerializeUserLevels.(@current_user.user_levels)
     })
   end
 
@@ -70,14 +56,7 @@ class V1::UserLevelsControllerTest < ApplicationControllerTest
 
     assert_response :success
     assert_json_response({
-      user_levels: [
-        {
-          level_slug: "my-level",
-          user_lessons: [
-            { lesson_slug: "my-lesson", status: "started" }
-          ]
-        }
-      ]
+      user_levels: SerializeUserLevels.(@current_user.user_levels)
     })
   end
 
@@ -141,11 +120,7 @@ class V1::UserLevelsControllerTest < ApplicationControllerTest
 
     assert_response :success
     assert_json_response({
-      user_levels: [
-        { level_slug: "level-a", user_lessons: [{ lesson_slug: "lesson-a", status: "started" }] },
-        { level_slug: "level-b", user_lessons: [{ lesson_slug: "lesson-b", status: "started" }] },
-        { level_slug: "level-c", user_lessons: [{ lesson_slug: "lesson-c", status: "started" }] }
-      ]
+      user_levels: SerializeUserLevels.(@current_user.user_levels)
     })
   end
 end

@@ -22,17 +22,12 @@ class V1::Admin::EmailTemplatesControllerTest < ApplicationControllerTest
     template1 = create(:email_template, slug: "template-1", locale: "en")
     template2 = create(:email_template, slug: "template-2", locale: "hu")
 
-    expected_templates = [
-      { id: template1.id, type: "level_completion", slug: "template-1", locale: "en" },
-      { id: template2.id, type: "level_completion", slug: "template-2", locale: "hu" }
-    ]
-
     Prosopite.scan # Resume scan for the actual request
     get v1_admin_email_templates_path, headers: @headers, as: :json
 
     assert_response :success
     assert_json_response({
-      results: expected_templates,
+      results: SerializeAdminEmailTemplates.([template1, template2]),
       meta: {
         current_page: 1,
         total_pages: 1,
@@ -220,15 +215,7 @@ class V1::Admin::EmailTemplatesControllerTest < ApplicationControllerTest
 
     assert_response :success
     assert_json_response({
-      email_template: {
-        id: email_template.id,
-        type: email_template.type,
-        slug: email_template.slug,
-        locale: email_template.locale,
-        subject: email_template.subject,
-        body_mjml: email_template.body_mjml,
-        body_text: email_template.body_text
-      }
+      email_template: SerializeAdminEmailTemplate.(email_template)
     })
   end
 

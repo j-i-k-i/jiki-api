@@ -19,21 +19,7 @@ class V1::LevelsControllerTest < ApplicationControllerTest
 
     assert_response :success
     assert_json_response({
-      levels: [
-        {
-          slug: "level-1",
-          lessons: [
-            { slug: "lesson-1", type: "exercise" },
-            { slug: "lesson-2", type: "tutorial" }
-          ]
-        },
-        {
-          slug: "level-2",
-          lessons: [
-            { slug: "lesson-3", type: "exercise" }
-          ]
-        }
-      ]
+      levels: SerializeLevels.([level1, level2])
     })
   end
 
