@@ -69,8 +69,9 @@ class V1::ConceptsControllerTest < ApplicationControllerTest
     response_json = JSON.parse(response.body, symbolize_names: true)
 
     assert_equal 2, response_json[:results].size
-    assert_equal "String Basics", response_json[:results][0][:title]
-    assert_equal "String Advanced", response_json[:results][1][:title]
+    # Results ordered alphabetically by title
+    assert_equal "String Advanced", response_json[:results][0][:title]
+    assert_equal "String Basics", response_json[:results][1][:title]
   end
 
   test "GET index title filter only returns unlocked concepts" do

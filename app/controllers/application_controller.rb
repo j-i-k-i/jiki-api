@@ -1,4 +1,6 @@
 class ApplicationController < ActionController::API
+  include MetaResponseWrapper
+
   before_action :authenticate_user!
 
   private

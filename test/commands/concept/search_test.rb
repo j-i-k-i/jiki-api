@@ -15,8 +15,9 @@ class Concept::SearchTest < ActiveSupport::TestCase
     concept_2 = create :concept, title: "Arrays"
     concept_3 = create :concept, title: "String Manipulation"
 
-    assert_equal [concept_1, concept_2, concept_3], Concept::Search.(title: "").to_a
-    assert_equal [concept_1, concept_3], Concept::Search.(title: "String").to_a
+    # Results ordered alphabetically by title
+    assert_equal [concept_2, concept_3, concept_1], Concept::Search.(title: "").to_a
+    assert_equal [concept_3, concept_1], Concept::Search.(title: "String").to_a
     assert_equal [concept_2], Concept::Search.(title: "Arrays").to_a
     assert_empty Concept::Search.(title: "xyz").to_a
   end
@@ -68,16 +69,17 @@ class Concept::SearchTest < ActiveSupport::TestCase
   end
 
   test "user: filters to only unlocked concepts" do
-    concept_1 = create :concept
-    create :concept
-    concept_3 = create :concept
+    concept_1 = create :concept, title: "Zebra"
+    create :concept, title: "Middle"
+    concept_3 = create :concept, title: "Apple"
     user = create :user
 
     Concept::UnlockForUser.(concept_1, user)
     Concept::UnlockForUser.(concept_3, user)
 
     result = Concept::Search.(user:).to_a
-    assert_equal [concept_1, concept_3], result
+    # Results ordered alphabetically by title
+    assert_equal [concept_3, concept_1], result
   end
 
   test "user: nil returns all concepts" do
@@ -119,5 +121,17 @@ class Concept::SearchTest < ActiveSupport::TestCase
 
     result = Concept::Search.(user:, page: 2, per: 2).to_a
     assert_equal [concept_3], result
+  end
+
+  test "orders concepts by title alphabetically" do
+    concept_z = create :concept, title: "Zulu"
+    concept_a = create :concept, title: "Alpha"
+    concept_m = create :concept, title: "Mike"
+    concept_b = create :concept, title: "Bravo"
+
+    result = Concept::Search.().to_a
+
+    assert_equal [concept_a, concept_b, concept_m, concept_z], result
+    assert_equal %w[Alpha Bravo Mike Zulu], result.map(&:title)
   end
 end

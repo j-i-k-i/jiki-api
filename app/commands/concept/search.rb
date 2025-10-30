@@ -14,7 +14,7 @@ class Concept::Search
   end
 
   def call
-    @concepts = Concept.all
+    @concepts = Concept.order(:title)
 
     apply_title_filter!
     apply_user_filter!

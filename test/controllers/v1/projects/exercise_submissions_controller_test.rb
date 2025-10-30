@@ -4,6 +4,8 @@ class V1::Projects::ExerciseSubmissionsControllerTest < ApplicationControllerTes
   setup do
     setup_user
     @project = create(:project)
+    # Pre-create UserProject so it doesn't emit events during tests
+    create(:user_project, user: @current_user, project: @project)
   end
 
   guard_incorrect_token! :v1_project_exercise_submissions_path, args: ["test-slug"], method: :post
@@ -42,7 +44,7 @@ class V1::Projects::ExerciseSubmissionsControllerTest < ApplicationControllerTes
   end
 
   test "POST create calls ExerciseSubmission::Create" do
-    user_project = create(:user_project, user: @current_user, project: @project)
+    user_project = UserProject.find_by!(user: @current_user, project: @project)
     files = [{ filename: "test.rb", code: "puts 'test'" }]
 
     UserProject::Create.stubs(:call).returns(user_project)
