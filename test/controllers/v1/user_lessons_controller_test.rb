@@ -209,4 +209,36 @@ class V1::UserLessonsControllerTest < ApplicationControllerTest
 
     assert_response :success
   end
+
+  test "PATCH complete emits events for unlocked concept and project" do
+    Prosopite.finish
+
+    concept = create(:concept, slug: "variables", title: "Variables")
+    project = create(:project, slug: "calculator", title: "Calculator", description: "Build a calculator")
+    lesson = create(:lesson, unlocked_concept: concept, unlocked_project: project)
+
+    patch complete_v1_user_lesson_path(lesson_slug: lesson.slug),
+      headers: @headers,
+      as: :json
+
+    assert_response :success
+
+    response_json = JSON.parse(response.body, symbolize_names: true)
+
+    # Verify we have two events
+    assert_equal 2, response_json[:meta][:events].size
+
+    # Verify concept_unlocked event
+    concept_event = response_json[:meta][:events].find { |e| e[:type] == "concept_unlocked" }
+    refute_nil concept_event, "Expected concept_unlocked event"
+    assert_equal "variables", concept_event[:data][:concept][:slug]
+    assert_equal "Variables", concept_event[:data][:concept][:title]
+
+    # Verify project_unlocked event
+    project_event = response_json[:meta][:events].find { |e| e[:type] == "project_unlocked" }
+    refute_nil project_event, "Expected project_unlocked event"
+    assert_equal "calculator", project_event[:data][:project][:slug]
+    assert_equal "Calculator", project_event[:data][:project][:title]
+    assert_equal "Build a calculator", project_event[:data][:project][:description]
+  end
 end
