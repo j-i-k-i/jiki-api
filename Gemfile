@@ -66,7 +66,7 @@ gem "httparty"
 gem "aws-sdk-s3"
 
 # Markdown parsing and HTML sanitization
-gem "commonmarker", "~> 1.0"
+gem "commonmarker", "~> 2.5"
 gem "loofah", "~> 2.22"
 
 # Friendly URLs with slug history
