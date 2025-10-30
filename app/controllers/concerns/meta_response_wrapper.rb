@@ -39,6 +39,6 @@ module MetaResponseWrapper
 
   private
   def skip_meta_wrapper?
-    self.class.name.include?('Admin')
+    is_a?(V1::Admin::BaseController)
   end
 end

@@ -63,4 +63,35 @@ class Concept::UnlockForUserTest < ActiveSupport::TestCase
     assert_includes data_before.unlocked_concept_ids, concept.id
     refute_equal initial_array, data_before.unlocked_concept_ids
   end
+
+  test "emits concept_unlocked event when concept is unlocked" do
+    user = create :user
+    concept = create :concept, slug: "variables", title: "Variables"
+
+    Current.reset
+    Concept::UnlockForUser.(concept, user)
+
+    events = Current.events
+    assert_equal 1, events.length
+
+    event = events.first
+    assert_equal "concept_unlocked", event[:type]
+    assert_equal "variables", event[:data][:concept][:slug]
+    assert_equal "Variables", event[:data][:concept][:title]
+  end
+
+  test "does not emit event when concept already unlocked (idempotent)" do
+    user = create :user
+    concept = create :concept
+
+    # Unlock once
+    Concept::UnlockForUser.(concept, user)
+
+    # Reset events and unlock again
+    Current.reset
+    Concept::UnlockForUser.(concept, user)
+
+    # Should not emit event on second unlock
+    assert_nil Current.events
+  end
 end

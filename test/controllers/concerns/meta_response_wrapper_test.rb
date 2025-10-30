@@ -20,7 +20,7 @@ class TestMetaWrapperController < ApplicationController
 end
 
 # Test admin controller that should skip wrapping
-class TestAdminController < ApplicationController
+class TestAdminController < V1::Admin::BaseController
   def admin_response
     render json: { user: { id: 1 } }
   end
@@ -116,6 +116,9 @@ class MetaResponseWrapperTest < ActionDispatch::IntegrationTest
   end
 
   test "skips wrapping for admin controllers" do
+    # Make user an admin to pass authorization
+    @current_user.update!(admin: true)
+
     get "/test/admin", headers: @headers, as: :json
 
     assert_response :success
