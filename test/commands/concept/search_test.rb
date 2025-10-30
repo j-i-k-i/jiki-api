@@ -107,9 +107,10 @@ class Concept::SearchTest < ActiveSupport::TestCase
   end
 
   test "user: respects pagination" do
-    concept_1 = create :concept
-    concept_2 = create :concept
-    concept_3 = create :concept
+    # Use explicit alphabetically ordered titles to ensure deterministic pagination
+    concept_1 = create :concept, title: "Alpha"
+    concept_2 = create :concept, title: "Bravo"
+    concept_3 = create :concept, title: "Charlie"
     user = create :user
 
     Concept::UnlockForUser.(concept_1, user)
