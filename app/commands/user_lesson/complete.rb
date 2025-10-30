@@ -19,9 +19,9 @@ class UserLesson::Complete
         # Unlock project if this lesson unlocks one
         UserProject::Create.(user, lesson.unlocked_project) if lesson.unlocked_project
       end
-    end
 
-    user_lesson
+      user_lesson
+    end
   end
 
   memoize

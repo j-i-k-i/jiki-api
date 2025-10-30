@@ -2,12 +2,14 @@ require "test_helper"
 
 class Concept::SearchTest < ActiveSupport::TestCase
   test "no options returns all concepts paginated" do
-    concept_1 = create :concept
-    concept_2 = create :concept
+    # Use explicit titles to ensure deterministic alphabetical ordering
+    concept_b = create :concept, title: "Bravo"
+    concept_a = create :concept, title: "Alpha"
 
     result = Concept::Search.()
 
-    assert_equal [concept_1, concept_2], result.to_a
+    # Results ordered alphabetically by title
+    assert_equal [concept_a, concept_b], result.to_a
   end
 
   test "title: search for partial title match" do
@@ -31,11 +33,13 @@ class Concept::SearchTest < ActiveSupport::TestCase
   end
 
   test "pagination" do
-    concept_1 = create :concept
-    concept_2 = create :concept
+    # Use explicit titles to ensure deterministic alphabetical ordering
+    concept_b = create :concept, title: "Bravo"
+    concept_a = create :concept, title: "Alpha"
 
-    assert_equal [concept_1], Concept::Search.(page: 1, per: 1).to_a
-    assert_equal [concept_2], Concept::Search.(page: 2, per: 1).to_a
+    # Results ordered alphabetically by title
+    assert_equal [concept_a], Concept::Search.(page: 1, per: 1).to_a
+    assert_equal [concept_b], Concept::Search.(page: 2, per: 1).to_a
   end
 
   test "returns paginated collection with correct metadata" do
@@ -83,14 +87,16 @@ class Concept::SearchTest < ActiveSupport::TestCase
   end
 
   test "user: nil returns all concepts" do
-    concept_1 = create :concept
-    concept_2 = create :concept
+    # Use explicit titles to ensure deterministic alphabetical ordering
+    concept_b = create :concept, title: "Bravo"
+    concept_a = create :concept, title: "Alpha"
     user = create :user
 
-    Concept::UnlockForUser.(concept_1, user)
+    Concept::UnlockForUser.(concept_a, user)
 
     result = Concept::Search.(user: nil).to_a
-    assert_equal [concept_1, concept_2], result
+    # Results ordered alphabetically by title
+    assert_equal [concept_a, concept_b], result
   end
 
   test "user: with title filter returns only unlocked matching concepts" do
