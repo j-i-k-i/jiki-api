@@ -66,11 +66,11 @@ gem "httparty"
 gem "aws-sdk-s3"
 
 # Markdown parsing and HTML sanitization
-gem "commonmarker", "~> 1.0"
-gem "loofah", "~> 2.22"
+gem "commonmarker"
+gem "loofah"
 
 # Friendly URLs with slug history
-gem "friendly_id", "~> 5.5"
+gem "friendly_id"
 
 group :development, :test do
   # AWS SDK for Lambda (local development with LocalStack)
