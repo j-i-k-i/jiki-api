@@ -145,20 +145,7 @@ class V1::Admin::VideoProduction::NodesControllerTest < ApplicationControllerTes
 
     assert_response :success
     assert_json_response({
-      node: {
-        uuid: node.uuid,
-        pipeline_uuid: @pipeline.uuid,
-        title: "Test Node",
-        type: "generate-talking-head",
-        status: "in_progress",
-        inputs: { 'audio' => [audio_node.uuid] },
-        config: { 'provider' => 'heygen', 'avatarId' => 'avatar-1' },
-        asset: nil,
-        metadata: { 'started_at' => node.metadata['started_at'] },
-        output: nil,
-        is_valid: node.is_valid,
-        validation_errors: node.validation_errors
-      }
+      node: SerializeAdminVideoProductionNode.(node)
     })
   end
 

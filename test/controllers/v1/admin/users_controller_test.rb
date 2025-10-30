@@ -19,18 +19,12 @@ class V1::Admin::UsersControllerTest < ApplicationControllerTest
     user_1 = create(:user, name: "User 1", email: "user1@example.com", admin: false)
     user_2 = create(:user, name: "User 2", email: "user2@example.com", admin: false)
 
-    expected_users = [
-      { id: @admin.id, name: @admin.name, email: @admin.email, locale: @admin.locale, admin: true },
-      { id: user_1.id, name: "User 1", email: "user1@example.com", locale: user_1.locale, admin: false },
-      { id: user_2.id, name: "User 2", email: "user2@example.com", locale: user_2.locale, admin: false }
-    ]
-
     Prosopite.scan # Resume scan for the actual request
     get v1_admin_users_path, headers: @headers, as: :json
 
     assert_response :success
     assert_json_response({
-      results: expected_users,
+      results: SerializeAdminUsers.([@admin, user_1, user_2]),
       meta: {
         current_page: 1,
         total_pages: 1,
@@ -138,13 +132,7 @@ class V1::Admin::UsersControllerTest < ApplicationControllerTest
 
     assert_response :success
     assert_json_response({
-      user: {
-        id: user.id,
-        name: "Test User",
-        email: "test@example.com",
-        locale: user.locale,
-        admin: false
-      }
+      user: SerializeAdminUser.(user)
     })
   end
 
@@ -213,14 +201,9 @@ class V1::Admin::UsersControllerTest < ApplicationControllerTest
       as: :json
 
     assert_response :success
+    user.reload
     assert_json_response({
-      user: {
-        id: user.id,
-        name: "Original Name",
-        email: "updated@example.com",
-        locale: user.locale,
-        admin: false
-      }
+      user: SerializeAdminUser.(user)
     })
   end
 

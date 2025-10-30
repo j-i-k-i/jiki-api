@@ -223,17 +223,12 @@ class V1::Admin::LevelsControllerTest < ApplicationControllerTest
     level_1 = create(:level, title: "Level 1", slug: "level-1")
     level_2 = create(:level, title: "Level 2", slug: "level-2")
 
-    expected_levels = [
-      { id: level_1.id, slug: "level-1", title: "Level 1", description: level_1.description, position: level_1.position },
-      { id: level_2.id, slug: "level-2", title: "Level 2", description: level_2.description, position: level_2.position }
-    ]
-
     Prosopite.scan
     get v1_admin_levels_path, headers: @headers, as: :json
 
     assert_response :success
     assert_json_response({
-      results: expected_levels,
+      results: SerializeAdminLevels.([level_1, level_2]),
       meta: {
         current_page: 1,
         total_pages: 1,

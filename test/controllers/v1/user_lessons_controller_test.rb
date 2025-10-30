@@ -231,14 +231,11 @@ class V1::UserLessonsControllerTest < ApplicationControllerTest
     # Verify concept_unlocked event
     concept_event = response_json[:meta][:events].find { |e| e[:type] == "concept_unlocked" }
     refute_nil concept_event, "Expected concept_unlocked event"
-    assert_equal "variables", concept_event[:data][:concept][:slug]
-    assert_equal "Variables", concept_event[:data][:concept][:title]
+    assert_equal_json SerializeConcept.(concept), concept_event[:data][:concept]
 
     # Verify project_unlocked event
     project_event = response_json[:meta][:events].find { |e| e[:type] == "project_unlocked" }
     refute_nil project_event, "Expected project_unlocked event"
-    assert_equal "calculator", project_event[:data][:project][:slug]
-    assert_equal "Calculator", project_event[:data][:project][:title]
-    assert_equal "Build a calculator", project_event[:data][:project][:description]
+    assert_equal_json SerializeProject.(project), project_event[:data][:project]
   end
 end

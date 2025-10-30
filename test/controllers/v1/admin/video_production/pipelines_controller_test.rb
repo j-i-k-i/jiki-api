@@ -125,13 +125,7 @@ class V1::Admin::VideoProduction::PipelinesControllerTest < ApplicationControlle
 
     assert_response :success
     assert_json_response({
-      pipeline: {
-        uuid: pipeline.uuid,
-        title: "Full Data Pipeline",
-        version: "1.5",
-        config: { 'storage' => { 'bucket' => 'my-bucket' } },
-        metadata: { 'totalCost' => 25.75 }
-      }
+      pipeline: SerializeAdminVideoProductionPipeline.(pipeline)
     })
   end
 

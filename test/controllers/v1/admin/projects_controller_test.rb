@@ -20,29 +20,12 @@ class V1::Admin::ProjectsControllerTest < ApplicationControllerTest
     project1 = create(:project, title: "Calculator", slug: "calculator")
     project2 = create(:project, title: "Todo App", slug: "todo-app")
 
-    expected_projects = [
-      {
-        id: project1.id,
-        title: "Calculator",
-        slug: "calculator",
-        description: project1.description,
-        exercise_slug: project1.exercise_slug
-      },
-      {
-        id: project2.id,
-        title: "Todo App",
-        slug: "todo-app",
-        description: project2.description,
-        exercise_slug: project2.exercise_slug
-      }
-    ]
-
     Prosopite.scan # Resume scan for the actual request
     get v1_admin_projects_path, headers: @headers, as: :json
 
     assert_response :success
     assert_json_response({
-      results: expected_projects,
+      results: SerializeAdminProjects.([project1, project2]),
       meta: {
         current_page: 1,
         total_pages: 1,

@@ -188,27 +188,115 @@ bin/rails test test/integration/
 
 #### JSON Response Testing
 
+**IMPORTANT**: Always use `assert_json_response` helper for testing complete JSON responses, and always use serializers instead of manually constructing expected data structures.
+
+##### Using Serializers in Tests
+
+**CRITICAL**: Always use the actual serializer to generate expected data instead of manually building JSON structures. This ensures tests remain valid when serializers change.
+
+```ruby
+# CORRECT: Use serializers to generate expected data
+test "GET index returns user levels" do
+  user_level1 = create(:user_level, user: @current_user, level: level1)
+  user_level2 = create(:user_level, user: @current_user, level: level2)
+
+  get v1_user_levels_path, headers: @headers, as: :json
+
+  assert_response :success
+  assert_json_response({
+    user_levels: SerializeUserLevels.([user_level1, user_level2])
+  })
+end
+
+# INCORRECT: Don't manually construct expected JSON structures
+test "GET index returns user levels" do
+  user_level1 = create(:user_level, user: @current_user, level: level1)
+
+  get v1_user_levels_path, headers: @headers, as: :json
+
+  assert_response :success
+  assert_json_response({
+    user_levels: [
+      {
+        level_slug: "basics",
+        user_lessons: [
+          { lesson_slug: "lesson-1", status: "completed" }
+        ]
+      }
+    ]
+  })
+end
+```
+
+**Benefits of using serializers:**
+- Tests remain valid when serializer output changes
+- Single source of truth for JSON structure
+- Automatically includes all fields from serializer
+- Catches mismatches between actual API response and test expectations
+- Reduces test maintenance burden
+
+##### Using assert_equal_json for Nested Data
+
+When testing nested serialized data (like event payloads), use the `assert_equal_json` helper to compare serializer output with actual values:
+
+```ruby
+# CORRECT: Use assert_equal_json with serializers for nested data
+test "PATCH complete emits events for unlocked concept" do
+  concept = create(:concept, slug: "variables", title: "Variables")
+  lesson = create(:lesson, unlocked_concept: concept)
+
+  patch complete_v1_user_lesson_path(lesson_slug: lesson.slug),
+    headers: @headers,
+    as: :json
+
+  response_json = JSON.parse(response.body, symbolize_names: true)
+  concept_event = response_json[:meta][:events].find { |e| e[:type] == "concept_unlocked" }
+
+  assert_equal_json SerializeConcept.(concept), concept_event[:data][:concept]
+end
+
+# INCORRECT: Don't assert individual fields
+test "PATCH complete emits events for unlocked concept" do
+  concept = create(:concept, slug: "variables", title: "Variables")
+  lesson = create(:lesson, unlocked_concept: concept)
+
+  patch complete_v1_user_lesson_path(lesson_slug: lesson.slug),
+    headers: @headers,
+    as: :json
+
+  response_json = JSON.parse(response.body, symbolize_names: true)
+  concept_event = response_json[:meta][:events].find { |e| e[:type] == "concept_unlocked" }
+
+  assert_equal "variables", concept_event[:data][:concept][:slug]
+  assert_equal "Variables", concept_event[:data][:concept][:title]
+  # ... many more field assertions
+end
+```
+
+**`assert_equal_json` helper:**
+- Normalizes both sides to deep string keys
+- Useful for comparing serializer output with response data
+- Ensures consistent key format (string vs symbol) doesn't cause false failures
+
+##### Complete Response Testing
+
 **IMPORTANT**: Always use `assert_json_response` helper for testing complete JSON responses. This provides clearer, more maintainable tests compared to manual assertions.
 
 ```ruby
-# CORRECT: Use assert_json_response for complete response verification
-test "GET index returns user data" do
+# CORRECT: Use assert_json_response with serializers
+test "GET show returns user data" do
   user = create(:user, name: "Test User", email: "test@example.com")
 
   get user_path(user), headers: @headers, as: :json
 
   assert_response :success
   assert_json_response({
-    user: {
-      id: user.id,
-      name: "Test User",
-      email: "test@example.com"
-    }
+    user: SerializeUser.(user)
   })
 end
 
 # INCORRECT: Don't manually parse JSON and assert each field
-test "GET index returns user data" do
+test "GET show returns user data" do
   user = create(:user, name: "Test User")
 
   get user_path(user), headers: @headers, as: :json
@@ -221,12 +309,13 @@ test "GET index returns user data" do
 end
 ```
 
-**Benefits of `assert_json_response`:**
+**Benefits of `assert_json_response` with serializers:**
+- Single source of truth (the serializer)
 - Compares entire response structure at once
 - Automatically handles string/symbol key conversions
 - More readable - shows expected structure clearly
 - Catches unexpected fields in response
-- Easier to maintain when response format changes
+- Tests automatically update when serializers change
 
 #### Basic Controller Test
 ```ruby

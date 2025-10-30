@@ -10,17 +10,13 @@ class V1::LessonsControllerTest < ApplicationControllerTest
 
   test "GET show returns lesson with data" do
     level = create(:level)
-    create(:lesson, level: level, slug: "test-lesson", type: "exercise", data: { slug: "ex1", title: "Test Exercise" })
+    lesson = create(:lesson, level: level, slug: "test-lesson", type: "exercise", data: { slug: "ex1", title: "Test Exercise" })
 
     get v1_lesson_path(lesson_slug: "test-lesson"), headers: @headers, as: :json
 
     assert_response :success
     assert_json_response({
-      lesson: {
-        slug: "test-lesson",
-        type: "exercise",
-        data: { slug: "ex1", title: "Test Exercise" }
-      }
+      lesson: SerializeLesson.(lesson)
     })
   end
 

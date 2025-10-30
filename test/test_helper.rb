@@ -83,6 +83,12 @@ end
 
 # JSON response assertions
 module JsonAssertions
+  # Helper to compare JSON structures with normalized string keys
+  # Useful for comparing serializer output with actual values
+  def assert_equal_json(expected, actual)
+    assert_equal expected.deep_stringify_keys, actual.deep_stringify_keys
+  end
+
   def assert_json_response(expected)
     actual = response.parsed_body
 

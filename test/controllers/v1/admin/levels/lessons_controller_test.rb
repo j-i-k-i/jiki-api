@@ -254,33 +254,12 @@ class V1::Admin::Levels::LessonsControllerTest < ApplicationControllerTest
     other_level = create(:level, slug: "other-level")
     create(:lesson, level: other_level, slug: "other-lesson", title: "Other Lesson")
 
-    expected_lessons = [
-      {
-        id: lesson_1.id,
-        slug: "lesson-1",
-        title: "Lesson 1",
-        description: lesson_1.description,
-        type: lesson_1.type,
-        position: lesson_1.position,
-        data: lesson_1.data
-      },
-      {
-        id: lesson_2.id,
-        slug: "lesson-2",
-        title: "Lesson 2",
-        description: lesson_2.description,
-        type: lesson_2.type,
-        position: lesson_2.position,
-        data: lesson_2.data
-      }
-    ]
-
     Prosopite.scan
     get v1_admin_level_lessons_path(@level), headers: @headers, as: :json
 
     assert_response :success
     assert_json_response({
-      lessons: expected_lessons
+      lessons: SerializeAdminLessons.([lesson_1, lesson_2])
     })
   end
 
