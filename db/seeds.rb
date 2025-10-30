@@ -18,12 +18,66 @@ end
 puts "Created user: #{user.email}"
 
 # Bootstrap levels from curriculum.json
-curriculum_file = File.join(Rails.root, "curriculum.json")
+curriculum_file = File.join(Rails.root, "db", "seeds", "curriculum.json")
 puts "Loading levels from #{curriculum_file}..."
 
 Level::CreateAllFromJson.call(curriculum_file, delete_existing: false)
 
 puts "✓ Successfully loaded levels and lessons!"
+
+# Load concepts
+puts "\nLoading concepts..."
+concepts_file = File.join(Rails.root, "db", "seeds", "concepts.json")
+if File.exist?(concepts_file)
+  concepts_data = JSON.parse(File.read(concepts_file), symbolize_names: true)
+
+  concepts_data.each do |concept_data|
+    concept = Concept.find_or_initialize_by(slug: concept_data[:slug])
+    concept.title = concept_data[:title]
+    concept.description = concept_data[:description]
+    concept.content_markdown = concept_data[:content_markdown]
+
+    # Link to lesson if specified
+    if concept_data[:unlocked_by_lesson_slug]
+      lesson = Lesson.find_by(slug: concept_data[:unlocked_by_lesson_slug])
+      concept.unlocked_by_lesson = lesson if lesson
+    end
+
+    concept.save!
+    puts "  ✓ Loaded concept: #{concept.title}"
+  end
+
+  puts "✓ Successfully loaded #{concepts_data.size} concept(s)!"
+else
+  puts "⚠ No concepts.json found at #{concepts_file}"
+end
+
+# Load projects
+puts "\nLoading projects..."
+projects_file = File.join(Rails.root, "db", "seeds", "projects.json")
+if File.exist?(projects_file)
+  projects_data = JSON.parse(File.read(projects_file), symbolize_names: true)
+
+  projects_data.each do |project_data|
+    project = Project.find_or_initialize_by(slug: project_data[:slug])
+    project.title = project_data[:title]
+    project.description = project_data[:description]
+    project.exercise_slug = project_data[:exercise_slug]
+
+    # Link to lesson if specified
+    if project_data[:unlocked_by_lesson_slug]
+      lesson = Lesson.find_by(slug: project_data[:unlocked_by_lesson_slug])
+      project.unlocked_by_lesson = lesson if lesson
+    end
+
+    project.save!
+    puts "  ✓ Loaded project: #{project.title}"
+  end
+
+  puts "✓ Successfully loaded #{projects_data.size} project(s)!"
+else
+  puts "⚠ No projects.json found at #{projects_file}"
+end
 
 # Create some user progress data for testing
 puts "\nCreating sample user progress..."

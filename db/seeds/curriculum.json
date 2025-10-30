@@ -6,12 +6,12 @@
       "description": "Write your first program and understand how Jiki works!",
       "lessons": [
         {
-          "slug": "solve-a-maze",
+          "slug": "maze-solve-basic",
           "title": "Your First Function Call",
           "description": "Learn how to call functions to make things happen",
           "type": "exercise",
           "data": {
-            "slug": "solve-a-maze"
+            "slug": "maze-solve-basic"
           }
         },
         {
