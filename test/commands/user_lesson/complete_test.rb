@@ -37,7 +37,7 @@ class UserLesson::CompleteTest < ActiveSupport::TestCase
     assert user_lesson.completed_at <= time_after
   end
 
-  test "updates completed_at on already completed lesson" do
+  test "is idempotent when completing already completed lesson" do
     user = create(:user)
     lesson = create(:lesson)
     user_lesson = create(:user_lesson, user: user, lesson: lesson, completed_at: 1.day.ago)
@@ -45,7 +45,8 @@ class UserLesson::CompleteTest < ActiveSupport::TestCase
 
     result = UserLesson::Complete.(user, lesson)
 
-    assert result.completed_at > old_completed_at
+    # Timestamp should not change on re-completion (idempotent)
+    assert_equal old_completed_at.to_i, result.completed_at.to_i
   end
 
   test "delegates to UserLesson::FindOrCreate for find or create logic" do

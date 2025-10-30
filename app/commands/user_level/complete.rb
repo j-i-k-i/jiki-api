@@ -5,13 +5,18 @@ class UserLevel::Complete
 
   def call
     UserLevel::FindOrCreate.(user, level).tap do |user_level|
-      ActiveRecord::Base.transaction do
-        user_level.update!(completed_at: Time.current)
-        create_next_user_level!
-      end
+      user_level.with_lock do
+        # Guard: if already completed, return early (idempotent)
+        next if user_level.completed_at.present?
 
-      # Send completion email asynchronously after transaction completes
-      send_completion_email!(user_level)
+        ActiveRecord::Base.transaction do
+          user_level.update!(completed_at: Time.current)
+          create_next_user_level!
+        end
+
+        # Send completion email asynchronously after transaction completes
+        send_completion_email!(user_level)
+      end
     end
   end
 
