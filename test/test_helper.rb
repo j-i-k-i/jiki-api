@@ -85,6 +85,15 @@ end
 module JsonAssertions
   def assert_json_response(expected)
     actual = response.parsed_body
+
+    # Automatically add meta: {events: []} to expected response if not present
+    # This allows existing tests to continue working with MetaResponseWrapper
+    # Tests that specifically test events should explicitly include meta in expected
+    # Only add meta if the actual response has it (non-admin controllers)
+    if expected.is_a?(Hash) && !expected.key?(:meta) && !expected.key?("meta") && actual.key?("meta")
+      expected = expected.merge(meta: { events: [] })
+    end
+
     assert_equal expected.deep_stringify_keys, actual
   end
 
