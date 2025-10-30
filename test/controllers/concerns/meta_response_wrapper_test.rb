@@ -31,6 +31,9 @@ class MetaResponseWrapperTest < ActionDispatch::IntegrationTest
     setup_user
     Current.reset
 
+    # Save original method to restore later
+    @original_simple_response = TestMetaWrapperController.instance_method(:simple_response)
+
     # Add test routes
     Rails.application.routes.draw do
       get "/test/simple" => "test_meta_wrapper#simple_response"
@@ -45,6 +48,9 @@ class MetaResponseWrapperTest < ActionDispatch::IntegrationTest
     # Restore original routes
     Rails.application.reload_routes!
     Current.reset
+
+    # Restore original controller method
+    TestMetaWrapperController.define_method(:simple_response, @original_simple_response)
   end
 
   test "adds meta with empty events to simple response" do
