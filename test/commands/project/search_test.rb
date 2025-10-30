@@ -1,13 +1,13 @@
 require "test_helper"
 
 class Project::SearchTest < ActiveSupport::TestCase
-  test "no options returns all projects paginated" do
-    project_1 = create :project
-    project_2 = create :project
+  test "no options returns all projects paginated and ordered by title" do
+    project_1 = create :project, title: "Zebra App"
+    project_2 = create :project, title: "Apple App"
 
     result = Project::Search.()
 
-    assert_equal [project_1, project_2], result.to_a
+    assert_equal [project_2, project_1], result.to_a
   end
 
   test "title: search for partial title match" do
@@ -15,7 +15,7 @@ class Project::SearchTest < ActiveSupport::TestCase
     project_2 = create :project, title: "Todo List"
     project_3 = create :project, title: "Scientific Calculator"
 
-    assert_equal [project_1, project_2, project_3], Project::Search.(title: "").to_a
+    assert_equal [project_1, project_3, project_2], Project::Search.(title: "").to_a
     assert_equal [project_1, project_3], Project::Search.(title: "Calculator").to_a
     assert_equal [project_2], Project::Search.(title: "Todo").to_a
     assert_empty Project::Search.(title: "xyz").to_a
@@ -30,8 +30,8 @@ class Project::SearchTest < ActiveSupport::TestCase
   end
 
   test "pagination" do
-    project_1 = create :project
-    project_2 = create :project
+    project_1 = create :project, title: "Apple"
+    project_2 = create :project, title: "Banana"
 
     assert_equal [project_1], Project::Search.(page: 1, per: 1).to_a
     assert_equal [project_2], Project::Search.(page: 2, per: 1).to_a
@@ -66,5 +66,64 @@ class Project::SearchTest < ActiveSupport::TestCase
     # Wildcards should not match everything
     result = Project::Search.(title: "%%").to_a
     assert_empty result
+  end
+
+  test "user: orders unlocked projects first, then locked projects, all by title" do
+    project_zebra = create :project, title: "Zebra Project"
+    project_apple = create :project, title: "Apple Project"
+    project_middle = create :project, title: "Middle Project"
+    user = create :user
+
+    # User unlocks Zebra and Middle
+    create :user_project, user:, project: project_zebra
+    create :user_project, user:, project: project_middle
+
+    result = Project::Search.(user:).to_a
+
+    # Unlocked projects first (Middle, Zebra), then locked (Apple)
+    assert_equal [project_middle, project_zebra, project_apple], result
+  end
+
+  test "user: with no unlocked projects returns all projects ordered by title" do
+    project_zebra = create :project, title: "Zebra Project"
+    project_apple = create :project, title: "Apple Project"
+    user = create :user
+
+    result = Project::Search.(user:).to_a
+
+    assert_equal [project_apple, project_zebra], result
+  end
+
+  test "user: with title search maintains unlocked-first ordering" do
+    project_calc1 = create :project, title: "Calculator App"
+    project_calc2 = create :project, title: "Scientific Calculator"
+    project_calc3 = create :project, title: "Basic Calculator"
+    user = create :user
+
+    # User only unlocks Scientific Calculator
+    create :user_project, user:, project: project_calc2
+
+    result = Project::Search.(title: "Calculator", user:).to_a
+
+    # Scientific Calculator (unlocked) first, then locked ones by title
+    assert_equal [project_calc2, project_calc3, project_calc1], result
+  end
+
+  test "user: pagination works correctly with user filtering" do
+    project_1 = create :project, title: "Apple"
+    project_2 = create :project, title: "Banana"
+    project_3 = create :project, title: "Cherry"
+    user = create :user
+
+    # User unlocks Cherry (should appear first)
+    create :user_project, user:, project: project_3
+
+    result_page1 = Project::Search.(user:, page: 1, per: 2).to_a
+    result_page2 = Project::Search.(user:, page: 2, per: 2).to_a
+
+    # First page: Cherry (unlocked), Apple (locked)
+    assert_equal [project_3, project_1], result_page1
+    # Second page: Banana (locked)
+    assert_equal [project_2], result_page2
   end
 end
