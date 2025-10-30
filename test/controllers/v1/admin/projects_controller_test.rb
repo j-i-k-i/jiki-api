@@ -78,6 +78,27 @@ class V1::Admin::ProjectsControllerTest < ApplicationControllerTest
     })
   end
 
+  test "GET index does not use user filtering" do
+    Prosopite.finish
+    create(:project, title: "Apple Project")
+    project_2 = create(:project, title: "Zebra Project")
+
+    # Create a regular user and unlock a project
+    regular_user = create(:user)
+    create(:user_project, user: regular_user, project: project_2)
+
+    Prosopite.scan
+    get v1_admin_projects_path, headers: @headers, as: :json
+
+    assert_response :success
+    json = JSON.parse(response.body, symbolize_names: true)
+
+    # Admin should see all projects ordered by title (default ordering)
+    assert_equal 2, json[:results].length
+    assert_equal "Apple Project", json[:results][0][:title]
+    assert_equal "Zebra Project", json[:results][1][:title]
+  end
+
   # CREATE tests
 
   test "POST create creates project with valid attributes" do
