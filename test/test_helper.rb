@@ -90,7 +90,7 @@ module JsonAssertions
     # This allows existing tests to continue working with MetaResponseWrapper
     # Tests that specifically test events should explicitly include meta in expected
     # Only add meta if the actual response has it (non-admin controllers)
-    if expected.is_a?(Hash) && !expected.key?(:meta) && !expected.key?("meta") && actual.key?("meta")
+    if actual.key?("meta") && expected.is_a?(Hash) && !expected.key?(:meta) && !expected.key?("meta")
       expected = expected.merge(meta: { events: [] })
     end
 

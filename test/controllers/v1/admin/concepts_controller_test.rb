@@ -20,22 +20,23 @@ class V1::Admin::ConceptsControllerTest < ApplicationControllerTest
     concept1 = create(:concept, title: "Strings", slug: "strings")
     concept2 = create(:concept, title: "Arrays", slug: "arrays")
 
+    # Results ordered alphabetically by title
     expected_concepts = [
       {
-        id: concept1.id,
-        title: "Strings",
-        slug: "strings",
-        description: concept1.description,
+        id: concept2.id,
+        title: "Arrays",
+        slug: "arrays",
+        description: concept2.description,
         standard_video_provider: nil,
         standard_video_id: nil,
         premium_video_provider: nil,
         premium_video_id: nil
       },
       {
-        id: concept2.id,
-        title: "Arrays",
-        slug: "arrays",
-        description: concept2.description,
+        id: concept1.id,
+        title: "Strings",
+        slug: "strings",
+        description: concept1.description,
         standard_video_provider: nil,
         standard_video_id: nil,
         premium_video_provider: nil,
