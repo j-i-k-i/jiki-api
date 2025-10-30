@@ -2,6 +2,11 @@
 
 This file provides guidance to Agents (e.g. Claude Code) when working with code in this repository.
 
+## Subagents
+
+ALWAYS use subagents in the following situation:
+- `git commit ...` or `git add ... && git commit ...`: Use the Task tool with `subagent_type: git-commit`.
+
 ## How to work in this project
 
 ### Context for Agents
@@ -77,14 +82,6 @@ This ensures types are always in sync with schemas on the `main` branch.
 4. **Commit Changes**: **ALWAYS use the git-commit subagent** - Never create commits directly. The git-commit subagent will validate changes, review code quality, and execute the commit.
 5. **Push Branch**: Push the feature branch to the remote repository
 6. **Create Pull Request**: Always create a PR with a comprehensive description of changes
-
-### Using the git-commit Subagent
-
-**CRITICAL**: When asked to commit changes or when ready to commit, you MUST use the git-commit subagent:
-- Use the Task tool with `subagent_type: git-commit`
-- The subagent handles branch protection, code quality review, and commit execution
-- Do NOT create commits directly using the Bash tool
-- Do NOT skip the git-commit subagent even if changes seem simple
 
 This ensures proper code review, maintains git history, and follows professional development practices.
 
