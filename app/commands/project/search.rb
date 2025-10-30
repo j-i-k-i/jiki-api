@@ -16,10 +16,10 @@ class Project::Search
   end
 
   def call
-    @collection = Project.all
+    @projects = Project.all
     apply_title_filter!
     apply_ordering!
-    @collection.page(page).per(per)
+    @projects.page(page).per(per)
   end
 
   private
@@ -28,7 +28,7 @@ class Project::Search
   def apply_title_filter!
     return if title.blank?
 
-    @collection = @collection.where(
+    @projects = @projects.where(
       "title ILIKE ?",
       "%#{ActiveRecord::Base.sanitize_sql_like(title)}%"
     )
@@ -37,7 +37,7 @@ class Project::Search
   def apply_ordering!
     if user
       # Order by whether user has unlocked the project (unlocked first), then by title
-      @collection = @collection.
+      @projects = @projects.
         left_joins(:user_projects).
         where("user_projects.user_id IS NULL OR user_projects.user_id = ?", user.id).
         select(sanitize_sql_array(["projects.*, CASE WHEN user_projects.user_id = ? THEN 0 ELSE 1 END as lock_order", user.id])).
@@ -45,7 +45,7 @@ class Project::Search
         distinct
     else
       # Default ordering by title
-      @collection = @collection.order(:title)
+      @projects = @projects.order(:title)
     end
   end
 
