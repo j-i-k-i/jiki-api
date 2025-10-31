@@ -1,8 +1,6 @@
 class ApplicationController < ActionController::API
   include MetaResponseWrapper
 
-  before_action :authenticate_user!
-
   private
   def authenticate_user!
     # Don't interfere with Devise's own controllers
@@ -40,6 +38,12 @@ class ApplicationController < ActionController::API
         message: "Project not found"
       }
     }, status: :not_found
+  end
+
+  def use_concept!
+    @concept = Concept.friendly.find(params[:concept_slug])
+  rescue ActiveRecord::RecordNotFound
+    render_not_found("Concept not found")
   end
 
   def render_not_found(message)

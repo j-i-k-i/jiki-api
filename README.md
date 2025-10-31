@@ -42,33 +42,69 @@ Understanding the core models and concepts in Jiki:
 
 ## API Endpoints
 
-All endpoints require authentication via Bearer token in the `Authorization` header (except authentication endpoints).
+The API is organized into four main namespaces:
 
-See Serializers below for Lesson, UserLesson, etc. 
-These should have equivelent fe types.
+- **`/auth/*`** - Authentication endpoints (signup, login, logout, password reset) - No auth required
+- **`/external/*`** - Public unauthenticated endpoints for marketing/preview - No auth required
+- **`/internal/*`** - Authenticated user endpoints (lessons, progress, submissions) - Auth required
+- **`/admin/*`** - Admin-only endpoints (content management, user management) - Auth + admin required
 
-### Authentication
+See Serializers below for Lesson, UserLesson, etc.
+These should have equivalent fe types.
 
-- **POST** `/v1/auth/signup` - Register a new user
+### Authentication (`/auth/*`)
+
+- **POST** `/auth/signup` - Register a new user
   - **Params (required):** `email`, `password`, `password_confirmation`
   - **Response:** JWT token in `Authorization` header
 
-- **POST** `/v1/auth/login` - Sign in and receive JWT token
+- **POST** `/auth/login` - Sign in and receive JWT token
   - **Params (required):** `email`, `password`
   - **Response:** JWT token in `Authorization` header
 
-- **DELETE** `/v1/auth/logout` - Sign out (invalidate token)
+- **DELETE** `/auth/logout` - Sign out (invalidate token)
   - **Response:** 204 No Content
 
-- **POST** `/v1/auth/password` - Request password reset
+- **POST** `/auth/password` - Request password reset
   - **Params (required):** `email`
   - **Response:** 200 OK
 
-### User Endpoints
+### External Endpoints (`/external/*`)
+
+Public endpoints accessible without authentication. Used for marketing and preview purposes.
+
+#### Concepts
+
+- **GET** `/external/concepts` - Browse all concepts without authentication
+  - **Query Params (optional):** `title` (filter), `page`, `per`
+  - **Response:**
+    ```json
+    {
+      "results": [Concept, Concept, ...],
+      "meta": {
+        "current_page": 1,
+        "total_pages": 3,
+        "total_count": 60
+      }
+    }
+    ```
+
+- **GET** `/external/concepts/:concept_slug` - View any concept without authentication
+  - **Params (required):** `concept_slug` (in URL)
+  - **Response:**
+    ```json
+    {
+      "concept": Concept
+    }
+    ```
+
+### Internal Endpoints (`/internal/*`)
+
+Authenticated user endpoints. All require Bearer token in `Authorization` header.
 
 #### Levels
 
-- **GET** `/v1/levels` - Get all levels with nested lessons (basic info only)
+- **GET** `/internal/levels` - Get all levels with nested lessons (basic info only)
   - **Response:**
     ```json
     {
@@ -78,7 +114,7 @@ These should have equivelent fe types.
 
 #### Lessons
 
-- **GET** `/v1/lessons/:slug` - Get a single lesson with full data
+- **GET** `/internal/lessons/:slug` - Get a single lesson with full data
   - **Params (required):** `slug` (in URL)
   - **Response:**
     ```json
@@ -89,7 +125,7 @@ These should have equivelent fe types.
 
 #### User Levels
 
-- **GET** `/v1/user_levels` - Get current user's levels with progress
+- **GET** `/internal/user_levels` - Get current user's levels with progress
   - **Response:**
     ```json
     {
@@ -99,7 +135,7 @@ These should have equivelent fe types.
 
 #### User Lessons
 
-- **GET** `/v1/user_lessons/:lesson_slug` - Get user's progress on a specific lesson
+- **GET** `/internal/user_lessons/:lesson_slug` - Get user's progress on a specific lesson
   - **Params (required):** `lesson_slug` (in URL)
   - **Response:**
     ```json
@@ -109,17 +145,60 @@ These should have equivelent fe types.
     ```
   - **Error:** Returns 404 if user hasn't started the lesson
 
-- **POST** `/v1/user_lessons/:lesson_slug/start` - Start a lesson
+#### Concepts
+
+- **GET** `/internal/concepts` - Get concepts unlocked for current user
+  - **Query Params (optional):** `title` (filter), `page`, `per`
+  - **Response:**
+    ```json
+    {
+      "results": [Concept, Concept, ...],
+      "meta": {
+        "current_page": 1,
+        "total_pages": 2,
+        "total_count": 45
+      }
+    }
+    ```
+  - **Notes:** Only returns concepts the user has unlocked through lesson completion
+
+- **GET** `/internal/concepts/:concept_slug` - Get a single unlocked concept
+  - **Params (required):** `concept_slug` (in URL)
+  - **Response:**
+    ```json
+    {
+      "concept": Concept
+    }
+    ```
+  - **Error:** Returns 403 Forbidden if concept is locked for the user
+
+#### Projects
+
+- **GET** `/internal/projects` - Get projects available to current user
+  - **Query Params (optional):** `title` (filter), `page`, `per`
+  - **Response:**
+    ```json
+    {
+      "results": [Project, Project, ...],
+      "meta": {
+        "current_page": 1,
+        "total_pages": 1,
+        "total_count": 5
+      }
+    }
+    ```
+
+- **POST** `/internal/user_lessons/:lesson_slug/start` - Start a lesson
   - **Params (required):** `lesson_slug` (in URL)
   - **Response:** `{}`
 
-- **PATCH** `/v1/user_lessons/:lesson_slug/complete` - Complete a lesson
+- **PATCH** `/internal/user_lessons/:lesson_slug/complete` - Complete a lesson
   - **Params (required):** `lesson_slug` (in URL)
   - **Response:** `{}`
 
 #### Exercise Submissions
 
-- **POST** `/v1/lessons/:slug/exercise_submissions` - Submit code for a lesson-based exercise
+- **POST** `/internal/lessons/:slug/exercise_submissions` - Submit code for a lesson-based exercise
   - **Params (required):** `slug` (lesson slug in URL), `submission` (object with `files` array)
   - **Request Body:**
     ```json
@@ -137,7 +216,7 @@ These should have equivelent fe types.
     - Creates ExerciseSubmission with UserLesson as polymorphic context
     - Creates or updates the UserLesson for the current user
 
-- **POST** `/v1/projects/:slug/exercise_submissions` - Submit code for a project-based exercise
+- **POST** `/internal/projects/:slug/exercise_submissions` - Submit code for a project-based exercise
   - **Params (required):** `slug` (project slug in URL), `submission` (object with `files` array)
   - **Request Body:** Same format as lesson submissions
   - **Response:** `{}` (201 Created)
@@ -145,7 +224,7 @@ These should have equivelent fe types.
     - Creates ExerciseSubmission with UserProject as polymorphic context
     - Creates or updates the UserProject for the current user
 
-**Common features for both endpoints:**
+**Common features for exercise submission endpoints:**
 - Files are stored using Active Storage
 - Each file gets a digest calculated using XXHash64 for deduplication
 - UTF-8 encoding is automatically sanitized
@@ -155,13 +234,13 @@ These should have equivelent fe types.
   - `too_many_files` - Exceeds maximum file count
   - `invalid_submission` - Invalid submission format
 
-### Admin
+### Admin Endpoints (`/admin/*`)
 
 All admin endpoints require authentication and admin privileges (403 Forbidden for non-admin users).
 
 #### Email Templates
 
-- **GET** `/v1/admin/email_templates` - List all email templates
+- **GET** `/admin/email_templates` - List all email templates
   - **Response:**
     ```json
     {
@@ -176,7 +255,7 @@ All admin endpoints require authentication and admin privileges (403 Forbidden f
     }
     ```
 
-- **GET** `/v1/admin/email_templates/types` - Get available email template types
+- **GET** `/admin/email_templates/types` - Get available email template types
   - **Response:**
     ```json
     {
@@ -184,7 +263,7 @@ All admin endpoints require authentication and admin privileges (403 Forbidden f
     }
     ```
 
-- **GET** `/v1/admin/email_templates/summary` - Get summary of all templates grouped by type and slug
+- **GET** `/admin/email_templates/summary` - Get summary of all templates grouped by type and slug
   - **Response:**
     ```json
     {
@@ -207,7 +286,7 @@ All admin endpoints require authentication and admin privileges (403 Forbidden f
     }
     ```
 
-- **GET** `/v1/admin/email_templates/:id` - Get a single email template with full data
+- **GET** `/admin/email_templates/:id` - Get a single email template with full data
   - **Params (required):** `id` (in URL)
   - **Response:**
     ```json
@@ -224,7 +303,7 @@ All admin endpoints require authentication and admin privileges (403 Forbidden f
     }
     ```
 
-- **POST** `/v1/admin/email_templates` - Create a new email template
+- **POST** `/admin/email_templates` - Create a new email template
   - **Params (required):** `email_template` object
   - **Request Body:**
     ```json
@@ -242,7 +321,7 @@ All admin endpoints require authentication and admin privileges (403 Forbidden f
   - **Response:** Created template (same format as GET single)
   - **Status:** 201 Created
 
-- **PATCH** `/v1/admin/email_templates/:id` - Update an email template
+- **PATCH** `/admin/email_templates/:id` - Update an email template
   - **Params (required):** `id` (in URL), `email_template` object with fields to update
   - **Request Body:**
     ```json
@@ -255,7 +334,7 @@ All admin endpoints require authentication and admin privileges (403 Forbidden f
     ```
   - **Response:** Updated template (same format as GET single)
 
-- **DELETE** `/v1/admin/email_templates/:id` - Delete an email template
+- **DELETE** `/admin/email_templates/:id` - Delete an email template
   - **Params (required):** `id` (in URL)
   - **Response:** 204 No Content
 
@@ -265,7 +344,7 @@ Admin endpoints for managing video production pipelines and nodes. See `.context
 
 **Pipelines:**
 
-- **GET** `/v1/admin/video_production/pipelines` - List all pipelines with pagination
+- **GET** `/admin/video_production/pipelines` - List all pipelines with pagination
   - **Query Params (optional):** `page`, `per` (default: 25)
   - **Response:**
     ```json
@@ -279,7 +358,7 @@ Admin endpoints for managing video production pipelines and nodes. See `.context
     }
     ```
 
-- **GET** `/v1/admin/video_production/pipelines/:uuid` - Get a single pipeline with all nodes
+- **GET** `/admin/video_production/pipelines/:uuid` - Get a single pipeline with all nodes
   - **Params (required):** `uuid` (in URL)
   - **Response:**
     ```json
@@ -288,22 +367,22 @@ Admin endpoints for managing video production pipelines and nodes. See `.context
     }
     ```
 
-- **POST** `/v1/admin/video_production/pipelines` - Create a new pipeline
+- **POST** `/admin/video_production/pipelines` - Create a new pipeline
   - **Params (required):** `pipeline` object with `title`, `version`, `config`, `metadata`
   - **Response:** Created pipeline
   - **Status:** 201 Created
 
-- **PATCH** `/v1/admin/video_production/pipelines/:uuid` - Update a pipeline
+- **PATCH** `/admin/video_production/pipelines/:uuid` - Update a pipeline
   - **Params (required):** `uuid` (in URL), `pipeline` object with fields to update
   - **Response:** Updated pipeline
 
-- **DELETE** `/v1/admin/video_production/pipelines/:uuid` - Delete a pipeline (cascades to nodes)
+- **DELETE** `/admin/video_production/pipelines/:uuid` - Delete a pipeline (cascades to nodes)
   - **Params (required):** `uuid` (in URL)
   - **Response:** 204 No Content
 
 **Nodes:**
 
-- **GET** `/v1/admin/video_production/pipelines/:pipeline_uuid/nodes` - List all nodes in a pipeline
+- **GET** `/admin/video_production/pipelines/:pipeline_uuid/nodes` - List all nodes in a pipeline
   - **Params (required):** `pipeline_uuid` (in URL)
   - **Response:**
     ```json
@@ -312,7 +391,7 @@ Admin endpoints for managing video production pipelines and nodes. See `.context
     }
     ```
 
-- **GET** `/v1/admin/video_production/pipelines/:pipeline_uuid/nodes/:uuid` - Get a single node
+- **GET** `/admin/video_production/pipelines/:pipeline_uuid/nodes/:uuid` - Get a single node
   - **Params (required):** `pipeline_uuid` and `uuid` (in URL)
   - **Response:**
     ```json
@@ -321,25 +400,25 @@ Admin endpoints for managing video production pipelines and nodes. See `.context
     }
     ```
 
-- **POST** `/v1/admin/video_production/pipelines/:pipeline_uuid/nodes` - Create a new node
+- **POST** `/admin/video_production/pipelines/:pipeline_uuid/nodes` - Create a new node
   - **Params (required):** `pipeline_uuid` (in URL), `node` object with `title`, `type`, `inputs`, `config`, `asset`
   - **Response:** Created node
   - **Status:** 201 Created
   - **Notes:** Validates inputs against node type schema
 
-- **PATCH** `/v1/admin/video_production/pipelines/:pipeline_uuid/nodes/:uuid` - Update a node
+- **PATCH** `/admin/video_production/pipelines/:pipeline_uuid/nodes/:uuid` - Update a node
   - **Params (required):** `pipeline_uuid` and `uuid` (in URL), `node` object with fields to update
   - **Response:** Updated node
   - **Notes:** Resets status to `pending` if structure fields change; validates inputs
 
-- **DELETE** `/v1/admin/video_production/pipelines/:pipeline_uuid/nodes/:uuid` - Delete a node
+- **DELETE** `/admin/video_production/pipelines/:pipeline_uuid/nodes/:uuid` - Delete a node
   - **Params (required):** `pipeline_uuid` and `uuid` (in URL)
   - **Response:** 204 No Content
   - **Notes:** Removes references from other nodes' inputs
 
 #### Projects
 
-- **GET** `/v1/admin/projects` - List all projects with pagination
+- **GET** `/admin/projects` - List all projects with pagination
   - **Query Params (optional):** `title` (filter), `page`, `per` (default: 25)
   - **Response:**
     ```json
@@ -353,7 +432,7 @@ Admin endpoints for managing video production pipelines and nodes. See `.context
     }
     ```
 
-- **GET** `/v1/admin/projects/:id` - Get a single project
+- **GET** `/admin/projects/:id` - Get a single project
   - **Params (required):** `id` (in URL)
   - **Response:**
     ```json
@@ -362,7 +441,7 @@ Admin endpoints for managing video production pipelines and nodes. See `.context
     }
     ```
 
-- **POST** `/v1/admin/projects` - Create a new project
+- **POST** `/admin/projects` - Create a new project
   - **Params (required):** `project` object with fields
   - **Request Body:**
     ```json
@@ -379,7 +458,7 @@ Admin endpoints for managing video production pipelines and nodes. See `.context
   - **Response:** Created project (same format as GET single)
   - **Status:** 201 Created
 
-- **PATCH** `/v1/admin/projects/:id` - Update a project
+- **PATCH** `/admin/projects/:id` - Update a project
   - **Params (required):** `id` (in URL), `project` object with fields to update
   - **Request Body:**
     ```json
@@ -392,13 +471,13 @@ Admin endpoints for managing video production pipelines and nodes. See `.context
     ```
   - **Response:** Updated project (same format as GET single)
 
-- **DELETE** `/v1/admin/projects/:id` - Delete a project
+- **DELETE** `/admin/projects/:id` - Delete a project
   - **Params (required):** `id` (in URL)
   - **Response:** 204 No Content
 
 #### Concepts
 
-- **GET** `/v1/admin/concepts` - List all concepts with pagination
+- **GET** `/admin/concepts` - List all concepts with pagination
   - **Query Params (optional):** `title` (filter), `page`, `per` (default: 25)
   - **Response:**
     ```json
@@ -412,7 +491,7 @@ Admin endpoints for managing video production pipelines and nodes. See `.context
     }
     ```
 
-- **GET** `/v1/admin/concepts/:id` - Get a single concept
+- **GET** `/admin/concepts/:id` - Get a single concept
   - **Params (required):** `id` (in URL)
   - **Response:**
     ```json
@@ -421,7 +500,7 @@ Admin endpoints for managing video production pipelines and nodes. See `.context
     }
     ```
 
-- **POST** `/v1/admin/concepts` - Create a new concept
+- **POST** `/admin/concepts` - Create a new concept
   - **Params (required):** `concept` object with fields
   - **Request Body:**
     ```json
@@ -441,7 +520,7 @@ Admin endpoints for managing video production pipelines and nodes. See `.context
   - **Response:** Created concept (same format as GET single)
   - **Status:** 201 Created
 
-- **PATCH** `/v1/admin/concepts/:id` - Update a concept
+- **PATCH** `/admin/concepts/:id` - Update a concept
   - **Params (required):** `id` (in URL), `concept` object with fields to update
   - **Request Body:**
     ```json
@@ -454,7 +533,7 @@ Admin endpoints for managing video production pipelines and nodes. See `.context
     ```
   - **Response:** Updated concept (same format as GET single)
 
-- **DELETE** `/v1/admin/concepts/:id` - Delete a concept
+- **DELETE** `/admin/concepts/:id` - Delete a concept
   - **Params (required):** `id` (in URL)
   - **Response:** 204 No Content
 
@@ -481,7 +560,7 @@ All API responses use serializers to format data consistently. Below are the dat
 }
 ```
 
-**Note:** Level serialization only includes basic lesson info (slug and type). Use `GET /v1/lessons/:slug` to fetch full lesson data including the `data` field.
+**Note:** Level serialization only includes basic lesson info (slug and type). Use `GET /internal/lessons/:slug` to fetch full lesson data including the `data` field.
 
 #### Lesson
 
@@ -558,7 +637,7 @@ The UserLevel serializer inlines lesson data for optimal query performance:
 }
 ```
 
-**Note:** UserLevel only includes basic lesson progress (slug and status). Use `GET /v1/user_lessons/:lesson_slug` to fetch detailed progress including submission data.
+**Note:** UserLevel only includes basic lesson progress (slug and status). Use `GET /internal/user_lessons/:lesson_slug` to fetch detailed progress including submission data.
 
 #### ExerciseSubmission
 
@@ -614,7 +693,7 @@ The UserLevel serializer inlines lesson data for optimal query performance:
 ```
 
 **Notes:**
-- The list view (used by `GET /v1/admin/email_templates`) returns basic info only
+- The list view (used by `GET /admin/email_templates`) returns basic info only
 - The detail view (used by `GET /show`, `POST /create`, `PATCH /update`) includes full email content
 - `type` must be one of the available types (see `GET /types` endpoint)
 - `slug` + `locale` + `type` combination must be unique

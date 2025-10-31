@@ -13,23 +13,28 @@ Rails.application.routes.draw do
   end
   mount Sidekiq::Web => "/sidekiq"
 
-  # API routes
+  # Auth routes (Devise)
   devise_for :users,
-    path: "v1/auth",
+    path: "auth",
     path_names: {
       sign_in: "login",
       sign_out: "logout",
       registration: "signup"
     },
     controllers: {
-      sessions: "v1/auth/sessions",
-      registrations: "v1/auth/registrations",
-      passwords: "v1/auth/passwords"
+      sessions: "auth/sessions",
+      registrations: "auth/registrations",
+      passwords: "auth/passwords"
     },
     skip: [:omniauth_callbacks]
 
-  # V1 API endpoints
-  namespace :v1 do
+  # External (public, unauthenticated) endpoints
+  namespace :external do
+    resources :concepts, only: %i[index show], param: :concept_slug
+  end
+
+  # Internal (authenticated user) endpoints
+  namespace :internal do
     resources :levels, only: [:index]
     resources :user_levels, only: [:index]
 
@@ -51,30 +56,30 @@ Rails.application.routes.draw do
       end
     end
 
-    resources :concepts, only: %i[index show], param: :slug
+    resources :concepts, only: %i[index show], param: :concept_slug
+  end
 
-    # Admin routes
-    namespace :admin do
-      resources :concepts, only: %i[index show create update destroy]
-      resources :projects, only: %i[index show create update destroy]
-      resources :email_templates, only: %i[index show create update destroy] do
-        collection do
-          get :types
-          get :summary
-        end
+  # Admin routes
+  namespace :admin do
+    resources :concepts, only: %i[index show create update destroy]
+    resources :projects, only: %i[index show create update destroy]
+    resources :email_templates, only: %i[index show create update destroy] do
+      collection do
+        get :types
+        get :summary
       end
-      resources :users, only: %i[index show update destroy]
-      resources :levels, only: %i[index create update] do
-        resources :lessons, only: %i[index create update], controller: "levels/lessons"
-      end
+    end
+    resources :users, only: %i[index show update destroy]
+    resources :levels, only: %i[index create update] do
+      resources :lessons, only: %i[index create update], controller: "levels/lessons"
+    end
 
-      namespace :video_production do
-        resources :pipelines, only: %i[index show create update destroy], param: :uuid do
-          resources :nodes, only: %i[index show create update destroy], param: :uuid do
-            member do
-              post :execute
-              get :output
-            end
+    namespace :video_production do
+      resources :pipelines, only: %i[index show create update destroy], param: :uuid do
+        resources :nodes, only: %i[index show create update destroy], param: :uuid do
+          member do
+            post :execute
+            get :output
           end
         end
       end

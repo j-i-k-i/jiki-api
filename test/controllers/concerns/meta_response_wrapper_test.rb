@@ -20,7 +20,7 @@ class TestMetaWrapperController < ApplicationController
 end
 
 # Test admin controller that should skip wrapping
-class TestAdminController < V1::Admin::BaseController
+class TestAdminController < Admin::BaseController
   def admin_response
     render json: { user: { id: 1 } }
   end

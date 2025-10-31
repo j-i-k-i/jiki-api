@@ -39,6 +39,6 @@ module MetaResponseWrapper
 
   private
   def skip_meta_wrapper?
-    is_a?(V1::Admin::BaseController)
+    is_a?(Admin::BaseController)
   end
 end

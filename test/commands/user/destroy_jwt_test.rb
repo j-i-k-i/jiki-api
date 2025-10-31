@@ -21,7 +21,7 @@ class User::DestroyJWTSecurityTest < ActionDispatch::IntegrationTest
     refute_nil jwt_token, "JWT token should be present in Authorization header"
 
     # Verify the token works before deletion
-    get v1_user_levels_path, headers: { "Authorization" => jwt_token }, as: :json
+    get internal_user_levels_path, headers: { "Authorization" => jwt_token }, as: :json
     assert_response :success, "Token should work before user deletion"
 
     # Delete the user
@@ -32,7 +32,7 @@ class User::DestroyJWTSecurityTest < ActionDispatch::IntegrationTest
 
     # Attempt to use the JWT token after user deletion
     # This should fail because the user no longer exists
-    get v1_user_levels_path, headers: { "Authorization" => jwt_token }, as: :json
+    get internal_user_levels_path, headers: { "Authorization" => jwt_token }, as: :json
     assert_response :unauthorized, "Token should be invalid after user deletion"
   end
 end
