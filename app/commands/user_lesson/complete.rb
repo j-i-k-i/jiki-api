@@ -4,7 +4,11 @@ class UserLesson::Complete
   initialize_with :user, :lesson
 
   def call
-    ActiveRecord::Base.transaction do
+    user_lesson.with_lock do
+      # Guard: if already completed, return early (idempotent)
+      return user_lesson if user_lesson.completed_at.present?
+
+      # with_lock already provides transactional semantics, no need for nested transaction
       user_lesson.update!(completed_at: Time.current)
 
       user_level.update!(current_user_lesson: nil)
@@ -14,9 +18,9 @@ class UserLesson::Complete
 
       # Unlock project if this lesson unlocks one
       UserProject::Create.(user, lesson.unlocked_project) if lesson.unlocked_project
-    end
 
-    user_lesson
+      user_lesson
+    end
   end
 
   memoize
