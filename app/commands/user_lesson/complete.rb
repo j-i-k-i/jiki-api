@@ -8,17 +8,16 @@ class UserLesson::Complete
       # Guard: if already completed, return early (idempotent)
       return user_lesson if user_lesson.completed_at.present?
 
-      ActiveRecord::Base.transaction do
-        user_lesson.update!(completed_at: Time.current)
+      # with_lock already provides transactional semantics, no need for nested transaction
+      user_lesson.update!(completed_at: Time.current)
 
-        user_level.update!(current_user_lesson: nil)
+      user_level.update!(current_user_lesson: nil)
 
-        # Unlock concept if this lesson unlocks one
-        Concept::UnlockForUser.(lesson.unlocked_concept, user) if lesson.unlocked_concept
+      # Unlock concept if this lesson unlocks one
+      Concept::UnlockForUser.(lesson.unlocked_concept, user) if lesson.unlocked_concept
 
-        # Unlock project if this lesson unlocks one
-        UserProject::Create.(user, lesson.unlocked_project) if lesson.unlocked_project
-      end
+      # Unlock project if this lesson unlocks one
+      UserProject::Create.(user, lesson.unlocked_project) if lesson.unlocked_project
 
       user_lesson
     end

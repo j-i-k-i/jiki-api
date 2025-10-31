@@ -8,10 +8,9 @@ class UserLevel::Complete
       # Guard: if already completed, return early (idempotent)
       return user_level if user_level.completed_at.present?
 
-      ActiveRecord::Base.transaction do
-        user_level.update!(completed_at: Time.current)
-        create_next_user_level!
-      end
+      # with_lock already provides transactional semantics, no need for nested transaction
+      user_level.update!(completed_at: Time.current)
+      create_next_user_level!
 
       # Send completion email asynchronously after transaction completes
       send_completion_email!(user_level)
