@@ -57,6 +57,11 @@ Rails.application.routes.draw do
     end
 
     resources :concepts, only: %i[index show], param: :concept_slug
+
+    resource :assistant_conversations, only: [] do
+      post :user_messages, action: :create_user_message
+      post :assistant_messages, action: :create_assistant_message
+    end
   end
 
   # Admin routes
