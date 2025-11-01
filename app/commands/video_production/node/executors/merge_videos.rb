@@ -66,7 +66,7 @@ class VideoProduction::Node::Executors::MergeVideos
 
   def callback_url
     # Use spi_base_url from config (already includes /spi base path)
-    # Development: http://local.jiki.io:3061/spi (configured via --add-host in bin/dev)
+    # Development: http://local.jiki.io:3060/spi (configured via --add-host in bin/dev)
     # Production: actual SPI base URL
     "#{Jiki.config.spi_base_url}/video_production/executor_callback"
   end

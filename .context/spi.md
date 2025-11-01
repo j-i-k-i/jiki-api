@@ -16,8 +16,8 @@ SPI endpoints are **network-guarded API endpoints** designed for service-to-serv
 ## URL Structure
 
 ### Development
-- **User-facing API**: `http://localhost:3060` (frontend) → `http://localhost:3061` (Rails)
-- **SPI Base URL**: `http://local.jiki.io:3061/spi` (configured in `jiki-config` gem)
+- **User-facing API**: `http://localhost:3060` (frontend) → `http://localhost:3060` (Rails)
+- **SPI Base URL**: `http://local.jiki.io:3060/spi` (configured in `jiki-config` gem)
 - **Same Server**: Both URLs point to same Rails server in development
 
 ### Production
@@ -30,7 +30,7 @@ SPI endpoints are **network-guarded API endpoints** designed for service-to-serv
 **jiki-config gem** (`../config/settings/`):
 ```yaml
 # local.yml and ci.yml
-spi_base_url: http://local.jiki.io:3061/spi
+spi_base_url: http://local.jiki.io:3060/spi
 
 # production.yml (TBD)
 spi_base_url: https://spi.jiki.com/spi  # Or internal network endpoint
@@ -39,7 +39,7 @@ spi_base_url: https://spi.jiki.com/spi  # Or internal network endpoint
 **Accessing in Rails:**
 ```ruby
 Jiki.config.spi_base_url
-# => "http://local.jiki.io:3061/spi" (development)
+# => "http://local.jiki.io:3060/spi" (development)
 ```
 
 ## Rails Implementation
@@ -169,7 +169,7 @@ bin/dev  # Starts Rails, Sidekiq, LocalStack
 
 **Manual test:**
 ```bash
-curl -X POST http://local.jiki.io:3061/spi/video_production/executor_callback \
+curl -X POST http://local.jiki.io:3060/spi/video_production/executor_callback \
   -H "Content-Type: application/json" \
   -d '{
     "node_uuid": "...",

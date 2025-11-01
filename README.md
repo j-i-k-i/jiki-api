@@ -936,7 +936,7 @@ Ruby 3.4.4
 bin/dev
 ```
 
-This starts both the Rails server (port 3061) and Sidekiq worker using Hivemind.
+This starts both the Rails server (port 3060) and Sidekiq worker using Hivemind.
 
 **Note:** Redis must be running for Sidekiq. Start Redis with `brew services start redis` if needed.
 
