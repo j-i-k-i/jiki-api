@@ -50,7 +50,7 @@ interface LambdaResponse {
  *   input_videos: ["s3://bucket/path1.mp4", "s3://bucket/path2.mp4"],
  *   output_bucket: "jiki-videos",
  *   output_key: "pipelines/123/nodes/456/output.mp4",
- *   callback_url: "http://local.jiki.io:3061/spi/video_production/executor_callback",
+ *   callback_url: "http://local.jiki.io:3060/spi/video_production/executor_callback",
  *   node_uuid: "...",
  *   executor_type: "merge-videos"
  * }

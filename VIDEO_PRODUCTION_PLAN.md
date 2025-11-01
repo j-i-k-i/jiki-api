@@ -1568,7 +1568,7 @@ Rails.application.routes.draw do
 end
 ```
 
-Access at: `http://localhost:3061/sidekiq`
+Access at: `http://localhost:3060/sidekiq`
 
 ### Logging
 
