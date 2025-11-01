@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_10_29_055915) do
+ActiveRecord::Schema[8.1].define(version: 2025_11_01_113829) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -40,6 +40,18 @@ ActiveRecord::Schema[8.1].define(version: 2025_10_29_055915) do
     t.bigint "blob_id", null: false
     t.string "variation_digest", null: false
     t.index ["blob_id", "variation_digest"], name: "index_active_storage_variant_records_uniqueness", unique: true
+  end
+
+  create_table "assistant_conversations", force: :cascade do |t|
+    t.string "context_identifier", null: false
+    t.string "context_type", null: false
+    t.datetime "created_at", null: false
+    t.json "messages", default: [], null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["context_type", "context_identifier"], name: "idx_on_context_type_context_identifier_830dbae703"
+    t.index ["user_id", "context_type", "context_identifier"], name: "index_assistant_conversations_on_user_and_context", unique: true
+    t.index ["user_id"], name: "index_assistant_conversations_on_user_id"
   end
 
   create_table "concepts", force: :cascade do |t|
@@ -242,6 +254,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_10_29_055915) do
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "assistant_conversations", "users"
   add_foreign_key "concepts", "lessons", column: "unlocked_by_lesson_id"
   add_foreign_key "exercise_submission_files", "exercise_submissions"
   add_foreign_key "lessons", "levels"
